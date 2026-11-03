@@ -19,16 +19,16 @@ public partial class ExtensionPopupWindow : ProtectedWindow, IContentShield
 
     private readonly ApprovedExtension _extension;
     private readonly Uri _url;
-    private readonly Action<Uri> _openInMainView;
+    private readonly Action<Uri> _openInNewTab;
     private bool _ready;
     private bool _closing;
 
-    internal ExtensionPopupWindow(ApprovedExtension extension, Uri url, Action<Uri> openInMainView)
+    internal ExtensionPopupWindow(ApprovedExtension extension, Uri url, Action<Uri> openInNewTab)
     {
         InitializeComponent();
         _extension = extension;
         _url = url;
-        _openInMainView = openInMainView;
+        _openInNewTab = openInNewTab;
         Title = extension.Name;
         Loaded += async (_, _) => await InitializeAsync();
         Deactivated += (_, _) =>
@@ -70,10 +70,15 @@ public partial class ExtensionPopupWindow : ProtectedWindow, IContentShield
                 return;
 
             var core = WebView.CoreWebView2;
-            await WebViewHardening.ApplyAsync(core, $"popup:{_extension.Id}", uri =>
+            // Из popup новые окна открываем вкладкой по адресу (без связи с popup: он сейчас закроется).
+            await WebViewHardening.ApplyAsync(core, $"popup:{_extension.Id}", e =>
             {
-                _openInMainView(uri);
-                CloseLater();
+                e.Handled = true;
+                if (Uri.TryCreate(e.Uri, UriKind.Absolute, out var uri) && UrlPolicy.IsWebScheme(uri))
+                {
+                    _openInNewTab(uri);
+                    CloseLater();
+                }
             });
 
             WebViewHardening.BlockLeakShortcuts(WebView, $"popup:{_extension.Id}");
@@ -83,10 +88,10 @@ public partial class ExtensionPopupWindow : ProtectedWindow, IContentShield
                 if (UrlPolicy.IsAllowedExtensionPopupNavigation(e.Uri, _extension.Id))
                     return;
                 e.Cancel = true;
-                // Ссылка из popup на сайт — открываем во вкладке, как сделал бы Chrome.
+                // Ссылка из popup на сайт — открываем в новой вкладке, как сделал бы Chrome.
                 if (UrlPolicy.IsAllowedTopLevelNavigation(e.Uri) && Uri.TryCreate(e.Uri, UriKind.Absolute, out var uri) && UrlPolicy.IsWebScheme(uri))
                 {
-                    _openInMainView(uri);
+                    _openInNewTab(uri);
                     CloseLater();
                 }
                 else

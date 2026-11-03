@@ -2,22 +2,35 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:protection="clr-namespace:Shadepane.App.Protection"
-        xmlns:wv2="clr-namespace:Microsoft.Web.WebView2.Wpf;assembly=Microsoft.Web.WebView2.Wpf"
-        Title="Shadepane — прототип" Width="1280" Height="800">
+        Title="Shadepane" Width="1280" Height="800">
     <DockPanel>
+        <!-- Строка вкладок -->
+        <DockPanel DockPanel.Dock="Top" Margin="4,4,4,0" LastChildFill="True">
+            <Button x:Name="NewTabButton" DockPanel.Dock="Right" Content="+" Width="28" Margin="4,0,0,0"
+                    IsEnabled="False" Click="NewTab_Click" ToolTip="Новая вкладка (Ctrl+T)"/>
+            <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
+                <StackPanel x:Name="TabStrip" Orientation="Horizontal"/>
+            </ScrollViewer>
+        </DockPanel>
+
+        <!-- Панель навигации -->
         <DockPanel DockPanel.Dock="Top" Margin="6" LastChildFill="True">
-            <Button x:Name="BackButton" Content="←" Width="32" IsEnabled="False" Click="Back_Click" ToolTip="Назад"/>
-            <Button x:Name="ForwardButton" Content="→" Width="32" Margin="4,0,0,0" IsEnabled="False" Click="Forward_Click" ToolTip="Вперёд"/>
-            <Button x:Name="ReloadButton" Content="⟳" Width="32" Margin="4,0,0,0" IsEnabled="False" Click="Reload_Click" ToolTip="Обновить"/>
+            <Button x:Name="BackButton" Content="←" Width="32" IsEnabled="False" Click="Back_Click" ToolTip="Назад (Alt+←)"/>
+            <Button x:Name="ForwardButton" Content="→" Width="32" Margin="4,0,0,0" IsEnabled="False" Click="Forward_Click" ToolTip="Вперёд (Alt+→)"/>
+            <Button x:Name="ReloadButton" Content="⟳" Width="32" Margin="4,0,0,0" IsEnabled="False" Click="Reload_Click" ToolTip="Обновить (F5)"/>
             <Button x:Name="AddExtensionButton" DockPanel.Dock="Right" Content="+ Расширение…" Margin="6,0,0,0" Padding="8,2"
                     IsEnabled="False" Click="AddExtension_Click" ToolTip="Добавить распакованное расширение (папку с manifest.json)"/>
             <StackPanel x:Name="ExtensionBar" DockPanel.Dock="Right" Orientation="Horizontal" Margin="6,0,0,0"/>
-            <TextBox x:Name="AddressBox" Margin="6,0,0,0" VerticalContentAlignment="Center" IsEnabled="False" KeyDown="AddressBox_KeyDown"/>
+            <TextBox x:Name="AddressBox" Margin="6,0,0,0" VerticalContentAlignment="Center" IsEnabled="False"
+                     KeyDown="AddressBox_KeyDown" GotKeyboardFocus="AddressBox_GotKeyboardFocus"/>
         </DockPanel>
+
         <TextBlock x:Name="StatusText" DockPanel.Dock="Bottom" Margin="8,2" Foreground="Gray" TextTrimming="CharacterEllipsis"/>
+
         <Grid>
-            <wv2:WebView2 x:Name="WebView"/>
-            <!-- WPF не может рисовать поверх HWND WebView2 (airspace), поэтому скрываем сам WebView. -->
+            <!-- Сюда добавляются WebView2 вкладок; видна только активная. -->
+            <Grid x:Name="ContentHost"/>
+            <!-- WPF не может рисовать поверх HWND WebView2 (airspace), поэтому при нарушении защиты скрываем ContentHost целиком. -->
             <TextBlock x:Name="HiddenNotice" Visibility="Collapsed" Text="Контент скрыт политикой защиты"
                        HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="18"/>
         </Grid>

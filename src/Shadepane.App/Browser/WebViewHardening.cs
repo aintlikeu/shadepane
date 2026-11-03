@@ -4,7 +4,7 @@ using Shadepane.Core.Navigation;
 namespace Shadepane.App.Browser;
 
 /// <summary>
-/// Единые ограничения для КАЖДОГО CoreWebView2 (главное окно и popup расширений):
+/// Единые ограничения для КАЖДОГО CoreWebView2 (каждая вкладка и popup расширений):
 /// закрытые каналы утечки внутри браузера, о которых флаг окна ничего не знает.
 /// </summary>
 internal static class WebViewHardening
@@ -29,8 +29,15 @@ internal static class WebViewHardening
         })();
         """;
 
-    /// <param name="openInMainView">Куда отправлять http(s)-ссылки, которые страница пытается открыть в новом окне.</param>
-    public static async Task ApplyAsync(CoreWebView2 core, string role, Action<Uri> openInMainView)
+    /// <summary>
+    /// Решает, куда открыть разрешённое новое окно (window.open, target=_blank, Ctrl+клик).
+    /// Обработчик ОБЯЗАН выставить e.Handled = true или e.NewWindow — иначе WebView2 создаст своё окно,
+    /// на которое мы не можем поставить флаг защиты.
+    /// </summary>
+    public delegate void NewWindowHandler(CoreWebView2NewWindowRequestedEventArgs e);
+
+    /// <param name="onNewWindow">Куда открыть новое окно, если адрес разрешён политикой.</param>
+    public static async Task ApplyAsync(CoreWebView2 core, string role, NewWindowHandler onNewWindow)
     {
         var policy = AppServices.Policy;
         var audit = AppServices.Audit;
@@ -63,13 +70,17 @@ internal static class WebViewHardening
         };
 
         // Без этого WebView2 создаст СВОЁ окно, на которое мы не можем поставить флаг защиты.
+        // about:blank разрешён: так открываются окна входа (OAuth), которые потом переходят на сайт —
+        // этот переход проверит NavigationStarting новой вкладки.
         core.NewWindowRequested += (_, e) =>
         {
-            e.Handled = true;
-            if (UrlPolicy.IsAllowedTopLevelNavigation(e.Uri) && Uri.TryCreate(e.Uri, UriKind.Absolute, out var uri) && UrlPolicy.IsWebScheme(uri))
-                openInMainView(uri);
-            else
+            if (!UrlPolicy.IsAllowedTopLevelNavigation(e.Uri))
+            {
+                e.Handled = true;
                 audit.Write("new-window-blocked", new { role, uri = e.Uri });
+                return;
+            }
+            onNewWindow(e);
         };
 
         core.ContextMenuRequested += (_, e) =>

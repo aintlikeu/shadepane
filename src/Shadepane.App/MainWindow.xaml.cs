@@ -15,9 +15,15 @@ namespace Shadepane.App;
 
 public partial class MainWindow : ProtectedWindow, IContentShield
 {
+    private const string ProductName = "Shadepane";
+
     private readonly ExtensionHost _extensions = new();
     private readonly Dictionary<string, ExtensionPopupWindow> _popups = [];
-    private CoreWebView2? _core;
+    private readonly List<BrowserTab> _tabs = [];
+    private readonly Dictionary<BrowserTab, Border> _tabHeaders = [];
+    private CoreWebView2Environment? _environment;
+    private CoreWebView2Profile? _profile;
+    private BrowserTab? _active;
     private bool _busy;
     private bool _closed;
 
@@ -30,7 +36,7 @@ public partial class MainWindow : ProtectedWindow, IContentShield
 
     public void HideContent()
     {
-        WebView.Visibility = Visibility.Collapsed;
+        ContentHost.Visibility = Visibility.Collapsed;
         HiddenNotice.Visibility = Visibility.Visible;
     }
 
@@ -43,41 +49,24 @@ public partial class MainWindow : ProtectedWindow, IContentShield
             AppServices.Audit.Write("webview-runtime", new { available = CoreWebView2Environment.GetAvailableBrowserVersionString() });
 
             stage = "create-environment";
-            var environment = await BrowserEnvironment.GetAsync();
+            _environment = await BrowserEnvironment.GetAsync();
 
-            stage = "create-controller";
-            await WebView.EnsureCoreWebView2Async(environment);
-            if (_closed)
+            stage = "create-first-tab";
+            var first = await CreateTabAsync(activate: true);
+            if (_closed || first?.Core is null)
                 return;
-
-            _core = WebView.CoreWebView2;
-            AppServices.Audit.Write("webview-ready", new { runtime = environment.BrowserVersionString });
-
-            stage = "hardening";
-            await WebViewHardening.ApplyAsync(_core, "main", OpenInMainView);
-            WebViewHardening.BlockLeakShortcuts(WebView, "main");
-            _core.NavigationStarting += OnNavigationStarting;
-            _core.SourceChanged += (_, _) => AddressBox.Text = _core.Source;
-            _core.HistoryChanged += (_, _) =>
-            {
-                BackButton.IsEnabled = _core.CanGoBack;
-                ForwardButton.IsEnabled = _core.CanGoForward;
-            };
+            _profile = first.Core.Profile;
+            AppServices.Audit.Write("webview-ready", new { runtime = _environment.BrowserVersionString });
 
             stage = "extensions-sync";
-            await _extensions.SyncAsync(_core.Profile);
+            await _extensions.SyncAsync(_profile);
             if (_closed)
                 return;
             RebuildExtensionBar();
 
             stage = "navigate-home";
-
-            AddressBox.IsEnabled = ReloadButton.IsEnabled = AddExtensionButton.IsEnabled = true;
-            var home = AppServices.Policy.HomeUrl;
-            if (home == UrlPolicy.AboutBlank)
-                _core.Navigate(UrlPolicy.AboutBlank);
-            else
-                NavigateFromInput(home);
+            AddressBox.IsEnabled = ReloadButton.IsEnabled = AddExtensionButton.IsEnabled = NewTabButton.IsEnabled = true;
+            NavigateHome(first);
         }
         catch (WebView2RuntimeNotFoundException)
         {
@@ -94,31 +83,273 @@ public partial class MainWindow : ProtectedWindow, IContentShield
         }
     }
 
-    // ---------- Навигация ----------
+    // ---------- Вкладки ----------
 
-    private void NavigateFromInput(string input)
+    /// <summary>Создаёт и инициализирует вкладку. null — окно закрылось или вкладку закрыли во время создания.</summary>
+    private async Task<BrowserTab?> CreateTabAsync(bool activate, int? insertAt = null)
     {
-        if (_core is null)
-            return;
-        if (UrlPolicy.TryNormalizeUserInput(input, out var uri, out var error))
-            _core.Navigate(uri!.AbsoluteUri);
-        else
-            SetStatus($"Адрес не открыт: {error}");
+        if (_environment is null || _closed)
+            return null;
+
+        var tab = new BrowserTab();
+        tab.Changed += OnTabChanged;
+        tab.CloseRequested += t => Dispatcher.BeginInvoke(() => CloseTab(t)); // не уничтожаем WebView2 внутри его события
+        tab.Status += (t, message) => { if (t == _active) SetStatus(message); };
+
+        var index = Math.Clamp(insertAt ?? _tabs.Count, 0, _tabs.Count);
+        _tabs.Insert(index, tab);
+        ContentHost.Children.Add(tab.View);
+        var header = CreateTabHeader(tab);
+        _tabHeaders[tab] = header;
+        TabStrip.Children.Insert(index, header);
+        if (activate || _active is null)
+            ActivateTab(tab);
+
+        try
+        {
+            await tab.InitializeAsync(_environment, OnNewWindowRequested);
+        }
+        catch
+        {
+            // Не оставляем вкладку без движка; окно не закрываем, даже если вкладка была единственной —
+            // о сбое сообщит вызывающий (для первой вкладки это сообщение об ошибке запуска).
+            RemoveTab(tab);
+            throw;
+        }
+        if (tab.IsClosed || _closed)
+            return null;
+        OnTabChanged(tab);
+        return tab;
     }
 
-    private void OpenInMainView(Uri uri)
+    /// <summary>
+    /// window.open / target=_blank / Ctrl+клик → новая вкладка. Через e.NewWindow, чтобы сохранить
+    /// window.opener (без него не работают окна входа). Ctrl при клике — вкладка в фоне, как в Chrome.
+    /// </summary>
+    private async void OnNewWindowRequested(CoreWebView2NewWindowRequestedEventArgs e)
     {
-        _core?.Navigate(uri.AbsoluteUri);
+        var deferral = e.GetDeferral();
+        try
+        {
+            var background = Keyboard.Modifiers.HasFlag(ModifierKeys.Control);
+            var insertAt = _active is null ? (int?)null : _tabs.IndexOf(_active) + 1;
+            var tab = await CreateTabAsync(activate: !background, insertAt);
+            if (tab?.Core is not null)
+                e.NewWindow = tab.Core;
+            e.Handled = true;
+        }
+        catch (Exception ex)
+        {
+            e.Handled = true;
+            AppServices.Audit.Write("new-tab-failed", Diagnostics.Details(ex));
+        }
+        finally
+        {
+            deferral.Complete();
+        }
+    }
+
+    private async Task OpenNewTabAsync(string? url = null)
+    {
+        try
+        {
+            var tab = await CreateTabAsync(activate: true);
+            if (tab is null)
+                return;
+            if (url is null)
+            {
+                NavigateHome(tab);
+                FocusAddressBox();
+            }
+            else
+            {
+                tab.Navigate(url);
+            }
+        }
+        catch (Exception ex) when (!_closed)
+        {
+            AppServices.Audit.Write("new-tab-failed", Diagnostics.Details(ex));
+            SetStatus($"Не удалось открыть вкладку: {Diagnostics.Describe(ex)}");
+        }
+    }
+
+    private void OpenInNewTab(Uri uri)
+    {
+        _ = OpenNewTabAsync(uri.AbsoluteUri);
         Activate();
     }
 
-    private void OnNavigationStarting(object? sender, CoreWebView2NavigationStartingEventArgs e)
+    private void ActivateTab(BrowserTab tab)
     {
-        if (UrlPolicy.IsAllowedTopLevelNavigation(e.Uri))
+        if (tab.IsClosed)
             return;
-        e.Cancel = true;
-        AppServices.Audit.Write("navigation-blocked", new { uri = e.Uri });
-        SetStatus($"Переход заблокирован политикой: {Truncate(e.Uri, 120)}");
+        _active = tab;
+        foreach (var t in _tabs)
+            t.View.Visibility = t == tab ? Visibility.Visible : Visibility.Hidden;
+        foreach (var (t, header) in _tabHeaders)
+            StyleTabHeader(header, t == tab);
+        RefreshChrome();
+        if (_tabHeaders.TryGetValue(tab, out var active))
+            active.BringIntoView();
+    }
+
+    /// <summary>Убирает вкладку из окна и уничтожает её WebView2. Возвращает её прежний индекс или -1.</summary>
+    private int RemoveTab(BrowserTab tab)
+    {
+        var index = _tabs.IndexOf(tab);
+        if (index < 0)
+            return -1;
+        _tabs.RemoveAt(index);
+        if (_tabHeaders.Remove(tab, out var header))
+            TabStrip.Children.Remove(header);
+        ContentHost.Children.Remove(tab.View);
+        tab.Close();
+        if (_active == tab)
+            _active = null;
+        return index;
+    }
+
+    private void CloseTab(BrowserTab tab)
+    {
+        var wasActive = _active == tab;
+        var index = RemoveTab(tab);
+        if (index < 0)
+            return;
+
+        if (_tabs.Count == 0)
+        {
+            Close(); // как в Chrome: закрыли последнюю вкладку — закрыли окно
+            return;
+        }
+        if (wasActive)
+            ActivateTab(_tabs[Math.Clamp(index, 0, _tabs.Count - 1)]);
+    }
+
+    private void SelectRelativeTab(int delta)
+    {
+        if (_active is null || _tabs.Count < 2)
+            return;
+        var index = (_tabs.IndexOf(_active) + delta + _tabs.Count) % _tabs.Count;
+        ActivateTab(_tabs[index]);
+    }
+
+    private void SelectTabByNumber(int number)
+    {
+        // Ctrl+1..8 — вкладка по номеру, Ctrl+9 — последняя (как в Chrome).
+        if (_tabs.Count == 0)
+            return;
+        var index = number == 9 ? _tabs.Count - 1 : number - 1;
+        if (index >= 0 && index < _tabs.Count)
+            ActivateTab(_tabs[index]);
+    }
+
+    private Border CreateTabHeader(BrowserTab tab)
+    {
+        var title = new TextBlock
+        {
+            Text = tab.Title,
+            MaxWidth = 180,
+            TextTrimming = TextTrimming.CharacterEllipsis,
+            VerticalAlignment = VerticalAlignment.Center,
+        };
+        var close = new Button
+        {
+            Content = "✕",
+            Width = 20,
+            Height = 20,
+            Margin = new Thickness(6, 0, 0, 0),
+            Padding = new Thickness(0),
+            BorderThickness = new Thickness(0),
+            Background = Brushes.Transparent,
+            ToolTip = "Закрыть вкладку (Ctrl+W)",
+            Focusable = false,
+        };
+        close.Click += (_, _) => CloseTab(tab);
+        DockPanel.SetDock(close, Dock.Right);
+
+        var panel = new DockPanel { LastChildFill = true };
+        panel.Children.Add(close);
+        panel.Children.Add(title);
+
+        var header = new Border
+        {
+            Child = panel,
+            Padding = new Thickness(10, 4, 4, 4),
+            Margin = new Thickness(0, 0, 2, 0),
+            BorderThickness = new Thickness(1, 1, 1, 0),
+            BorderBrush = SystemColors.ActiveBorderBrush,
+            CornerRadius = new CornerRadius(4, 4, 0, 0),
+            Tag = title,
+            Cursor = Cursors.Hand,
+        };
+        header.MouseLeftButtonUp += (_, e) => { if (e.OriginalSource is not Button) ActivateTab(tab); };
+        header.MouseUp += (_, e) => { if (e.ChangedButton == MouseButton.Middle) CloseTab(tab); };
+        return header;
+    }
+
+    private static void StyleTabHeader(Border header, bool isActive)
+    {
+        header.Background = isActive ? SystemColors.WindowBrush : SystemColors.ControlBrush;
+        if (header.Tag is TextBlock title)
+            title.FontWeight = isActive ? FontWeights.SemiBold : FontWeights.Normal;
+    }
+
+    private void OnTabChanged(BrowserTab tab)
+    {
+        if (_closed || tab.IsClosed)
+            return;
+        if (_tabHeaders.TryGetValue(tab, out var header) && header.Tag is TextBlock title)
+        {
+            title.Text = tab.Title;
+            header.ToolTip = string.IsNullOrEmpty(tab.Url) ? tab.Title : $"{tab.Title}\n{tab.Url}";
+        }
+        if (tab == _active)
+            RefreshChrome();
+    }
+
+    /// <summary>Адресная строка, кнопки и заголовок окна — по активной вкладке.</summary>
+    private void RefreshChrome()
+    {
+        var tab = _active;
+        var core = tab?.Core;
+        BackButton.IsEnabled = core?.CanGoBack == true;
+        ForwardButton.IsEnabled = core?.CanGoForward == true;
+        // Пока пользователь печатает в адресной строке, не затираем введённое.
+        if (!AddressBox.IsKeyboardFocusWithin)
+            AddressBox.Text = tab?.Url == UrlPolicy.AboutBlank ? "" : tab?.Url ?? "";
+        Title = tab is null ? ProductName : $"{tab.Title} — {ProductName}";
+    }
+
+    // ---------- Навигация ----------
+
+    private void NavigateHome(BrowserTab tab)
+    {
+        var home = AppServices.Policy.HomeUrl;
+        if (home == UrlPolicy.AboutBlank)
+            tab.Navigate(UrlPolicy.AboutBlank);
+        else if (UrlPolicy.TryNormalizeUserInput(home, out var uri, out _))
+            tab.Navigate(uri!.AbsoluteUri);
+    }
+
+    private void NavigateFromInput(string input)
+    {
+        if (_active is null)
+            return;
+        if (UrlPolicy.TryNormalizeUserInput(input, out var uri, out var error))
+        {
+            _active.Navigate(uri!.AbsoluteUri);
+            _active.View.Focus();
+        }
+        else
+        {
+            SetStatus($"Адрес не открыт: {error}");
+        }
+    }
+
+    private void FocusAddressBox()
+    {
+        AddressBox.Focus();
+        AddressBox.SelectAll();
     }
 
 #if DEBUG
@@ -126,37 +357,61 @@ public partial class MainWindow : ProtectedWindow, IContentShield
     /// Симуляция атаки для проверки контрольного цикла: Ctrl+Alt+Shift+D снимает флаг защиты
     /// с этого окна — так же, как сделал бы код, внедрённый в процесс. Только в Debug-сборке.
     /// </summary>
-    protected override void OnPreviewKeyDown(KeyEventArgs e)
+    private bool HandleDebugKeys(KeyEventArgs e)
     {
         if (e.Key == Key.D && Keyboard.Modifiers == (ModifierKeys.Control | ModifierKeys.Alt | ModifierKeys.Shift))
         {
             var hwnd = new System.Windows.Interop.WindowInteropHelper(this).Handle;
             Native.NativeMethods.SetWindowDisplayAffinity(hwnd, Native.NativeMethods.WDA_NONE);
             SetStatus("DEBUG: флаг защиты снят — контрольный цикл должен сработать в течение ~200 мс");
-            e.Handled = true;
-            return;
+            return true;
         }
-        base.OnPreviewKeyDown(e);
+        return false;
     }
 #endif
 
-    private void AddressBox_KeyDown(object sender, KeyEventArgs e)
+    protected override void OnPreviewKeyDown(KeyEventArgs e)
     {
-        if (e.Key != Key.Enter)
+#if DEBUG
+        if (HandleDebugKeys(e))
+        {
+            e.Handled = true;
             return;
-        e.Handled = true;
-        NavigateFromInput(AddressBox.Text);
+        }
+#endif
+        base.OnPreviewKeyDown(e);
     }
 
-    private void Back_Click(object sender, RoutedEventArgs e) => _core?.GoBack();
-    private void Forward_Click(object sender, RoutedEventArgs e) => _core?.GoForward();
-    private void Reload_Click(object sender, RoutedEventArgs e) => _core?.Reload();
+    private void AddressBox_KeyDown(object sender, KeyEventArgs e)
+    {
+        switch (e.Key)
+        {
+            case Key.Enter:
+                e.Handled = true;
+                NavigateFromInput(AddressBox.Text);
+                break;
+            case Key.Escape:
+                // Отменить ввод: вернуть адрес активной вкладки и отдать фокус странице.
+                e.Handled = true;
+                AddressBox.Text = _active?.Url == UrlPolicy.AboutBlank ? "" : _active?.Url ?? "";
+                _active?.View.Focus();
+                break;
+        }
+    }
+
+    private void AddressBox_GotKeyboardFocus(object sender, KeyboardFocusChangedEventArgs e) =>
+        Dispatcher.BeginInvoke(AddressBox.SelectAll); // после клика мышью выделение иначе сбрасывается
+
+    private void NewTab_Click(object sender, RoutedEventArgs e) => _ = OpenNewTabAsync();
+    private void Back_Click(object sender, RoutedEventArgs e) => _active?.Core?.GoBack();
+    private void Forward_Click(object sender, RoutedEventArgs e) => _active?.Core?.GoForward();
+    private void Reload_Click(object sender, RoutedEventArgs e) => _active?.Core?.Reload();
 
     // ---------- Расширения ----------
 
     private async void AddExtension_Click(object sender, RoutedEventArgs e)
     {
-        if (_busy || _core is null)
+        if (_busy || _profile is null)
             return; // защита от двойного нажатия
         _busy = true;
         AddExtensionButton.IsEnabled = false;
@@ -166,7 +421,7 @@ public partial class MainWindow : ProtectedWindow, IContentShield
             if (dialog.ShowDialog(this) != true)
                 return; // отмена
 
-            var (added, validation) = await _extensions.AddFromFolderAsync(_core.Profile, dialog.FolderName);
+            var (added, validation) = await _extensions.AddFromFolderAsync(_profile, dialog.FolderName);
             if (_closed)
                 return;
             if (added is null)
@@ -198,7 +453,7 @@ public partial class MainWindow : ProtectedWindow, IContentShield
 
     private async Task RemoveExtensionAsync(ApprovedExtension extension)
     {
-        if (_busy || _core is null)
+        if (_busy || _profile is null)
             return;
         var answer = MessageBox.Show(this, $"Удалить расширение «{extension.Name}»?", Title, MessageBoxButton.YesNo, MessageBoxImage.Question);
         if (answer != MessageBoxResult.Yes)
@@ -209,7 +464,7 @@ public partial class MainWindow : ProtectedWindow, IContentShield
         {
             if (_popups.TryGetValue(extension.Id, out var popup))
                 popup.Close();
-            await _extensions.RemoveAsync(_core.Profile, extension.Id);
+            await _extensions.RemoveAsync(_profile, extension.Id);
             if (_closed)
                 return;
             RebuildExtensionBar();
@@ -294,7 +549,7 @@ public partial class MainWindow : ProtectedWindow, IContentShield
             return;
         }
 
-        var popup = new ExtensionPopupWindow(extension, UrlPolicy.BuildExtensionUrl(extension.Id, urlPath!), OpenInMainView)
+        var popup = new ExtensionPopupWindow(extension, UrlPolicy.BuildExtensionUrl(extension.Id, urlPath!), OpenInNewTab)
         {
             Owner = this,
         };
@@ -318,7 +573,4 @@ public partial class MainWindow : ProtectedWindow, IContentShield
     }
 
     private void SetStatus(string text) => StatusText.Text = text;
-
-    private static string Truncate(string? s, int max) =>
-        s is null ? "" : s.Length <= max ? s : s[..max] + "…";
 }
