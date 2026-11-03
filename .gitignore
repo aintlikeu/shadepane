@@ -1,0 +1,8 @@
+bin/
+obj/
+*.user
+.vs/
+TestResults/
+
+# снимки экрана из ручной проверки (docs/SPIKE.md)
+pb-capture-*.png

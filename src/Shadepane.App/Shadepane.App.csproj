@@ -1,0 +1,30 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UseWPF>true</UseWPF>
+    <!-- Позволяет собирать (но не запускать) проект на Linux/macOS — для CI и проверки компиляции. -->
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
+    <!-- Нужно для [LibraryImport] (P/Invoke через source generator). -->
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <AssemblyName>Shadepane</AssemblyName>
+    <RootNamespace>Shadepane.App</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.4314.35" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Shadepane.Core\Shadepane.Core.csproj" />
+  </ItemGroup>
+
+  <!-- policy.json рядом с exe читается только Debug-сборкой (стенд). Release берёт политику из HKLM/ProgramData. -->
+  <ItemGroup Condition="'$(Configuration)' == 'Debug'">
+    <None Include="..\..\samples\policies\default.json" Link="policy.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+</Project>

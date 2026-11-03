@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <title>Capture test — CONFIDENTIAL</title>
+  <style>
+    body { font: 15px system-ui, sans-serif; margin: 24px; max-width: 900px; }
+    .secret { font-size: 28px; font-weight: 700; color: #b71c1c; border: 3px dashed #b71c1c; padding: 16px; }
+    section { margin: 20px 0; padding: 12px; border: 1px solid #ccc; border-radius: 6px; }
+    code { background: #eee; padding: 1px 4px; }
+  </style>
+</head>
+<body>
+  <p class="secret">СЕКРЕТ: договор №4711, сумма 9 876 543 ₽</p>
+
+  <section>
+    <h3>1. Всплывающие окна Chromium (отдельные HWND процесса msedgewebview2.exe)</h3>
+    <p>Откройте каждый элемент и, пока он открыт, сделайте снимок экрана.</p>
+    <label>Выпадающий список:
+      <select>
+        <option>Клиент: ООО «Ромашка» — 1 200 000 ₽</option>
+        <option>Клиент: АО «Василёк» — 3 400 000 ₽</option>
+        <option>Клиент: ИП Петров — 560 000 ₽</option>
+      </select>
+    </label>
+    <p><label>Выбор даты: <input type="date"></label></p>
+    <p><label>Datalist: <input list="dl" placeholder="начните вводить «Клиент»"></label>
+      <datalist id="dl"><option value="Клиент секретный 1"><option value="Клиент секретный 2"></datalist></p>
+    <p><span title="Подсказка: пароль от CRM — hunter2" style="text-decoration: underline dotted">Наведите курсор (title-подсказка)</span></p>
+    <p><input type="color"> выбор цвета</p>
+  </section>
+
+  <section>
+    <h3>2. Диалоги</h3>
+    <button onclick="alert('СЕКРЕТ в alert(): 9 876 543 ₽')">alert()</button>
+    <button onclick="confirm('СЕКРЕТ в confirm()?')">confirm()</button>
+    <button onclick="prompt('СЕКРЕТ в prompt()', 'значение')">prompt()</button>
+  </section>
+
+  <section>
+    <h3>3. Каналы утечки внутри браузера (должны быть заблокированы)</h3>
+    <button onclick="window.print()">window.print()</button>
+    <button onclick="navigator.mediaDevices.getDisplayMedia().then(() => out('getDisplayMedia: ПОЛУЧЕН ПОТОК — плохо'), e => out('getDisplayMedia заблокирован: ' + e))">getDisplayMedia()</button>
+    <button onclick="window.open('https://example.com/?from=window.open')">window.open(https)</button>
+    <button onclick="window.open('data:text/html,<h1>popup</h1>')">window.open(data:)</button>
+    <a href="data:application/octet-stream,secret" download="secret.txt">Скачать файл</a>
+    <a href="secret.pdf">Открыть PDF (встроенный просмотрщик)</a>
+    <p id="out"></p>
+  </section>
+
+  <script>function out(t) { document.getElementById('out').textContent = t; }</script>
+</body>
+</html>

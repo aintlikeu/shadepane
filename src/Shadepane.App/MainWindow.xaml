@@ -1,0 +1,25 @@
+<protection:ProtectedWindow x:Class="Shadepane.App.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:protection="clr-namespace:Shadepane.App.Protection"
+        xmlns:wv2="clr-namespace:Microsoft.Web.WebView2.Wpf;assembly=Microsoft.Web.WebView2.Wpf"
+        Title="Shadepane — прототип" Width="1280" Height="800">
+    <DockPanel>
+        <DockPanel DockPanel.Dock="Top" Margin="6" LastChildFill="True">
+            <Button x:Name="BackButton" Content="←" Width="32" IsEnabled="False" Click="Back_Click" ToolTip="Назад"/>
+            <Button x:Name="ForwardButton" Content="→" Width="32" Margin="4,0,0,0" IsEnabled="False" Click="Forward_Click" ToolTip="Вперёд"/>
+            <Button x:Name="ReloadButton" Content="⟳" Width="32" Margin="4,0,0,0" IsEnabled="False" Click="Reload_Click" ToolTip="Обновить"/>
+            <Button x:Name="AddExtensionButton" DockPanel.Dock="Right" Content="+ Расширение…" Margin="6,0,0,0" Padding="8,2"
+                    IsEnabled="False" Click="AddExtension_Click" ToolTip="Добавить распакованное расширение (папку с manifest.json)"/>
+            <StackPanel x:Name="ExtensionBar" DockPanel.Dock="Right" Orientation="Horizontal" Margin="6,0,0,0"/>
+            <TextBox x:Name="AddressBox" Margin="6,0,0,0" VerticalContentAlignment="Center" IsEnabled="False" KeyDown="AddressBox_KeyDown"/>
+        </DockPanel>
+        <TextBlock x:Name="StatusText" DockPanel.Dock="Bottom" Margin="8,2" Foreground="Gray" TextTrimming="CharacterEllipsis"/>
+        <Grid>
+            <wv2:WebView2 x:Name="WebView"/>
+            <!-- WPF не может рисовать поверх HWND WebView2 (airspace), поэтому скрываем сам WebView. -->
+            <TextBlock x:Name="HiddenNotice" Visibility="Collapsed" Text="Контент скрыт политикой защиты"
+                       HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="18"/>
+        </Grid>
+    </DockPanel>
+</protection:ProtectedWindow>

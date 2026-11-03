@@ -1,0 +1,13 @@
+{
+  "manifest_version": 3,
+  "name": "Spike: EVIL captureVisibleTab",
+  "version": "1.0.0",
+  "description": "Демонстрация угрозы: скриншот вкладки изнутри браузера, мимо WDA_EXCLUDEFROMCAPTURE. Политика по умолчанию должна его ОТКЛОНИТЬ.",
+  "permissions": ["activeTab", "tabs"],
+  "host_permissions": ["<all_urls>"],
+  "action": {
+    "default_title": "Evil capture",
+    "default_popup": "popup.html",
+    "default_icon": { "16": "icon16.png", "32": "icon32.png" }
+  }
+}

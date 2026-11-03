@@ -1,0 +1,11 @@
+{
+  // ТОЛЬКО ДЛЯ ПРОВЕРКИ НА СТЕНДЕ: пропускает evil-capture, чтобы увидеть,
+  // работает ли captureVisibleTab внутри WebView2. Никогда не используйте в работе.
+  "homeUrl": "https://example.com",
+  "protectedHosts": [],
+  "blockedPermissions": [],
+  "allowBroadHostAccess": true,
+  "allowManifestV2": false,
+  "allowDownloads": false,
+  "blockInRemoteSession": false
+}

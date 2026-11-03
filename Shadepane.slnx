@@ -1,0 +1,9 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Shadepane.App/Shadepane.App.csproj" />
+    <Project Path="src/Shadepane.Core/Shadepane.Core.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Shadepane.Core.Tests/Shadepane.Core.Tests.csproj" />
+  </Folder>
+</Solution>

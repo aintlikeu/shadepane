@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <title>Spike popup</title>
+  <style>
+    body { font: 13px system-ui, sans-serif; margin: 12px; min-width: 320px; }
+    li { margin: 4px 0; }
+    .ok { color: #2e7d32; } .fail { color: #c62828; }
+    button { margin: 4px 4px 0 0; }
+  </style>
+</head>
+<body>
+  <h3>Проверка API расширения в WebView2</h3>
+  <ul id="results"></ul>
+  <p>Счётчик в chrome.storage.local: <b id="counter">?</b></p>
+  <button id="inc">+1 (сохраняется между открытиями)</button>
+  <button id="close">window.close()</button>
+  <script src="popup.js"></script>
+</body>
+</html>

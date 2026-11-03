@@ -1,0 +1,14 @@
+{
+  "manifest_version": 3,
+  "name": "Spike: popup + storage + messaging",
+  "version": "1.0.0",
+  "description": "Проверяет, работают ли popup, chrome.storage и обмен сообщениями с service worker в WebView2.",
+  "permissions": ["storage"],
+  "background": { "service_worker": "background.js" },
+  "action": {
+    "default_title": "Spike popup",
+    "default_popup": "popup.html",
+    "default_icon": { "16": "icon16.png", "32": "icon32.png" }
+  },
+  "icons": { "16": "icon16.png", "32": "icon32.png" }
+}

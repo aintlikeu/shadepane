@@ -1,0 +1,18 @@
+{
+  // Пример корпоративной политики. Как установить её так, чтобы сотрудник не мог её изменить,
+  // см. README.md, раздел «Политика».
+  "homeUrl": "https://example.com",
+  "protectedHosts": ["*.corp.example", "crm.partner.example"],
+  "blockedPermissions": [
+    "tabCapture", "desktopCapture", "pageCapture", "debugger", "activeTab", "downloads",
+    "tabs", "history", "webNavigation", "declarativeNetRequestFeedback", "topSites", "sessions", "proxy"
+  ],
+  // Чтение буфера обмена расширениями (право clipboardRead). false — запретить.
+  "allowExtensionClipboardRead": true,
+  // Режим белого списка (рекомендуется для продуктива): разрешены только перечисленные права.
+  // "allowedPermissions": ["storage", "alarms", "contextMenus", "notifications", "i18n"],
+  "allowBroadHostAccess": false,
+  "allowManifestV2": false,
+  "allowDownloads": false,
+  "blockInRemoteSession": true
+}
