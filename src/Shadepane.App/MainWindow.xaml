@@ -25,6 +25,17 @@
                      KeyDown="AddressBox_KeyDown" GotKeyboardFocus="AddressBox_GotKeyboardFocus"/>
         </DockPanel>
 
+        <!-- Поиск на странице (Ctrl+F). Встроенная панель WebView2 скрыта, ищем через CoreWebView2.Find. -->
+        <DockPanel x:Name="FindBar" DockPanel.Dock="Top" Margin="6,0,6,4" Visibility="Collapsed" LastChildFill="False">
+            <TextBlock Text="Найти на странице:" VerticalAlignment="Center"/>
+            <TextBox x:Name="FindBox" Width="280" Margin="6,0,0,0" VerticalContentAlignment="Center"
+                     TextChanged="FindBox_TextChanged" KeyDown="FindBox_KeyDown"/>
+            <TextBlock x:Name="FindCount" Margin="8,0,0,0" MinWidth="60" VerticalAlignment="Center" Foreground="Gray"/>
+            <Button Content="↑" Width="28" Margin="4,0,0,0" Click="FindPrevious_Click" ToolTip="Предыдущее (Shift+F3, Shift+Enter)"/>
+            <Button Content="↓" Width="28" Margin="4,0,0,0" Click="FindNext_Click" ToolTip="Следующее (F3, Enter)"/>
+            <Button Content="✕" Width="28" Margin="4,0,0,0" Click="FindClose_Click" ToolTip="Закрыть (Esc)"/>
+        </DockPanel>
+
         <TextBlock x:Name="StatusText" DockPanel.Dock="Bottom" Margin="8,2" Foreground="Gray" TextTrimming="CharacterEllipsis"/>
 
         <Grid>

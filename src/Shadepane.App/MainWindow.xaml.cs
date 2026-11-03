@@ -8,6 +8,7 @@ using Microsoft.Web.WebView2.Core;
 using Microsoft.Win32;
 using Shadepane.App.Browser;
 using Shadepane.App.Protection;
+using Shadepane.Core.Browsing;
 using Shadepane.Core.Extensions;
 using Shadepane.Core.Navigation;
 
@@ -21,6 +22,7 @@ public partial class MainWindow : ProtectedWindow, IContentShield
     private readonly Dictionary<string, ExtensionPopupWindow> _popups = [];
     private readonly List<BrowserTab> _tabs = [];
     private readonly Dictionary<BrowserTab, Border> _tabHeaders = [];
+    private readonly HashSet<BrowserTab> _findSubscribed = [];
     private CoreWebView2Environment? _environment;
     private CoreWebView2Profile? _profile;
     private BrowserTab? _active;
@@ -183,6 +185,8 @@ public partial class MainWindow : ProtectedWindow, IContentShield
     {
         if (tab.IsClosed)
             return;
+        if (_active != tab)
+            CloseFind(focusPage: false); // поиск относится к странице, а не к окну
         _active = tab;
         foreach (var t in _tabs)
             t.View.Visibility = t == tab ? Visibility.Visible : Visibility.Hidden;
@@ -203,9 +207,13 @@ public partial class MainWindow : ProtectedWindow, IContentShield
         if (_tabHeaders.Remove(tab, out var header))
             TabStrip.Children.Remove(header);
         ContentHost.Children.Remove(tab.View);
-        tab.Close();
+        _findSubscribed.Remove(tab);
         if (_active == tab)
+        {
+            CloseFind(focusPage: false);
             _active = null;
+        }
+        tab.Close();
         return index;
     }
 
@@ -370,6 +378,10 @@ public partial class MainWindow : ProtectedWindow, IContentShield
     }
 #endif
 
+    /// <summary>
+    /// Горячие клавиши браузера. Срабатывают и когда фокус на странице: WPF-контрол WebView2 пересылает
+    /// клавиши-ускорители в PreviewKeyDown окна (туннельное событие идёт от окна к контролу).
+    /// </summary>
     protected override void OnPreviewKeyDown(KeyEventArgs e)
     {
 #if DEBUG
@@ -379,8 +391,219 @@ public partial class MainWindow : ProtectedWindow, IContentShield
             return;
         }
 #endif
+        var key = e.Key == Key.System ? e.SystemKey : e.Key; // Alt+клавиша приходит как Key.System
+        var modifiers = Keyboard.Modifiers;
+        var shortcut = BrowserShortcuts.Resolve(key.ToString(),
+            ctrl: modifiers.HasFlag(ModifierKeys.Control),
+            shift: modifiers.HasFlag(ModifierKeys.Shift),
+            alt: modifiers.HasFlag(ModifierKeys.Alt));
+        if (shortcut is not null && TryExecute(shortcut))
+        {
+            e.Handled = true;
+            return;
+        }
         base.OnPreviewKeyDown(e);
     }
+
+    /// <returns>false — команда сейчас неприменима, клавиша уходит дальше (в поле ввода или на страницу).</returns>
+    private bool TryExecute(BrowserShortcut shortcut)
+    {
+        var tab = _active;
+        var core = tab?.Core;
+        switch (shortcut.Command)
+        {
+            case BrowserCommand.NewTab:
+                if (!NewTabButton.IsEnabled)
+                    return false;
+                _ = OpenNewTabAsync();
+                return true;
+            case BrowserCommand.CloseTab:
+                if (tab is null)
+                    return false;
+                CloseTab(tab);
+                return true;
+            case BrowserCommand.NextTab:
+                SelectRelativeTab(+1);
+                return true;
+            case BrowserCommand.PreviousTab:
+                SelectRelativeTab(-1);
+                return true;
+            case BrowserCommand.SelectTab:
+                SelectTabByNumber(shortcut.TabNumber);
+                return true;
+            case BrowserCommand.FocusAddressBar:
+                if (!AddressBox.IsEnabled)
+                    return false;
+                FocusAddressBox();
+                return true;
+            case BrowserCommand.Reload:
+                core?.Reload();
+                return core is not null;
+            case BrowserCommand.Back:
+                if (core?.CanGoBack != true)
+                    return false;
+                core.GoBack();
+                return true;
+            case BrowserCommand.Forward:
+                if (core?.CanGoForward != true)
+                    return false;
+                core.GoForward();
+                return true;
+            case BrowserCommand.Home:
+                if (tab is null)
+                    return false;
+                NavigateHome(tab);
+                return true;
+            case BrowserCommand.Find:
+                OpenFind();
+                return core is not null;
+            case BrowserCommand.FindNext:
+                FindStep(forward: true);
+                return core is not null;
+            case BrowserCommand.FindPrevious:
+                FindStep(forward: false);
+                return core is not null;
+            case BrowserCommand.ZoomIn:
+                return SetZoom(z => ZoomLevels.ZoomIn(z));
+            case BrowserCommand.ZoomOut:
+                return SetZoom(z => ZoomLevels.ZoomOut(z));
+            case BrowserCommand.ZoomReset:
+                return SetZoom(_ => ZoomLevels.Default);
+            case BrowserCommand.Stop:
+                // Esc в адресной строке обрабатывает сама строка (отмена ввода).
+                if (AddressBox.IsKeyboardFocusWithin)
+                    return false;
+                if (FindBar.Visibility == Visibility.Visible)
+                {
+                    CloseFind(focusPage: true);
+                    return true;
+                }
+                if (tab?.IsLoading == true)
+                {
+                    core?.Stop();
+                    return true;
+                }
+                return false;
+            default:
+                return false;
+        }
+    }
+
+    private bool SetZoom(Func<double, double> next)
+    {
+        if (_active is null)
+            return false;
+        var view = _active.View;
+        view.ZoomFactor = next(view.ZoomFactor);
+        SetStatus($"Масштаб: {ZoomLevels.Format(view.ZoomFactor)}");
+        return true;
+    }
+
+    // ---------- Поиск на странице ----------
+
+    private void OpenFind()
+    {
+        if (_active?.Core is null)
+            return;
+        FindBar.Visibility = Visibility.Visible;
+        FindBox.Focus();
+        FindBox.SelectAll();
+        if (FindBox.Text.Length > 0)
+            _ = StartFindAsync();
+    }
+
+    private void CloseFind(bool focusPage)
+    {
+        if (FindBar.Visibility != Visibility.Visible)
+            return;
+        try { _active?.Core?.Find.Stop(); }
+        catch (Exception ex) when (ex is System.Runtime.InteropServices.COMException or InvalidOperationException) { }
+        FindBar.Visibility = Visibility.Collapsed;
+        FindCount.Text = "";
+        if (focusPage)
+            _active?.View.Focus();
+    }
+
+    private async Task StartFindAsync()
+    {
+        var tab = _active;
+        if (tab?.Core is null || _environment is null)
+            return;
+        var term = FindBox.Text;
+        try
+        {
+            if (term.Length == 0)
+            {
+                tab.Core.Find.Stop();
+                FindCount.Text = "";
+                return;
+            }
+            SubscribeFindEvents(tab);
+            var options = _environment.CreateFindOptions();
+            options.FindTerm = term;
+            options.SuppressDefaultFindDialog = true;
+            options.ShouldHighlightAllMatches = true;
+            await tab.Core.Find.StartAsync(options);
+        }
+        catch (Exception ex) when (ex is System.Runtime.InteropServices.COMException or InvalidOperationException)
+        {
+            SetStatus($"Поиск на странице недоступен: {Diagnostics.Describe(ex)}");
+        }
+    }
+
+    private void SubscribeFindEvents(BrowserTab tab)
+    {
+        if (tab.Core is null || !_findSubscribed.Add(tab))
+            return;
+        var find = tab.Core.Find;
+        find.MatchCountChanged += (_, _) => { if (tab == _active) UpdateFindCount(tab); };
+        find.ActiveMatchIndexChanged += (_, _) => { if (tab == _active) UpdateFindCount(tab); };
+    }
+
+    private void UpdateFindCount(BrowserTab tab)
+    {
+        if (FindBar.Visibility != Visibility.Visible || tab.Core is null)
+            return;
+        var find = tab.Core.Find;
+        FindCount.Text = find.MatchCount == 0 ? "нет совпадений" : $"{Math.Max(find.ActiveMatchIndex, 0)} из {find.MatchCount}";
+    }
+
+    private void FindStep(bool forward)
+    {
+        var core = _active?.Core;
+        if (core is null)
+            return;
+        if (FindBar.Visibility != Visibility.Visible || FindBox.Text.Length == 0)
+        {
+            OpenFind();
+            return;
+        }
+        try
+        {
+            if (forward)
+                core.Find.FindNext();
+            else
+                core.Find.FindPrevious();
+        }
+        catch (Exception ex) when (ex is System.Runtime.InteropServices.COMException or InvalidOperationException)
+        {
+            _ = StartFindAsync(); // сессии поиска ещё нет — начинаем
+        }
+    }
+
+    private void FindBox_TextChanged(object sender, TextChangedEventArgs e) => _ = StartFindAsync();
+
+    private void FindBox_KeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key != Key.Enter)
+            return;
+        e.Handled = true;
+        FindStep(forward: !Keyboard.Modifiers.HasFlag(ModifierKeys.Shift));
+    }
+
+    private void FindNext_Click(object sender, RoutedEventArgs e) => FindStep(forward: true);
+    private void FindPrevious_Click(object sender, RoutedEventArgs e) => FindStep(forward: false);
+    private void FindClose_Click(object sender, RoutedEventArgs e) => CloseFind(focusPage: true);
 
     private void AddressBox_KeyDown(object sender, KeyEventArgs e)
     {
