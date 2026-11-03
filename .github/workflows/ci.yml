@@ -1,13 +1,14 @@
-# Сборка и тесты на каждый push/PR; при теге vX.Y.Z — релиз с архивом Shadepane-<версия>-win-x64.zip.
+# Сборка и тесты на каждый push/PR в main и develop; при теге vX.Y.Z — релиз с архивом Shadepane-<версия>-win-x64.zip.
+# Ветки: develop — текущая работа; main — стабильная, в неё сливается develop при выпуске версии.
 # Сторонние actions закреплены по SHA коммита (метку версии можно переписать, SHA — нет).
 name: CI
 
 on:
   push:
-    branches: [main]
+    branches: [main, develop]
     tags: ['v*']
   pull_request:
-    branches: [main]
+    branches: [main, develop]
 
 permissions:
   contents: read

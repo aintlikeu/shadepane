@@ -80,11 +80,14 @@ Browser data and the audit log (`audit.log`) live in `%LOCALAPPDATA%\Shadepane`.
 
 ## Releasing
 
-CI builds and tests every push. Pushing a `vX.Y.Z` tag publishes a release with the zip:
+Development happens on `develop`; `main` holds released code. CI builds and tests every push to both.
+To release, merge `develop` into `main` and push a `vX.Y.Z` tag — CI publishes a release with the zip:
 
 ```powershell
+git checkout main
+git merge --ff-only develop
 git tag v0.1.0
-git push origin v0.1.0
+git push origin main v0.1.0
 ```
 
 ## License
