@@ -116,12 +116,24 @@ public class ExtensionValidatorTests
     [InlineData("""
         "content_scripts": [{ "matches": ["<all_urls>"], "js": ["c.js"] }]
         """)]
+    [InlineData("""
+        "content_scripts": [{ "matches": ["*://*.com/*"], "js": ["c.js"] }]
+        """)]
+    [InlineData("""
+        "host_permissions": ["*://*.example/*"]
+        """)] // зона над всеми защищёнными доменами — отклоняется как широкий доступ
     public void BroadHostAccess_IsDenied(string extra) => AssertDenied(Check(Ext.Mv3(extra)), "broad-host-access");
+
+    [Fact]
+    public void PublicSuffixWildcard_IsDenied_EvenWithoutProtectedHosts() =>
+        AssertDenied(Check(Ext.Mv3("""
+            "host_permissions": ["https://*.co.uk/*"]
+            """), BrowserPolicy.Default), "broad-host-access");
 
     [Theory]
     [InlineData("https://crm.corp.example/*")]
     [InlineData("https://corp.example/*")]
-    [InlineData("*://*.example/*")]          // родительский wildcard
+    [InlineData("*://*.partner.example/*")]  // родительский wildcard над crm.partner.example
     [InlineData("https://CRM.PARTNER.EXAMPLE:443/*")]
     public void ProtectedHosts_AreDenied(string pattern) =>
         AssertDenied(Check(Ext.Mv3($$""" "host_permissions": ["{{pattern}}"] """)), "protected-host");

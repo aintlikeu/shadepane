@@ -9,6 +9,14 @@ public class MatchPatternTests
     [InlineData("*://*/*", true)]
     [InlineData("https://*/*", true)]
     [InlineData("https://*.example.com/*", false)]
+    [InlineData("*://*.com/*", true)]          // вся зона .com
+    [InlineData("https://*.ru/*", true)]
+    [InlineData("https://*.рф/*", true)]       // IDN-зона → xn--p1ai
+    [InlineData("https://*.co.uk/*", true)]
+    [InlineData("https://*.com.au/*", true)]
+    [InlineData("https://*.example.co.uk/*", false)]
+    [InlineData("https://*.corp.example/*", false)]
+    [InlineData("https://com/*", false)]       // один хост "com", не зона
     public void Broad_IsDetected(string raw, bool broad)
     {
         Assert.True(MatchPattern.TryParse(raw, out var p, out _));

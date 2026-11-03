@@ -63,7 +63,8 @@ public static class ExtensionValidator
 
             if (pattern.IsBroad && !policy.AllowBroadHostAccess)
             {
-                violations.Add(new("broad-host-access", $"{entry.Source}: '{entry.Pattern}' даёт доступ ко всем сайтам"));
+                var scope = pattern.Host!.Kind == HostPatternKind.Any ? "ко всем сайтам" : $"ко всем сайтам зоны .{pattern.Host.Domain}";
+                violations.Add(new("broad-host-access", $"{entry.Source}: '{entry.Pattern}' даёт доступ {scope}"));
                 continue;
             }
 

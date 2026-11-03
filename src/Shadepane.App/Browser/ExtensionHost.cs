@@ -28,8 +28,6 @@ internal sealed class ExtensionHost
 
     public IReadOnlyList<ApprovedExtension> Approved => _approved;
 
-    /// <summary>Неодобренные расширения, которые не удалось ни удалить, ни отключить (вероятно, компоненты WebView2 Runtime).</summary>
-    public IReadOnlyList<string> UnremovableExtensions { get; private set; } = [];
 
     public async Task SyncAsync(CoreWebView2Profile profile)
     {
@@ -66,7 +64,14 @@ internal sealed class ExtensionHost
                 continue;
             await DisposeOfUnapprovedAsync(extension, unremovable);
         }
-        UnremovableExtensions = unremovable;
+        if (unremovable.Count > 0)
+        {
+            // Известные компоненты Runtime сюда не попадают (см. KnownRuntimeComponents). Неизвестное
+            // расширение, которое нельзя ни удалить, ни отключить, — это обход установщика: fail closed.
+            throw new InvalidOperationException(
+                "В профиле есть неизвестное расширение, которое нельзя удалить или отключить: " +
+                string.Join(", ", unremovable) + ". Запуск остановлен; подробности — в audit.log.");
+        }
 
         var synced = new List<ApprovedExtension>();
         foreach (var record in valid)
@@ -142,7 +147,7 @@ internal sealed class ExtensionHost
     /// <summary>
     /// Неодобренное расширение: удалить; если нельзя и это известный компонент Runtime — оставить;
     /// иначе отключить. Расширение, поставленное через AddBrowserExtension (в т.ч. в обход нашего
-    /// установщика), удаляется. Неизвестные неудаляемые не считаем фатальными, но пишем в журнал.
+    /// установщика), удаляется. Неизвестное, которое нельзя ни удалить, ни отключить, останавливает запуск.
     /// </summary>
     private static async Task DisposeOfUnapprovedAsync(CoreWebView2BrowserExtension extension, List<string> unremovable)
     {

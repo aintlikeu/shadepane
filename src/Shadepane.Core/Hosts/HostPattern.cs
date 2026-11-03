@@ -108,6 +108,28 @@ public sealed record HostPattern(HostPatternKind Kind, string Domain)
         return true;
     }
 
+    // Частые публичные суффиксы второго уровня вида "co.uk", "com.au", "org.ru". Полный Public Suffix List
+    // (в т.ч. частные суффиксы вроде github.io) не встроен — это эвристика, см. IsPublicSuffixWildcard.
+    private static readonly HashSet<string> SecondLevelSuffixLabels = new(StringComparer.Ordinal)
+    {
+        "co", "com", "net", "org", "gov", "edu", "ac", "gob", "mil", "or", "ne", "go", "nic", "ltd", "plc", "sch",
+    };
+
+    /// <summary>
+    /// "*.com", "*.рф", "*.co.uk" — по сути доступ ко всем сайтам зоны, т.е. широкий доступ, а не к одному домену.
+    /// </summary>
+    public bool IsPublicSuffixWildcard
+    {
+        get
+        {
+            if (Kind != HostPatternKind.DomainAndSubdomains)
+                return false;
+            var labels = Domain.Split('.');
+            return labels.Length == 1
+                || (labels.Length == 2 && labels[1].Length == 2 && SecondLevelSuffixLabels.Contains(labels[0]));
+        }
+    }
+
     /// <summary>
     /// Есть ли хотя бы один хост, который подходит под оба шаблона.
     /// Отношение симметрично: a.Overlaps(b) == b.Overlaps(a).

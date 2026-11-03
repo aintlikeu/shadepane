@@ -18,7 +18,8 @@ public sealed record MatchPattern(string Raw, bool AppliesToWeb, HostPattern? Ho
 
     public const string AllUrls = "<all_urls>";
 
-    public bool IsBroad => AppliesToWeb && Host is { Kind: HostPatternKind.Any };
+    /// <summary>Все сайты ("*", &lt;all_urls&gt;) или вся зона публичного суффикса ("*.com", "*.co.uk").</summary>
+    public bool IsBroad => AppliesToWeb && Host is not null && (Host.Kind == HostPatternKind.Any || Host.IsPublicSuffixWildcard);
 
     public static bool TryParse(string? raw, out MatchPattern? pattern, out string? error)
     {

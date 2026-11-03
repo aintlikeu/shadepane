@@ -70,9 +70,6 @@ public partial class MainWindow : ProtectedWindow, IContentShield
                 return;
             RebuildExtensionBar();
 
-            if (_extensions.UnremovableExtensions.Count > 0)
-                SetStatus($"Встроенные расширения движка, которые нельзя удалить или отключить: {string.Join(", ", _extensions.UnremovableExtensions)} (см. audit.log)");
-
             stage = "navigate-home";
 
             AddressBox.IsEnabled = ReloadButton.IsEnabled = AddExtensionButton.IsEnabled = true;
