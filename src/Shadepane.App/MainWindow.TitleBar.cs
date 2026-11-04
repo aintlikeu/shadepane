@@ -40,22 +40,22 @@ public partial class MainWindow
         UpdateMaximizeButton();
         UpdateMaximizedInset();
         UpdateTitleIcon();
-#if SCREENSHOTS
-        ContentRendered += (_, _) => ApplyScreenshotWindowSize();
+#if DEBUG
+        ContentRendered += (_, _) => ApplyScreenshotWindowRect();
 #endif
     }
 
-#if SCREENSHOTS
+#if DEBUG
     /// <summary>
-    /// Сборка для скриншотов Store: --window-size=1920x1080 ставит окно в левый верхний угол так, что ВИДИМАЯ часть
-    /// окна ровно такого размера в физических пикселях. Само окно больше на невидимые полосы рамки (слева, справа,
-    /// снизу), поэтому размер считается по видимым границам от DWM (DWMWA_EXTENDED_FRAME_BOUNDS).
+    /// Только Debug-сборки (в том числе сборка для скриншотов Store) — для съёмки кадров:
+    /// --window-size=1920x1080 — окно в левом верхнем углу; --window-rect=X,Y,Ш,В — окно в заданном месте.
+    /// Размер и место — ВИДИМОЙ части окна в физических пикселях: само окно больше на невидимые полосы рамки
+    /// (слева, справа, снизу), поэтому считаем по видимым границам от DWM (DWMWA_EXTENDED_FRAME_BOUNDS).
+    /// Одинаковый --window-rect у сборки для скриншотов и обычной даёт два снимка с окном точно в одном месте.
     /// </summary>
-    private void ApplyScreenshotWindowSize()
+    private void ApplyScreenshotWindowRect()
     {
-        var arg = Environment.GetCommandLineArgs().FirstOrDefault(a => a.StartsWith("--window-size=", StringComparison.OrdinalIgnoreCase));
-        var parts = arg?["--window-size=".Length..].Split('x', 'X');
-        if (parts is not [var w, var h] || !int.TryParse(w, out var width) || !int.TryParse(h, out var height) || width < 400 || height < 300)
+        if (!TryParseWindowRect(Environment.GetCommandLineArgs(), out var x, out var y, out var width, out var height))
             return;
         var hwnd = new WindowInteropHelper(this).Handle;
         if (WindowState != WindowState.Normal)
@@ -67,9 +67,31 @@ public partial class MainWindow
         var right = outer.Right - visible.Right;
         var top = visible.Top - outer.Top;
         var bottom = outer.Bottom - visible.Bottom;
-        NativeMethods.SetWindowPos(hwnd, IntPtr.Zero, -left, -top, width + left + right, height + top + bottom,
+        NativeMethods.SetWindowPos(hwnd, IntPtr.Zero, x - left, y - top, width + left + right, height + top + bottom,
             NativeMethods.SWP_NOZORDER | NativeMethods.SWP_NOACTIVATE);
-        AppServices.Audit.Write("screenshot-window-size", new { width, height });
+        AppServices.Audit.Write("screenshot-window-rect", new { x, y, width, height });
+    }
+
+    private static bool TryParseWindowRect(string[] args, out int x, out int y, out int width, out int height)
+    {
+        x = y = width = height = 0;
+        foreach (var arg in args)
+        {
+            if (arg.StartsWith("--window-rect=", StringComparison.OrdinalIgnoreCase))
+            {
+                var p = arg["--window-rect=".Length..].Split(',');
+                if (p.Length == 4 && int.TryParse(p[0], out x) && int.TryParse(p[1], out y) &&
+                    int.TryParse(p[2], out width) && int.TryParse(p[3], out height))
+                    return width >= 400 && height >= 300;
+            }
+            else if (arg.StartsWith("--window-size=", StringComparison.OrdinalIgnoreCase))
+            {
+                var p = arg["--window-size=".Length..].Split('x', 'X');
+                if (p.Length == 2 && int.TryParse(p[0], out width) && int.TryParse(p[1], out height))
+                    return width >= 400 && height >= 300;
+            }
+        }
+        return false;
     }
 #endif
 
