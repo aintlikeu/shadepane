@@ -2,25 +2,26 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:protection="clr-namespace:Shadepane.App.Protection"
-        Title="История — Shadepane" Width="900" Height="600" WindowStartupLocation="CenterOwner">
+        xmlns:l="clr-namespace:Shadepane.App.Localization"
+        Title="{l:Tr Ru='История — Shadepane', En='History — Shadepane'}" Width="900" Height="600" WindowStartupLocation="CenterOwner">
     <DockPanel Margin="16">
         <DockPanel DockPanel.Dock="Top" Margin="0,0,0,8">
-            <Button DockPanel.Dock="Right" Content="Очистить всю историю…" Margin="8,0,0,0" Padding="8,2" Click="ClearAll_Click"/>
-            <TextBlock Text="Поиск:" VerticalAlignment="Center"/>
+            <Button DockPanel.Dock="Right" Content="{l:Tr Ru='Очистить всю историю…', En='Clear all history…'}" Margin="8,0,0,0" Padding="8,2" Click="ClearAll_Click"/>
+            <TextBlock Text="{l:Tr Ru='Поиск:', En='Search:'}" VerticalAlignment="Center"/>
             <TextBox x:Name="SearchBox" Margin="6,0,0,0" VerticalContentAlignment="Center" TextChanged="SearchBox_TextChanged"/>
         </DockPanel>
         <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,8,0,0">
             <TextBlock x:Name="SavingNote" Foreground="{DynamicResource Brush.Muted}" VerticalAlignment="Center" Margin="0,0,12,0"/>
-            <Button Content="Открыть" Width="110" Click="Open_Click"/>
-            <Button Content="В новой вкладке" Width="130" Margin="8,0,0,0" Click="OpenInNewTab_Click"/>
-            <Button Content="Удалить" Width="100" Margin="8,0,0,0" Click="Delete_Click"/>
+            <Button Content="{l:Tr Ru='Открыть', En='Open'}" Width="110" Click="Open_Click"/>
+            <Button Content="{l:Tr Ru='В новой вкладке', En='In new tab'}" Width="130" Margin="8,0,0,0" Click="OpenInNewTab_Click"/>
+            <Button Content="{l:Tr Ru='Удалить', En='Delete'}" Width="100" Margin="8,0,0,0" Click="Delete_Click"/>
         </StackPanel>
         <ListView x:Name="List" SelectionMode="Extended" MouseDoubleClick="List_MouseDoubleClick" KeyDown="List_KeyDown">
             <ListView.View>
                 <GridView>
-                    <GridViewColumn Header="Время" Width="140" DisplayMemberBinding="{Binding When}"/>
-                    <GridViewColumn Header="Заголовок" Width="360" DisplayMemberBinding="{Binding Title}"/>
-                    <GridViewColumn Header="Адрес" Width="340" DisplayMemberBinding="{Binding Url}"/>
+                    <GridViewColumn Header="{l:Tr Ru='Время', En='Time'}" Width="140" DisplayMemberBinding="{Binding When}"/>
+                    <GridViewColumn Header="{l:Tr Ru='Заголовок', En='Title'}" Width="360" DisplayMemberBinding="{Binding Title}"/>
+                    <GridViewColumn Header="{l:Tr Ru='Адрес', En='Address'}" Width="340" DisplayMemberBinding="{Binding Url}"/>
                 </GridView>
             </ListView.View>
         </ListView>

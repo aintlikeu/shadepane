@@ -2,6 +2,7 @@ using System.Windows;
 using System.Windows.Input;
 using Shadepane.App.Protection;
 using Shadepane.Core.Bookmarks;
+using Shadepane.Core.Localization;
 
 namespace Shadepane.App;
 
@@ -49,7 +50,7 @@ public partial class BookmarksWindow : ProtectedWindow
             ErrorText.Visibility = Visibility.Collapsed;
             return;
         }
-        ErrorText.Text = $"Не сохранено: {error}";
+        ErrorText.Text = Loc.T($"Не сохранено: {error}", $"Not saved: {error}");
         ErrorText.Visibility = Visibility.Visible;
     }
 
@@ -81,7 +82,7 @@ public partial class BookmarksWindow : ProtectedWindow
     private void Delete_Click(object sender, RoutedEventArgs e)
     {
         if (Selected is { } b &&
-            MessageBox.Show(this, $"Удалить закладку «{b.Title}»?", Title, MessageBoxButton.YesNo, MessageBoxImage.Question) == MessageBoxResult.Yes)
+            MessageBox.Show(this, Loc.T($"Удалить закладку «{b.Title}»?", $"Delete the bookmark \"{b.Title}\"?"), Title, MessageBoxButton.YesNo, MessageBoxImage.Question) == MessageBoxResult.Yes)
             AppServices.Bookmarks.Remove(b.Id);
     }
 

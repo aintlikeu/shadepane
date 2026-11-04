@@ -1,6 +1,7 @@
 using System.Buffers.Binary;
 using System.Security.Cryptography;
 using System.Text;
+using Shadepane.Core.Localization;
 
 namespace Shadepane.Core.Extensions;
 
@@ -29,9 +30,9 @@ public static class ExtensionDirectory
     {
         var rootInfo = new DirectoryInfo(Path.GetFullPath(root));
         if (!rootInfo.Exists)
-            throw new ExtensionDirectoryException($"папка не найдена: {root}");
+            throw new ExtensionDirectoryException(Loc.T($"папка не найдена: {root}", $"folder not found: {root}"));
         if (IsLink(rootInfo))
-            throw new ExtensionDirectoryException("папка расширения не может быть ссылкой (symlink/junction)");
+            throw new ExtensionDirectoryException(Loc.T("папка расширения не может быть ссылкой (symlink/junction)", "the extension folder cannot be a link (symlink/junction)"));
 
         var files = new List<string>();
         long totalBytes = 0;
@@ -45,9 +46,9 @@ public static class ExtensionDirectory
             {
                 var relative = Path.GetRelativePath(rootInfo.FullName, entry.FullName);
                 if (IsLink(entry))
-                    throw new ExtensionDirectoryException($"ссылки (symlink/junction) в расширении запрещены: {relative}");
+                    throw new ExtensionDirectoryException(Loc.T($"ссылки (symlink/junction) в расширении запрещены: {relative}", $"links (symlink/junction) are not allowed in an extension: {relative}"));
                 if (entry.Name.IndexOfAny(['\\', ':']) >= 0)
-                    throw new ExtensionDirectoryException($"недопустимое имя файла: {relative}");
+                    throw new ExtensionDirectoryException(Loc.T($"недопустимое имя файла: {relative}", $"invalid file name: {relative}"));
 
                 switch (entry)
                 {
@@ -57,9 +58,9 @@ public static class ExtensionDirectory
                     case FileInfo file:
                         totalBytes += file.Length;
                         if (files.Count >= MaxFiles)
-                            throw new ExtensionDirectoryException($"в расширении больше {MaxFiles} файлов");
+                            throw new ExtensionDirectoryException(Loc.T($"в расширении больше {MaxFiles} файлов", $"the extension has more than {MaxFiles} files"));
                         if (totalBytes > MaxTotalBytes)
-                            throw new ExtensionDirectoryException($"расширение больше {MaxTotalBytes / (1024 * 1024)} МБ");
+                            throw new ExtensionDirectoryException(Loc.T($"расширение больше {MaxTotalBytes / (1024 * 1024)} МБ", $"the extension is larger than {MaxTotalBytes / (1024 * 1024)} MB"));
                         files.Add(relative.Replace(Path.DirectorySeparatorChar, '/'));
                         break;
                 }
@@ -100,7 +101,7 @@ public static class ExtensionDirectory
         var sourceFull = Path.GetFullPath(source);
         var destFull = Path.GetFullPath(destination);
         if (IsInside(destFull, sourceFull) || IsInside(sourceFull, destFull))
-            throw new ExtensionDirectoryException("исходная и целевая папки не должны быть вложены друг в друга");
+            throw new ExtensionDirectoryException(Loc.T("исходная и целевая папки не должны быть вложены друг в друга", "the source and target folders must not be nested"));
 
         var files = ListFiles(sourceFull);
         Directory.CreateDirectory(destFull);

@@ -4,7 +4,7 @@ namespace Shadepane.Core.Browsing;
 
 public static class ByteSize
 {
-    private static readonly string[] Units = ["Б", "КБ", "МБ", "ГБ", "ТБ"];
+    private static string[] Units => Localization.Loc.IsEnglish ? ["B", "KB", "MB", "GB", "TB"] : ["Б", "КБ", "МБ", "ГБ", "ТБ"];
 
     /// <summary>1536 → "1,5 КБ" (десятичная запятая — по-русски).</summary>
     public static string Format(long bytes)
@@ -25,6 +25,6 @@ public static class ByteSize
     /// <summary>"3,2 МБ из 10 МБ (32%)" или "3,2 МБ", если размер неизвестен.</summary>
     public static string Progress(long received, long? total) =>
         total is > 0
-            ? $"{Format(received)} из {Format(total.Value)} ({Math.Min(100, received * 100 / total.Value)}%)"
+            ? Localization.Loc.T($"{Format(received)} из {Format(total.Value)} ({Math.Min(100, received * 100 / total.Value)}%)", $"{Format(received)} of {Format(total.Value)} ({Math.Min(100, received * 100 / total.Value)}%)")
             : Format(received);
 }

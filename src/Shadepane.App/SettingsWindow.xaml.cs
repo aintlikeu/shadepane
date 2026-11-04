@@ -3,6 +3,7 @@ using System.Windows.Controls;
 using Shadepane.App.Protection;
 using Shadepane.Core.Navigation;
 using Shadepane.Core.Settings;
+using Shadepane.Core.Localization;
 
 namespace Shadepane.App;
 
@@ -20,10 +21,12 @@ public partial class SettingsWindow : ProtectedWindow
     public SettingsWindow()
     {
         InitializeComponent();
+        CustomSearchBox.ToolTip = Loc.T("https-адрес, где {query} будет заменён поисковым запросом", "An https address where {query} is replaced with the search query");
+        CustomSearchHint.Text = Loc.T("Пример: https://search.example/?q={query}", "Example: https://search.example/?q={query}");
 
         foreach (var engine in SearchEngines.All)
             SearchEngineBox.Items.Add(new EngineItem(engine.Id, engine.Name));
-        SearchEngineBox.Items.Add(new EngineItem(SearchEngines.CustomId, "Свой шаблон…"));
+        SearchEngineBox.Items.Add(new EngineItem(SearchEngines.CustomId, Loc.T("Свой шаблон…", "Custom template…")));
 
         Load(AppServices.Settings, AppServices.Config);
     }
@@ -42,17 +45,20 @@ public partial class SettingsWindow : ProtectedWindow
         CustomSearchBox.Text = settings.CustomSearchUrl ?? "";
         SetLocked(config.SearchLocked, SearchLockedNote, SearchEngineBox, CustomSearchBox);
         if (config.SearchLocked)
-            SearchLockedNote.Text = $"Задано администратором: {config.SearchEngine.Name}";
+            SearchLockedNote.Text = Loc.T($"Задано администратором: {config.SearchEngine.Name}", $"Set by the administrator: {config.SearchEngine.Name}");
 
         ThemeSystem.IsChecked = settings.Theme == AppTheme.System;
         ThemeLight.IsChecked = settings.Theme == AppTheme.Light;
         ThemeDark.IsChecked = settings.Theme == AppTheme.Dark;
+        LanguageSystem.IsChecked = settings.Language == AppLanguage.System;
+        LanguageRussian.IsChecked = settings.Language == AppLanguage.Russian;
+        LanguageEnglish.IsChecked = settings.Language == AppLanguage.English;
         SaveHistoryBox.IsChecked = settings.SaveHistory;
         ShowBookmarksBarBox.IsChecked = settings.ShowBookmarksBar;
         CheckUpdatesBox.IsChecked = config.CheckForUpdates;
         SetLocked(config.UpdatesLocked, UpdatesLockedNote, CheckUpdatesBox);
-        VersionText.Text = $"Версия: {AppServices.Updates.Current}" +
-            (Updates.UpdateService.IsInstalled ? "" : " (без установщика — обновление через страницу релиза)");
+        VersionText.Text = Loc.T($"Версия: {AppServices.Updates.Current}", $"Version: {AppServices.Updates.Current}") +
+            (Updates.UpdateService.IsInstalled ? "" : Loc.T(" (без установщика — обновление через страницу релиза)", " (no installer: updates open the release page)"));
         AllowDownloadsBox.IsChecked = config.AllowDownloads;
         SetLocked(config.DownloadsLocked, DownloadsLockedNote, AllowDownloadsBox);
         ClipboardBox.IsChecked = config.AllowExtensionClipboardRead;
@@ -89,7 +95,7 @@ public partial class SettingsWindow : ProtectedWindow
 
     private void ClearHistory_Click(object sender, RoutedEventArgs e)
     {
-        if (MessageBox.Show(this, "Удалить всю историю посещений?", Title, MessageBoxButton.YesNo, MessageBoxImage.Question) == MessageBoxResult.Yes)
+        if (MessageBox.Show(this, Loc.T("Удалить всю историю посещений?", "Delete all browsing history?"), Title, MessageBoxButton.YesNo, MessageBoxImage.Question) == MessageBoxResult.Yes)
             AppServices.History.Clear();
     }
 
@@ -110,13 +116,13 @@ public partial class SettingsWindow : ProtectedWindow
                 : HomePageKind.SearchEngine;
             var homeUrl = HomeUrlBox.Text.Trim();
             if (!AppServices.Config.HomeLocked && homeKind == HomePageKind.Custom && EffectiveConfig.NormalizeHome(homeUrl) is null)
-                errors.Add("Домашняя страница: нужен адрес http:// или https://.");
+                errors.Add(Loc.T("Домашняя страница: нужен адрес http:// или https://.", "Home page: enter an http:// or https:// address."));
 
             var engineId = (SearchEngineBox.SelectedItem as EngineItem)?.Id ?? SearchEngines.Default.Id;
             var template = CustomSearchBox.Text.Trim();
             if (!AppServices.Config.SearchLocked && engineId == SearchEngines.CustomId &&
                 !SearchEngines.TryValidateTemplate(template, out var templateError))
-                errors.Add($"Поиск: {templateError}.");
+                errors.Add(Loc.T($"Поиск: {templateError}.", $"Search: {templateError}."));
 
             if (errors.Count > 0)
             {
@@ -138,6 +144,7 @@ public partial class SettingsWindow : ProtectedWindow
                 AllowDownloads = AppServices.Config.DownloadsLocked ? current.AllowDownloads : AllowDownloadsBox.IsChecked == true,
                 CheckForUpdates = AppServices.Config.UpdatesLocked ? current.CheckForUpdates : CheckUpdatesBox.IsChecked == true,
                 Theme = ThemeLight.IsChecked == true ? AppTheme.Light : ThemeDark.IsChecked == true ? AppTheme.Dark : AppTheme.System,
+                Language = LanguageRussian.IsChecked == true ? AppLanguage.Russian : LanguageEnglish.IsChecked == true ? AppLanguage.English : AppLanguage.System,
             };
             AppServices.UpdateSettings(updated);
             AppServices.Audit.Write("settings-saved", new { updated.HomePage, updated.SearchEngineId, updated.AllowExtensionClipboardRead });
@@ -145,7 +152,7 @@ public partial class SettingsWindow : ProtectedWindow
         }
         catch (Exception ex) when (ex is System.IO.IOException or UnauthorizedAccessException)
         {
-            ErrorText.Text = $"Не удалось сохранить настройки: {ex.Message}";
+            ErrorText.Text = Loc.T($"Не удалось сохранить настройки: {ex.Message}", $"Could not save settings: {ex.Message}");
             ErrorText.Visibility = Visibility.Visible;
         }
         finally

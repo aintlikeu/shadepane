@@ -20,6 +20,28 @@ public enum AppTheme
     Dark,
 }
 
+/// <summary>Язык интерфейса в настройках.</summary>
+public enum AppLanguage
+{
+    /// <summary>Как в Windows: русский, если язык интерфейса Windows русский, иначе английский.</summary>
+    System,
+    Russian,
+    English,
+}
+
+public static class LanguageChoice
+{
+    /// <param name="windowsLanguage">Двухбуквенный код языка интерфейса Windows (CultureInfo.CurrentUICulture.TwoLetterISOLanguageName).</param>
+    public static Localization.UiLanguage Resolve(AppLanguage language, string? windowsLanguage) => language switch
+    {
+        AppLanguage.Russian => Localization.UiLanguage.Russian,
+        AppLanguage.English => Localization.UiLanguage.English,
+        _ => string.Equals(windowsLanguage, "ru", StringComparison.OrdinalIgnoreCase)
+            ? Localization.UiLanguage.Russian
+            : Localization.UiLanguage.English,
+    };
+}
+
 public static class ThemeChoice
 {
     /// <param name="systemUsesLightTheme">Значение AppsUseLightTheme из реестра; нет значения — светлая (так делает Windows).</param>
@@ -63,6 +85,9 @@ public sealed record UserSettings
 
     /// <summary>Светлое, тёмное или как в Windows. Страницы сайтов получают ту же тему (prefers-color-scheme).</summary>
     public AppTheme Theme { get; init; } = AppTheme.System;
+
+    /// <summary>Язык интерфейса; применяется при следующем запуске.</summary>
+    public AppLanguage Language { get; init; } = AppLanguage.System;
 }
 
 /// <summary>Файл настроек. Повреждённый или неполный файл не мешает запуску: берутся значения по умолчанию.</summary>

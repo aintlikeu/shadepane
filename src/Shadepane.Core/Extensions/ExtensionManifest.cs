@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Shadepane.Core.Localization;
 
 namespace Shadepane.Core.Extensions;
 
@@ -30,7 +31,7 @@ public sealed class ExtensionManifest
     internal static ExtensionManifest FromJson(JsonElement root)
     {
         if (!root.TryGetProperty("manifest_version", out var mv) || mv.ValueKind != JsonValueKind.Number || !mv.TryGetInt32(out var manifestVersion))
-            throw new ManifestException("поле manifest_version отсутствует или не является целым числом");
+            throw new ManifestException(Loc.T("поле manifest_version отсутствует или не является целым числом", "manifest_version is missing or is not an integer"));
 
         var name = RequireString(root, "name");
         var version = RequireString(root, "version");
@@ -60,13 +61,13 @@ public sealed class ExtensionManifest
         if (root.TryGetProperty("content_scripts", out var scripts))
         {
             if (scripts.ValueKind != JsonValueKind.Array)
-                throw new ManifestException("content_scripts должен быть массивом");
+                throw new ManifestException(Loc.T("content_scripts должен быть массивом", "content_scripts must be an array"));
 
             var i = 0;
             foreach (var script in scripts.EnumerateArray())
             {
                 if (script.ValueKind != JsonValueKind.Object)
-                    throw new ManifestException($"content_scripts[{i}] должен быть объектом");
+                    throw new ManifestException(Loc.T($"content_scripts[{i}] должен быть объектом", $"content_scripts[{i}] must be an object"));
                 foreach (var m in ReadStringArray(script, "matches", $"content_scripts[{i}].matches"))
                     hosts.Add(new HostPermissionEntry($"content_scripts[{i}].matches", m));
                 i++;
@@ -91,7 +92,7 @@ public sealed class ExtensionManifest
     private static string RequireString(JsonElement obj, string key)
     {
         if (!obj.TryGetProperty(key, out var v) || v.ValueKind != JsonValueKind.String || string.IsNullOrWhiteSpace(v.GetString()))
-            throw new ManifestException($"поле {key} отсутствует или не является непустой строкой");
+            throw new ManifestException(Loc.T($"поле {key} отсутствует или не является непустой строкой", $"{key} is missing or is not a non-empty string"));
         return v.GetString()!;
     }
 
@@ -100,14 +101,14 @@ public sealed class ExtensionManifest
         if (!obj.TryGetProperty(key, out var arr))
             return [];
         if (arr.ValueKind != JsonValueKind.Array)
-            throw new ManifestException($"{displayName ?? key} должен быть массивом строк");
+            throw new ManifestException(Loc.T($"{displayName ?? key} должен быть массивом строк", $"{displayName ?? key} must be an array of strings"));
 
         var result = new List<string>();
         foreach (var item in arr.EnumerateArray())
         {
             // Объектные записи (наследие Chrome Apps) не поддерживаем: проще отказать, чем гадать.
             if (item.ValueKind != JsonValueKind.String)
-                throw new ManifestException($"{displayName ?? key}: поддерживаются только строковые значения");
+                throw new ManifestException(Loc.T($"{displayName ?? key}: поддерживаются только строковые значения", $"{displayName ?? key}: only string values are supported"));
             result.Add(item.GetString()!);
         }
         return result;

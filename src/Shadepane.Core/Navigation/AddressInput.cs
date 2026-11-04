@@ -1,5 +1,6 @@
 using System.Net;
 using System.Text.RegularExpressions;
+using Shadepane.Core.Localization;
 
 namespace Shadepane.Core.Navigation;
 
@@ -24,11 +25,11 @@ public static partial class AddressInput
     {
         var s = input?.Trim() ?? "";
         if (s.Length == 0)
-            return Fail("введите адрес или поисковый запрос");
+            return Fail(Loc.T("введите адрес или поисковый запрос", "enter an address or a search query"));
         if (s.Length > UrlPolicy.MaxInputLength)
-            return Fail("слишком длинный ввод");
+            return Fail(Loc.T("слишком длинный ввод", "the input is too long"));
         if (s.Any(char.IsControl))
-            return Fail("ввод содержит управляющие символы");
+            return Fail(Loc.T("ввод содержит управляющие символы", "the input contains control characters"));
 
         if (s == UrlPolicy.AboutBlank)
             return new(new Uri(UrlPolicy.AboutBlank), false, null);
@@ -47,7 +48,7 @@ public static partial class AddressInput
         // "javascript:alert(1)", "data:…", "file:…", "mailto:…" — не адрес и не запрос, а попытка сменить схему.
         var scheme = SchemePrefix().Match(s);
         if (scheme.Success && IsSchemeRatherThanHost(scheme.Groups[1].Value, scheme.Groups[2].Value))
-            return Fail($"схема «{scheme.Groups[1].Value.ToLowerInvariant()}:» не поддерживается — разрешены только http и https");
+            return Fail(Loc.T($"схема «{scheme.Groups[1].Value.ToLowerInvariant()}:» не поддерживается — разрешены только http и https", $"the \"{scheme.Groups[1].Value.ToLowerInvariant()}:\" scheme is not supported: only http and https are allowed"));
 
         if (LooksLikeHost(s) && UrlPolicy.TryNormalizeUserInput(s, out var uri, out _))
             return new(uri, false, null);

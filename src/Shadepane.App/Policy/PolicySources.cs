@@ -4,6 +4,7 @@ using System.Security.Principal;
 using Microsoft.Win32;
 using Shadepane.App.Native;
 using Shadepane.Core.Policy;
+using Shadepane.Core.Localization;
 
 namespace Shadepane.App.Policy;
 
@@ -48,7 +49,7 @@ internal static class PolicySources
 
 #if DEBUG
         yield return new PolicySourceCandidate(
-            DevFile + " [DEBUG, права не проверяются]",
+            DevFile + Loc.T(" [DEBUG, права не проверяются]", " [DEBUG, permissions are not checked]"),
             Exists: () => File.Exists(DevFile),
             FindSecurityProblem: () => null,
             ReadJson: () => File.ReadAllText(DevFile));
@@ -75,13 +76,13 @@ internal static class PolicySources
             return problem;
         }
 
-        public string Read() => _json ?? throw new InvalidOperationException("источник политики не прошёл проверку");
+        public string Read() => _json ?? throw new InvalidOperationException(Loc.T("источник политики не прошёл проверку", "the policy source did not pass the check"));
     }
 
     private static (string?, string?) VerifyAndReadRegistry() => WithKey(key =>
     {
         if (key is null)
-            return ("ключ реестра исчез", (string?)null);
+            return (Loc.T("ключ реестра исчез", "the registry key disappeared"), (string?)null);
         var problem = CheckRegistryKey(key);
         return problem is not null ? (problem, null) : ((string?)null, ReadRegistryJson(key));
     });
@@ -93,7 +94,7 @@ internal static class PolicySources
         for (var dir = new DirectoryInfo(ProgramDataDirectory); dir is not null; dir = dir.Parent)
         {
             if (dir.LinkTarget is not null || dir.Attributes.HasFlag(FileAttributes.ReparsePoint))
-                return ($"{dir.FullName} — ссылка (symlink/junction)", null);
+                return (Loc.T($"{dir.FullName} — ссылка (symlink/junction)", $"{dir.FullName} is a link (symlink/junction)"), null);
         }
 
         // 2. Папка закрыта: подменить в ней файл нельзя. Саму папку (не ссылку) в ProgramData
@@ -101,22 +102,22 @@ internal static class PolicySources
         var dirSecurity = new DirectoryInfo(ProgramDataDirectory).GetAccessControl(AccessControlSections.Owner | AccessControlSections.Access);
         var dirProblem = AdminOnlyWriteCheck.FindProblem(Owner(dirSecurity), FileAces(dirSecurity), AdminOnlyWriteCheck.DirectoryWriteMask);
         if (dirProblem is not null)
-            return ("папка " + Describe(dirProblem), null);
+            return (Loc.T("папка ", "folder ") + Describe(dirProblem), null);
 
         // 3. Файл открываем один раз; путь, права и содержимое берём из этого дескриптора.
         //    FileShare.Read — никто не изменит файл, пока мы его читаем.
         using var stream = new FileStream(ProgramDataFile, FileMode.Open, FileAccess.Read, FileShare.Read);
         var finalPath = NativeMethods.GetFinalPath(stream.SafeFileHandle);
         if (!string.Equals(finalPath, Path.GetFullPath(ProgramDataFile), StringComparison.OrdinalIgnoreCase))
-            return ($"policy.json разрешается в {finalPath}", null);
+            return (Loc.T($"policy.json разрешается в {finalPath}", $"policy.json resolves to {finalPath}"), null);
 
         var fileSecurity = stream.GetAccessControl();
         var fileProblem = AdminOnlyWriteCheck.FindProblem(Owner(fileSecurity), FileAces(fileSecurity), AdminOnlyWriteCheck.FileWriteMask);
         if (fileProblem is not null)
-            return ("файл " + Describe(fileProblem), null);
+            return (Loc.T("файл ", "file ") + Describe(fileProblem), null);
 
         if (stream.Length > MaxPolicyBytes)
-            return ($"policy.json больше {MaxPolicyBytes / 1024} КБ", null);
+            return (Loc.T($"policy.json больше {MaxPolicyBytes / 1024} КБ", $"policy.json is larger than {MaxPolicyBytes / 1024} KB"), null);
         using var reader = new StreamReader(stream, detectEncodingFromByteOrderMarks: true);
         return (null, reader.ReadToEnd());
     }
@@ -127,7 +128,7 @@ internal static class PolicySources
         {
             RegistryValueKind.String => (string)key.GetValue(RegistryValueName)!,
             RegistryValueKind.MultiString => string.Join("\n", (string[])key.GetValue(RegistryValueName)!),
-            var kind => throw new PolicyException($"значение {RegistryValueName} должно быть REG_SZ или REG_MULTI_SZ, а не {kind}"),
+            var kind => throw new PolicyException(Loc.T($"значение {RegistryValueName} должно быть REG_SZ или REG_MULTI_SZ, а не {kind}", $"the {RegistryValueName} value must be REG_SZ or REG_MULTI_SZ, not {kind}")),
         };
     }
 

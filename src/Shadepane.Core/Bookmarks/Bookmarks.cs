@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Shadepane.Core.Navigation;
+using Shadepane.Core.Localization;
 
 namespace Shadepane.Core.Bookmarks;
 
@@ -41,7 +42,7 @@ public sealed class BookmarkCollection
         error = null;
         if (!IsBookmarkable(url))
         {
-            error = "в закладки можно добавить только страницы http:// и https://";
+            error = Loc.T("в закладки можно добавить только страницы http:// и https://", "only http:// and https:// pages can be bookmarked");
             return false;
         }
         var existing = FindByUrl(url);
@@ -52,7 +53,7 @@ public sealed class BookmarkCollection
         }
         if (_items.Count >= MaxBookmarks)
         {
-            error = $"закладок больше {MaxBookmarks}";
+            error = Loc.T($"закладок больше {MaxBookmarks}", $"more than {MaxBookmarks} bookmarks");
             return false;
         }
         bookmark = new Bookmark(Guid.NewGuid().ToString("N"), CleanTitle(title, url!), url!, now);
@@ -69,7 +70,7 @@ public sealed class BookmarkCollection
         var index = _items.FindIndex(b => b.Id == id);
         if (index < 0)
         {
-            error = "закладка не найдена";
+            error = Loc.T("закладка не найдена", "bookmark not found");
             return false;
         }
         if (!UrlPolicy.TryNormalizeUserInput(url, out var uri, out var urlError))
@@ -80,7 +81,7 @@ public sealed class BookmarkCollection
         var normalized = uri!.AbsoluteUri;
         if (_items.Any(b => b.Id != id && b.Url == normalized))
         {
-            error = "закладка с таким адресом уже есть";
+            error = Loc.T("закладка с таким адресом уже есть", "a bookmark with this address already exists");
             return false;
         }
         _items[index] = _items[index] with { Url = normalized, Title = CleanTitle(title, normalized) };

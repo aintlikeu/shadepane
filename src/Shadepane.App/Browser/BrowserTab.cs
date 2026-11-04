@@ -2,6 +2,7 @@ using System.Windows;
 using Microsoft.Web.WebView2.Core;
 using Microsoft.Web.WebView2.Wpf;
 using Shadepane.Core.Navigation;
+using Shadepane.Core.Localization;
 
 namespace Shadepane.App.Browser;
 
@@ -37,7 +38,7 @@ internal sealed class BrowserTab
             if (!string.IsNullOrWhiteSpace(title))
                 return title;
             var url = Url;
-            return string.IsNullOrEmpty(url) || url == UrlPolicy.AboutBlank ? "Новая вкладка" : url;
+            return string.IsNullOrEmpty(url) || url == UrlPolicy.AboutBlank ? Loc.T("Новая вкладка", "New tab") : url;
         }
     }
 
@@ -75,7 +76,7 @@ internal sealed class BrowserTab
             }
             e.Cancel = true;
             AppServices.Audit.Write("navigation-blocked", new { tab = Id, uri = e.Uri });
-            Status?.Invoke(this, $"Переход заблокирован политикой: {Truncate(e.Uri, 120)}");
+            Status?.Invoke(this, Loc.T($"Переход заблокирован политикой: {Truncate(e.Uri, 120)}", $"Blocked by policy: {Truncate(e.Uri, 120)}"));
         };
         core.NavigationCompleted += (_, e) =>
         {

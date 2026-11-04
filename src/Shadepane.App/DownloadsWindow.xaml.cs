@@ -2,6 +2,7 @@ using System.ComponentModel;
 using System.Windows;
 using Shadepane.App.Browser;
 using Shadepane.App.Protection;
+using Shadepane.Core.Localization;
 
 namespace Shadepane.App;
 
@@ -15,8 +16,8 @@ public partial class DownloadsWindow : ProtectedWindow
         if (!AppServices.Config.AllowDownloads)
         {
             DisabledNote.Text = AppServices.Config.DownloadsLocked
-                ? "Загрузка файлов запрещена администратором."
-                : "Загрузка файлов отключена в настройках.";
+                ? Loc.T("Загрузка файлов запрещена администратором.", "File downloads are blocked by the administrator.")
+                : Loc.T("Загрузка файлов отключена в настройках.", "File downloads are turned off in settings.");
             DisabledNote.Visibility = Visibility.Visible;
         }
     }

@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.IO;
 using Microsoft.Web.WebView2.Core;
 using Shadepane.Core.Browsing;
+using Shadepane.Core.Localization;
 
 namespace Shadepane.App.Browser;
 
@@ -36,9 +37,9 @@ internal sealed class DownloadItem : INotifyPropertyChanged
 
     public string Status => _operation.State switch
     {
-        CoreWebView2DownloadState.Completed => $"Готово · {ByteSize.Format(_operation.BytesReceived)}",
-        CoreWebView2DownloadState.Interrupted => $"Прервано: {_operation.InterruptReason}",
-        _ => (_operation.CanResume && _paused ? "Пауза · " : "") + ByteSize.Progress(_operation.BytesReceived, (long?)_operation.TotalBytesToReceive),
+        CoreWebView2DownloadState.Completed => Loc.T($"Готово · {ByteSize.Format(_operation.BytesReceived)}", $"Done · {ByteSize.Format(_operation.BytesReceived)}"),
+        CoreWebView2DownloadState.Interrupted => Loc.T($"Прервано: {_operation.InterruptReason}", $"Interrupted: {_operation.InterruptReason}"),
+        _ => (_operation.CanResume && _paused ? Loc.T("Пауза · ", "Paused · ") : "") + ByteSize.Progress(_operation.BytesReceived, (long?)_operation.TotalBytesToReceive),
     };
 
     private bool _paused;

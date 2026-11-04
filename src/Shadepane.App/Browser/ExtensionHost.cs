@@ -1,6 +1,7 @@
 using System.IO;
 using Microsoft.Web.WebView2.Core;
 using Shadepane.Core.Extensions;
+using Shadepane.Core.Localization;
 
 namespace Shadepane.App.Browser;
 
@@ -69,8 +70,9 @@ internal sealed class ExtensionHost
             // Известные компоненты Runtime сюда не попадают (см. KnownRuntimeComponents). Неизвестное
             // расширение, которое нельзя ни удалить, ни отключить, — это обход установщика: fail closed.
             throw new InvalidOperationException(
-                "В профиле есть неизвестное расширение, которое нельзя удалить или отключить: " +
-                string.Join(", ", unremovable) + ". Запуск остановлен; подробности — в audit.log.");
+                Loc.T("В профиле есть неизвестное расширение, которое нельзя удалить или отключить: " +
+                string.Join(", ", unremovable) + ". Запуск остановлен; подробности — в audit.log.", "The profile contains an unknown extension that cannot be removed or disabled: " +
+                string.Join(", ", unremovable) + ". Startup stopped; details are in audit.log."));
         }
 
         var synced = new List<ApprovedExtension>();

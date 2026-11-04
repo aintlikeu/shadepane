@@ -5,6 +5,7 @@ using Shadepane.App.Browser;
 using Shadepane.App.Protection;
 using Shadepane.Core.Extensions;
 using Shadepane.Core.Navigation;
+using Shadepane.Core.Localization;
 
 namespace Shadepane.App;
 
@@ -107,7 +108,7 @@ public partial class ExtensionPopupWindow : ProtectedWindow, IContentShield
         catch (Exception ex) when (!_closing)
         {
             AppServices.Audit.Write("popup-failed", new { _extension.Id, error = Diagnostics.Details(ex) });
-            MessageBox.Show(this, $"Не удалось открыть popup расширения:\n\n{Diagnostics.Describe(ex)}", Title, MessageBoxButton.OK, MessageBoxImage.Error);
+            MessageBox.Show(this, Loc.T($"Не удалось открыть popup расширения:\n\n{Diagnostics.Describe(ex)}", $"Could not open the extension popup:\n\n{Diagnostics.Describe(ex)}"), Title, MessageBoxButton.OK, MessageBoxImage.Error);
             Close();
         }
     }

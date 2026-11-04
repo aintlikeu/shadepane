@@ -4,7 +4,9 @@ using System.Windows.Threading;
 using Shadepane.App.Policy;
 using Shadepane.App.Protection;
 using Shadepane.Core.Audit;
+using Shadepane.Core.Localization;
 using Shadepane.Core.Policy;
+using Shadepane.Core.Settings;
 
 namespace Shadepane.App;
 
@@ -15,6 +17,10 @@ public partial class App : Application
     protected override void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
+
+        // Язык — первым: на нём уже и сообщение о битой политике. Настройки читаются ещё раз в AppServices.Initialize.
+        Loc.Current = LanguageChoice.Resolve(AppServices.SettingsStore.Load(out _).Language,
+            System.Globalization.CultureInfo.CurrentUICulture.TwoLetterISOLanguageName);
 
         var audit = new AuditLog(AppPaths.AuditLog);
         DispatcherUnhandledException += (_, args) => OnUnhandled(audit, args);
@@ -29,7 +35,8 @@ public partial class App : Application
         {
             // Битая или небезопасная политика — не запускаемся вовсе, а не работаем с ослабленной защитой.
             audit.Write("policy-invalid", new { error = ex.Message });
-            MessageBox.Show($"Политика браузера некорректна или недоступна, запуск невозможен:\n\n{ex.Message}", Caption, MessageBoxButton.OK, MessageBoxImage.Error);
+            MessageBox.Show(Loc.T($"Политика браузера некорректна или недоступна, запуск невозможен:\n\n{ex.Message}",
+                $"The browser policy is invalid or unavailable, so the browser cannot start:\n\n{ex.Message}"), Caption, MessageBoxButton.OK, MessageBoxImage.Error);
             Shutdown(1);
             return;
         }
@@ -37,8 +44,10 @@ public partial class App : Application
         if (policy.BlockInRemoteSession && CaptureGuard.IsRemoteSession)
         {
             audit.Write("remote-session-blocked");
-            MessageBox.Show("Запуск в удалённой сессии (RDP) запрещён политикой: снимок экрана делается на клиентской машине, " +
-                            "и защита окна там не действует.", Caption, MessageBoxButton.OK, MessageBoxImage.Warning);
+            MessageBox.Show(Loc.T("Запуск в удалённой сессии (RDP) запрещён политикой: снимок экрана делается на клиентской машине, " +
+                            "и защита окна там не действует.",
+                "The policy does not allow running in a remote desktop (RDP) session: screenshots are taken on the client machine, " +
+                "where window protection does not apply."), Caption, MessageBoxButton.OK, MessageBoxImage.Warning);
             Shutdown(2);
             return;
         }
@@ -100,7 +109,8 @@ public partial class App : Application
             if (window is IContentShield shield)
                 shield.HideContent();
         }
-        MessageBox.Show($"Защита от захвата экрана нарушена ({reason}).\nКонтент скрыт, браузер будет закрыт.",
+        MessageBox.Show(Loc.T($"Защита от захвата экрана нарушена ({reason}).\nКонтент скрыт, браузер будет закрыт.",
+                $"Screen capture protection was broken ({reason}).\nContent is hidden and the browser will close."),
             Caption, MessageBoxButton.OK, MessageBoxImage.Stop);
         Shutdown(3);
     }
@@ -108,7 +118,7 @@ public partial class App : Application
     private static void OnUnhandled(AuditLog audit, DispatcherUnhandledExceptionEventArgs args)
     {
         audit.Write("unhandled-exception", Diagnostics.Details(args.Exception));
-        MessageBox.Show($"Непредвиденная ошибка:\n\n{Diagnostics.Describe(args.Exception)}", Caption, MessageBoxButton.OK, MessageBoxImage.Error);
+        MessageBox.Show(Loc.T($"Непредвиденная ошибка:\n\n{Diagnostics.Describe(args.Exception)}", $"Unexpected error:\n\n{Diagnostics.Describe(args.Exception)}"), Caption, MessageBoxButton.OK, MessageBoxImage.Error);
         args.Handled = true;
     }
 }

@@ -12,7 +12,8 @@ loaded: capture permissions, access to all sites and access to protected hosts a
 
 Everyday browsing: tabs, search from the address bar (Startpage by default; DuckDuckGo, Brave Search,
 Google, Bing or a custom template), home page, bookmarks and a bookmarks bar, history, downloads, find in
-page, zoom and the usual keyboard shortcuts.
+page, zoom and the usual keyboard shortcuts. The interface is in English or Russian: it follows the Windows display language
+and can be switched in settings.
 
 > Capture exclusion is a Windows feature, not DRM: it stops software, not a camera pointed at the screen.
 

@@ -2,81 +2,95 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:protection="clr-namespace:Shadepane.App.Protection"
-        Title="Настройки — Shadepane" Width="560" SizeToContent="Height" ResizeMode="NoResize"
+        xmlns:l="clr-namespace:Shadepane.App.Localization"
+        Title="{l:Tr Ru='Настройки — Shadepane', En='Settings — Shadepane'}" Width="560" SizeToContent="Height" ResizeMode="NoResize"
         WindowStartupLocation="CenterOwner" ShowInTaskbar="False">
     <StackPanel Margin="16">
-        <GroupBox Header="Домашняя страница" Padding="8">
+        <GroupBox Header="{l:Tr Ru='Домашняя страница', En='Home page'}" Padding="8">
             <StackPanel>
-                <RadioButton x:Name="HomeSearchEngine" Content="Страница поисковика" GroupName="Home" Checked="HomeKind_Changed"/>
-                <RadioButton x:Name="HomeBlank" Content="Пустая страница" GroupName="Home" Margin="0,4,0,0" Checked="HomeKind_Changed"/>
+                <RadioButton x:Name="HomeSearchEngine" Content="{l:Tr Ru='Страница поисковика', En='Search engine page'}" GroupName="Home" Checked="HomeKind_Changed"/>
+                <RadioButton x:Name="HomeBlank" Content="{l:Tr Ru='Пустая страница', En='Blank page'}" GroupName="Home" Margin="0,4,0,0" Checked="HomeKind_Changed"/>
                 <DockPanel Margin="0,4,0,0">
-                    <RadioButton x:Name="HomeCustom" Content="Адрес:" GroupName="Home" VerticalAlignment="Center" Checked="HomeKind_Changed"/>
+                    <RadioButton x:Name="HomeCustom" Content="{l:Tr Ru='Адрес:', En='Address:'}" GroupName="Home" VerticalAlignment="Center" Checked="HomeKind_Changed"/>
                     <TextBox x:Name="HomeUrlBox" Margin="8,0,0,0" VerticalContentAlignment="Center"/>
                 </DockPanel>
-                <TextBlock x:Name="HomeLockedNote" Text="Задано администратором" Foreground="{DynamicResource Brush.Muted}" Margin="0,4,0,0" Visibility="Collapsed"/>
+                <TextBlock x:Name="HomeLockedNote" Text="{l:Tr Ru='Задано администратором', En='Set by the administrator'}" Foreground="{DynamicResource Brush.Muted}" Margin="0,4,0,0" Visibility="Collapsed"/>
             </StackPanel>
         </GroupBox>
 
-        <GroupBox Header="Поиск из адресной строки" Padding="8" Margin="0,10,0,0">
+        <GroupBox Header="{l:Tr Ru='Поиск из адресной строки', En='Search from the address bar'}" Padding="8" Margin="0,10,0,0">
             <StackPanel>
                 <ComboBox x:Name="SearchEngineBox" SelectionChanged="SearchEngine_Changed"/>
-                <TextBox x:Name="CustomSearchBox" Margin="0,6,0,0" VerticalContentAlignment="Center"
-                         ToolTip="https-адрес, где {query} будет заменён поисковым запросом"/>
-                <TextBlock x:Name="CustomSearchHint" Text="Пример: https://search.example/?q={query}" Foreground="{DynamicResource Brush.Muted}" Margin="0,2,0,0"/>
-                <TextBlock x:Name="SearchLockedNote" Text="Задано администратором" Foreground="{DynamicResource Brush.Muted}" Margin="0,4,0,0" Visibility="Collapsed"/>
+                <!-- Подсказки с {query} задаются в коде: фигурные скобки в XAML — разметка. -->
+                <TextBox x:Name="CustomSearchBox" Margin="0,6,0,0" VerticalContentAlignment="Center"/>
+                <TextBlock x:Name="CustomSearchHint" Foreground="{DynamicResource Brush.Muted}" Margin="0,2,0,0"/>
+                <TextBlock x:Name="SearchLockedNote" Text="{l:Tr Ru='Задано администратором', En='Set by the administrator'}" Foreground="{DynamicResource Brush.Muted}" Margin="0,4,0,0" Visibility="Collapsed"/>
             </StackPanel>
         </GroupBox>
 
-        <GroupBox Header="Расширения" Padding="8" Margin="0,10,0,0">
+        <GroupBox Header="{l:Tr Ru='Расширения', En='Extensions'}" Padding="8" Margin="0,10,0,0">
             <StackPanel>
-                <CheckBox x:Name="ClipboardBox" Content="Разрешить расширениям читать буфер обмена"/>
-                <TextBlock Text="Изменение вступит в силу после перезапуска браузера." Foreground="{DynamicResource Brush.Muted}" Margin="0,2,0,0"/>
-                <TextBlock x:Name="ClipboardLockedNote" Text="Задано администратором" Foreground="{DynamicResource Brush.Muted}" Margin="0,4,0,0" Visibility="Collapsed"/>
+                <CheckBox x:Name="ClipboardBox" Content="{l:Tr Ru='Разрешить расширениям читать буфер обмена', En='Allow extensions to read the clipboard'}"/>
+                <TextBlock Text="{l:Tr Ru='Изменение вступит в силу после перезапуска браузера.', En='The change takes effect after the browser restarts.'}" Foreground="{DynamicResource Brush.Muted}" Margin="0,2,0,0"/>
+                <TextBlock x:Name="ClipboardLockedNote" Text="{l:Tr Ru='Задано администратором', En='Set by the administrator'}" Foreground="{DynamicResource Brush.Muted}" Margin="0,4,0,0" Visibility="Collapsed"/>
             </StackPanel>
         </GroupBox>
 
-        <GroupBox Header="Загрузки" Padding="8" Margin="0,10,0,0">
+        <GroupBox Header="{l:Tr Ru='Загрузки', En='Downloads'}" Padding="8" Margin="0,10,0,0">
             <StackPanel>
-                <CheckBox x:Name="AllowDownloadsBox" Content="Разрешить загрузку файлов"/>
-                <TextBlock x:Name="DownloadsLockedNote" Text="Задано администратором" Foreground="{DynamicResource Brush.Muted}" Margin="0,4,0,0" Visibility="Collapsed"/>
+                <CheckBox x:Name="AllowDownloadsBox" Content="{l:Tr Ru='Разрешить загрузку файлов', En='Allow file downloads'}"/>
+                <TextBlock x:Name="DownloadsLockedNote" Text="{l:Tr Ru='Задано администратором', En='Set by the administrator'}" Foreground="{DynamicResource Brush.Muted}" Margin="0,4,0,0" Visibility="Collapsed"/>
             </StackPanel>
         </GroupBox>
 
-        <GroupBox Header="Оформление" Padding="8" Margin="0,10,0,0">
+        <GroupBox Header="{l:Tr Ru='Оформление', En='Appearance'}" Padding="8" Margin="0,10,0,0">
             <StackPanel Orientation="Horizontal">
-                <RadioButton x:Name="ThemeSystem" Content="Как в Windows" GroupName="Theme"/>
-                <RadioButton x:Name="ThemeLight" Content="Светлое" GroupName="Theme" Margin="16,0,0,0"/>
-                <RadioButton x:Name="ThemeDark" Content="Тёмное" GroupName="Theme" Margin="16,0,0,0"/>
+                <RadioButton x:Name="ThemeSystem" Content="{l:Tr Ru='Как в Windows', En='Same as Windows'}" GroupName="Theme"/>
+                <RadioButton x:Name="ThemeLight" Content="{l:Tr Ru='Светлое', En='Light'}" GroupName="Theme" Margin="16,0,0,0"/>
+                <RadioButton x:Name="ThemeDark" Content="{l:Tr Ru='Тёмное', En='Dark'}" GroupName="Theme" Margin="16,0,0,0"/>
             </StackPanel>
         </GroupBox>
 
-        <GroupBox Header="Закладки" Padding="8" Margin="0,10,0,0">
-            <CheckBox x:Name="ShowBookmarksBarBox" Content="Показывать панель закладок (Ctrl+Shift+B)"/>
+        <!-- Названия языков — каждое на своём языке, чтобы его нашёл тот, кто не читает текущий. -->
+        <GroupBox Header="{l:Tr Ru='Язык / Language', En='Language / Язык'}" Padding="8" Margin="0,10,0,0">
+            <StackPanel>
+                <StackPanel Orientation="Horizontal">
+                    <RadioButton x:Name="LanguageSystem" Content="{l:Tr Ru='Как в Windows', En='Same as Windows'}" GroupName="Language"/>
+                    <RadioButton x:Name="LanguageRussian" Content="Русский" GroupName="Language" Margin="16,0,0,0"/>
+                    <RadioButton x:Name="LanguageEnglish" Content="English" GroupName="Language" Margin="16,0,0,0"/>
+                </StackPanel>
+                <TextBlock Text="{l:Tr Ru='Язык меняется после перезапуска браузера.', En='The language changes after the browser restarts.'}"
+                           Foreground="{DynamicResource Brush.Muted}" Margin="0,4,0,0"/>
+            </StackPanel>
         </GroupBox>
 
-        <GroupBox Header="История" Padding="8" Margin="0,10,0,0">
+        <GroupBox Header="{l:Tr Ru='Закладки', En='Bookmarks'}" Padding="8" Margin="0,10,0,0">
+            <CheckBox x:Name="ShowBookmarksBarBox" Content="{l:Tr Ru='Показывать панель закладок (Ctrl+Shift+B)', En='Show the bookmarks bar (Ctrl+Shift+B)'}"/>
+        </GroupBox>
+
+        <GroupBox Header="{l:Tr Ru='История', En='History'}" Padding="8" Margin="0,10,0,0">
             <DockPanel>
-                <Button DockPanel.Dock="Right" Content="Очистить историю…" Padding="8,2" Click="ClearHistory_Click"/>
-                <CheckBox x:Name="SaveHistoryBox" Content="Сохранять историю посещений" VerticalAlignment="Center"/>
+                <Button DockPanel.Dock="Right" Content="{l:Tr Ru='Очистить историю…', En='Clear history…'}" Padding="8,2" Click="ClearHistory_Click"/>
+                <CheckBox x:Name="SaveHistoryBox" Content="{l:Tr Ru='Сохранять историю посещений', En='Save browsing history'}" VerticalAlignment="Center"/>
             </DockPanel>
         </GroupBox>
 
-        <GroupBox Header="Обновления" Padding="8" Margin="0,10,0,0">
+        <GroupBox Header="{l:Tr Ru='Обновления', En='Updates'}" Padding="8" Margin="0,10,0,0">
             <StackPanel>
                 <DockPanel>
-                    <Button DockPanel.Dock="Right" Content="Проверить сейчас" Padding="8,2" Click="CheckUpdates_Click"/>
-                    <CheckBox x:Name="CheckUpdatesBox" Content="Проверять обновления автоматически (GitHub Releases)" VerticalAlignment="Center"/>
+                    <Button DockPanel.Dock="Right" Content="{l:Tr Ru='Проверить сейчас', En='Check now'}" Padding="8,2" Click="CheckUpdates_Click"/>
+                    <CheckBox x:Name="CheckUpdatesBox" Content="{l:Tr Ru='Проверять обновления автоматически (GitHub Releases)', En='Check for updates automatically (GitHub Releases)'}" VerticalAlignment="Center"/>
                 </DockPanel>
                 <TextBlock x:Name="VersionText" Foreground="{DynamicResource Brush.Muted}" Margin="0,4,0,0"/>
-                <TextBlock x:Name="UpdatesLockedNote" Text="Задано администратором" Foreground="{DynamicResource Brush.Muted}" Margin="0,4,0,0" Visibility="Collapsed"/>
+                <TextBlock x:Name="UpdatesLockedNote" Text="{l:Tr Ru='Задано администратором', En='Set by the administrator'}" Foreground="{DynamicResource Brush.Muted}" Margin="0,4,0,0" Visibility="Collapsed"/>
             </StackPanel>
         </GroupBox>
 
         <TextBlock x:Name="ErrorText" Foreground="{DynamicResource Brush.Danger}" TextWrapping="Wrap" Margin="0,10,0,0" Visibility="Collapsed"/>
 
         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,14,0,0">
-            <Button x:Name="SaveButton" Content="Сохранить" Width="100" IsDefault="True" Click="Save_Click"/>
-            <Button Content="Отмена" Width="100" Margin="8,0,0,0" IsCancel="True"/>
+            <Button x:Name="SaveButton" Content="{l:Tr Ru='Сохранить', En='Save'}" Width="100" IsDefault="True" Click="Save_Click"/>
+            <Button Content="{l:Tr Ru='Отмена', En='Cancel'}" Width="100" Margin="8,0,0,0" IsCancel="True"/>
         </StackPanel>
     </StackPanel>
 </protection:ProtectedWindow>

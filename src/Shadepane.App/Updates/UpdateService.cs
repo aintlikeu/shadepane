@@ -4,6 +4,7 @@ using System.Net;
 using System.Net.Http;
 using System.Reflection;
 using Shadepane.Core.Updates;
+using Shadepane.Core.Localization;
 
 namespace Shadepane.App.Updates;
 
@@ -49,10 +50,10 @@ internal sealed class UpdateService
             Directory.Delete(dir, recursive: true); // никаких остатков от прошлых попыток
         Directory.CreateDirectory(dir);
 
-        progress.Report("Загрузка контрольных сумм…");
+        progress.Report(Loc.T("Загрузка контрольных сумм…", "Downloading checksums…"));
         var sumsText = await DownloadStringAsync(update.Checksums.DownloadUrl, MaxChecksumsBytes, ct);
         if (!Sha256Sums.Parse(sumsText).TryGetValue(update.Installer.Name, out var expected))
-            throw new InvalidDataException($"в {UpdatePlanner.ChecksumsFile} нет строки для {update.Installer.Name}");
+            throw new InvalidDataException(Loc.T($"в {UpdatePlanner.ChecksumsFile} нет строки для {update.Installer.Name}", $"{UpdatePlanner.ChecksumsFile} has no line for {update.Installer.Name}"));
 
         var path = Path.Combine(dir, update.Installer.Name);
         using (var response = await Http.GetAsync(update.Installer.DownloadUrl, HttpCompletionOption.ResponseHeadersRead, ct))
@@ -60,7 +61,7 @@ internal sealed class UpdateService
             response.EnsureSuccessStatusCode();
             var total = response.Content.Headers.ContentLength ?? update.Installer.Size;
             if (total > MaxInstallerBytes)
-                throw new InvalidDataException("установщик слишком большой");
+                throw new InvalidDataException(Loc.T("установщик слишком большой", "the installer is too large"));
             await using var source = await response.Content.ReadAsStreamAsync(ct);
             await using var target = File.Create(path);
             var buffer = new byte[81920];
@@ -71,30 +72,30 @@ internal sealed class UpdateService
             {
                 received += read;
                 if (received > MaxInstallerBytes)
-                    throw new InvalidDataException("установщик слишком большой");
+                    throw new InvalidDataException(Loc.T("установщик слишком большой", "the installer is too large"));
                 await target.WriteAsync(buffer.AsMemory(0, read), ct);
                 if (received - lastReport > 1024 * 1024)
                 {
                     lastReport = received;
-                    progress.Report($"Загрузка обновления: {Shadepane.Core.Browsing.ByteSize.Progress(received, total > 0 ? total : null)}");
+                    progress.Report(Loc.T($"Загрузка обновления: {Shadepane.Core.Browsing.ByteSize.Progress(received, total > 0 ? total : null)}", $"Downloading the update: {Shadepane.Core.Browsing.ByteSize.Progress(received, total > 0 ? total : null)}"));
                 }
             }
         }
 
-        progress.Report("Проверка контрольной суммы…");
+        progress.Report(Loc.T("Проверка контрольной суммы…", "Verifying the checksum…"));
         await using (var file = File.OpenRead(path))
         {
             if (!Sha256Sums.Matches(file, expected))
             {
                 file.Close();
                 File.Delete(path);
-                throw new InvalidDataException("контрольная сумма установщика не совпала — файл удалён");
+                throw new InvalidDataException(Loc.T("контрольная сумма установщика не совпала — файл удалён", "the installer checksum does not match; the file was deleted"));
             }
         }
 
         // Контрольная сумма из того же релиза защищает от повреждения, но не от подмены релиза.
         // Если сам браузер подписан, требуем действительную подпись того же издателя и у обновления.
-        progress.Report("Проверка подписи…");
+        progress.Report(Loc.T("Проверка подписи…", "Verifying the signature…"));
         var ownSigner = Authenticode.SignerSubject(Environment.ProcessPath ?? "");
         if (ownSigner is not null)
         {
@@ -102,7 +103,7 @@ internal sealed class UpdateService
             if (!Authenticode.IsValidlySigned(path) || !string.Equals(ownSigner, updateSigner, StringComparison.Ordinal))
             {
                 File.Delete(path);
-                throw new InvalidDataException($"подпись установщика недействительна или от другого издателя ({updateSigner ?? "нет подписи"}) — файл удалён");
+                throw new InvalidDataException(Loc.T($"подпись установщика недействительна или от другого издателя ({updateSigner ?? "нет подписи"}) — файл удалён", $"the installer signature is invalid or from another publisher ({updateSigner ?? "unsigned"}); the file was deleted"));
             }
         }
         return path;
@@ -120,9 +121,9 @@ internal sealed class UpdateService
         using var response = await Http.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, ct);
         response.EnsureSuccessStatusCode();
         if (response.Content.Headers.ContentLength > maxBytes)
-            throw new InvalidDataException($"{UpdatePlanner.ChecksumsFile} слишком большой");
+            throw new InvalidDataException(Loc.T($"{UpdatePlanner.ChecksumsFile} слишком большой", $"{UpdatePlanner.ChecksumsFile} is too large"));
         var text = await response.Content.ReadAsStringAsync(ct);
-        return text.Length > maxBytes ? throw new InvalidDataException($"{UpdatePlanner.ChecksumsFile} слишком большой") : text;
+        return text.Length > maxBytes ? throw new InvalidDataException(Loc.T($"{UpdatePlanner.ChecksumsFile} слишком большой", $"{UpdatePlanner.ChecksumsFile} is too large")) : text;
     }
 
     private static HttpClient CreateClient()

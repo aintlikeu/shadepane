@@ -1,3 +1,5 @@
+using Shadepane.Core.Localization;
+
 namespace Shadepane.Core.Hosts;
 
 /// <summary>
@@ -27,7 +29,7 @@ public sealed record MatchPattern(string Raw, bool AppliesToWeb, HostPattern? Ho
         error = null;
         if (string.IsNullOrWhiteSpace(raw))
         {
-            error = "пустой шаблон";
+            error = Loc.T("пустой шаблон", "empty pattern");
             return false;
         }
 
@@ -40,7 +42,7 @@ public sealed record MatchPattern(string Raw, bool AppliesToWeb, HostPattern? Ho
         var sep = raw.IndexOf("://", StringComparison.Ordinal);
         if (sep <= 0)
         {
-            error = "это не match pattern (ожидается scheme://host/path)";
+            error = Loc.T("это не match pattern (ожидается scheme://host/path)", "not a match pattern (expected scheme://host/path)");
             return false;
         }
 
@@ -52,7 +54,7 @@ public sealed record MatchPattern(string Raw, bool AppliesToWeb, HostPattern? Ho
         }
         if (!WebSchemes.Contains(scheme))
         {
-            error = $"неизвестная схема '{scheme}'";
+            error = Loc.T($"неизвестная схема '{scheme}'", $"unknown scheme '{scheme}'");
             return false;
         }
 
@@ -78,7 +80,7 @@ public sealed record MatchPattern(string Raw, bool AppliesToWeb, HostPattern? Ho
             if (close < 0)
             {
                 host = "";
-                error = "незакрытая скобка IPv6";
+                error = Loc.T("незакрытая скобка IPv6", "unclosed IPv6 bracket");
                 return false;
             }
             host = hostPort[..(close + 1)];

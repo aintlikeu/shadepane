@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Net;
+using Shadepane.Core.Localization;
 
 namespace Shadepane.Core.Hosts;
 
@@ -30,7 +31,7 @@ public sealed record HostPattern(HostPatternKind Kind, string Domain)
         error = null;
         if (string.IsNullOrWhiteSpace(raw))
         {
-            error = "пустой хост";
+            error = Loc.T("пустой хост", "empty host");
             return false;
         }
 
@@ -50,7 +51,7 @@ public sealed record HostPattern(HostPatternKind Kind, string Domain)
 
         if (s.Contains('*'))
         {
-            error = $"'*' допускается только как префикс '*.': {raw}";
+            error = Loc.T($"'*' допускается только как префикс '*.': {raw}", $"'*' is allowed only as the '*.' prefix: {raw}");
             return false;
         }
 
@@ -75,7 +76,7 @@ public sealed record HostPattern(HostPatternKind Kind, string Domain)
         var h = host.Trim().TrimEnd('.');
         if (h.Length == 0)
         {
-            error = "пустой хост";
+            error = Loc.T("пустой хост", "empty host");
             return false;
         }
 
@@ -83,7 +84,7 @@ public sealed record HostPattern(HostPatternKind Kind, string Domain)
         {
             if (!IPAddress.TryParse(h[1..^1], out var ip6))
             {
-                error = $"некорректный IPv6-адрес: {host}";
+                error = Loc.T($"некорректный IPv6-адрес: {host}", $"invalid IPv6 address: {host}");
                 return false;
             }
             normalized = "[" + ip6 + "]";
@@ -92,7 +93,7 @@ public sealed record HostPattern(HostPatternKind Kind, string Domain)
 
         if (h.IndexOfAny(ForbiddenHostChars) >= 0)
         {
-            error = $"недопустимые символы в хосте: {host}";
+            error = Loc.T($"недопустимые символы в хосте: {host}", $"invalid characters in host: {host}");
             return false;
         }
 
@@ -102,7 +103,7 @@ public sealed record HostPattern(HostPatternKind Kind, string Domain)
         }
         catch (ArgumentException)
         {
-            error = $"некорректное имя хоста: {host}";
+            error = Loc.T($"некорректное имя хоста: {host}", $"invalid host name: {host}");
             return false;
         }
         return true;

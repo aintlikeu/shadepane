@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Shadepane.Core.Localization;
 
 namespace Shadepane.Core.Extensions;
 
@@ -20,9 +21,9 @@ public static class ManifestReader
         var path = Path.Combine(directory, FileName);
         var info = new FileInfo(path);
         if (!info.Exists)
-            throw new ManifestException($"в папке нет {FileName}");
+            throw new ManifestException(Loc.T($"в папке нет {FileName}", $"the folder has no {FileName}"));
         if (info.Length > MaxManifestBytes)
-            throw new ManifestException($"{FileName} больше {MaxManifestBytes / 1024} КБ");
+            throw new ManifestException(Loc.T($"{FileName} больше {MaxManifestBytes / 1024} КБ", $"{FileName} is larger than {MaxManifestBytes / 1024} KB"));
 
         // ReadAllText сам снимает UTF-8 BOM.
         return Parse(File.ReadAllText(path));
@@ -37,14 +38,14 @@ public static class ManifestReader
         }
         catch (JsonException ex)
         {
-            throw new ManifestException($"{FileName} — некорректный JSON: {ex.Message}");
+            throw new ManifestException(Loc.T($"{FileName} — некорректный JSON: {ex.Message}", $"{FileName} is not valid JSON: {ex.Message}"));
         }
 
         using (doc)
         {
             var root = doc.RootElement;
             if (root.ValueKind != JsonValueKind.Object)
-                throw new ManifestException($"{FileName} должен содержать JSON-объект");
+                throw new ManifestException(Loc.T($"{FileName} должен содержать JSON-объект", $"{FileName} must contain a JSON object"));
 
             EnsureNoDuplicateKeys(root, "$");
             return ExtensionManifest.FromJson(root);
@@ -64,7 +65,7 @@ public static class ManifestReader
                 foreach (var property in element.EnumerateObject())
                 {
                     if (!seen.Add(property.Name))
-                        throw new ManifestException($"повторяющийся ключ '{property.Name}' в {path}");
+                        throw new ManifestException(Loc.T($"повторяющийся ключ '{property.Name}' в {path}", $"duplicate key '{property.Name}' in {path}"));
                     EnsureNoDuplicateKeys(property.Value, $"{path}.{property.Name}");
                 }
                 break;

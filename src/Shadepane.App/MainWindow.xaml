@@ -2,6 +2,7 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:protection="clr-namespace:Shadepane.App.Protection"
+        xmlns:l="clr-namespace:Shadepane.App.Localization"
         Title="Shadepane" Width="1280" Height="800" MinWidth="560" MinHeight="360"
         Background="{DynamicResource Brush.Frame}">
     <!-- Вкладки в заголовке окна, как в Edge и Chrome. Верхние 40 px — область заголовка: за неё окно перетаскивают,
@@ -32,34 +33,34 @@
                 <StackPanel x:Name="TabStrip" Orientation="Horizontal"/>
             </ScrollViewer>
             <Button x:Name="NewTabButton" Grid.Column="2" Style="{StaticResource ToolbarButton}" Width="30" Height="30" Margin="4,0,0,2"
-                    VerticalAlignment="Bottom" IsEnabled="False" Click="NewTab_Click" ToolTip="Новая вкладка (Ctrl+T)"
+                    VerticalAlignment="Bottom" IsEnabled="False" Click="NewTab_Click" ToolTip="{l:Tr Ru='Новая вкладка (Ctrl+T)', En='New tab (Ctrl+T)'}"
                     WindowChrome.IsHitTestVisibleInChrome="True"><Path Style="{StaticResource Glyph}" Data="{StaticResource Icon.Add}"/></Button>
             <!-- Колонка 3 — пустое место заголовка: за него окно перетаскивают. Ширину вкладок держим так, чтобы оно оставалось. -->
             <StackPanel Grid.Column="4" Orientation="Horizontal" VerticalAlignment="Top" WindowChrome.IsHitTestVisibleInChrome="True">
-                <Button x:Name="MinimizeButton" Style="{StaticResource CaptionButton}" Click="Minimize_Click" ToolTip="Свернуть"
-                        AutomationProperties.Name="Свернуть"><Path Style="{StaticResource SmallGlyph}" Data="{StaticResource Icon.Minimize}"/></Button>
-                <Button x:Name="MaximizeButton" Style="{StaticResource CaptionButton}" Click="Maximize_Click" ToolTip="Развернуть"
-                        AutomationProperties.Name="Развернуть"><Path x:Name="MaximizeGlyph" Style="{StaticResource SmallGlyph}" Data="{StaticResource Icon.Maximize}"/></Button>
-                <Button x:Name="CloseButton" Style="{StaticResource CaptionCloseButton}" Click="CloseWindow_Click" ToolTip="Закрыть"
-                        AutomationProperties.Name="Закрыть"><Path Style="{StaticResource SmallGlyph}" Data="{StaticResource Icon.Close}"/></Button>
+                <Button x:Name="MinimizeButton" Style="{StaticResource CaptionButton}" Click="Minimize_Click" ToolTip="{l:Tr Ru='Свернуть', En='Minimize'}"
+                        AutomationProperties.Name="{l:Tr Ru='Свернуть', En='Minimize'}"><Path Style="{StaticResource SmallGlyph}" Data="{StaticResource Icon.Minimize}"/></Button>
+                <Button x:Name="MaximizeButton" Style="{StaticResource CaptionButton}" Click="Maximize_Click" ToolTip="{l:Tr Ru='Развернуть', En='Maximize'}"
+                        AutomationProperties.Name="{l:Tr Ru='Развернуть', En='Maximize'}"><Path x:Name="MaximizeGlyph" Style="{StaticResource SmallGlyph}" Data="{StaticResource Icon.Maximize}"/></Button>
+                <Button x:Name="CloseButton" Style="{StaticResource CaptionCloseButton}" Click="CloseWindow_Click" ToolTip="{l:Tr Ru='Закрыть', En='Close'}"
+                        AutomationProperties.Name="{l:Tr Ru='Закрыть', En='Close'}"><Path Style="{StaticResource SmallGlyph}" Data="{StaticResource Icon.Close}"/></Button>
             </StackPanel>
         </Grid>
 
         <!-- Панель навигации -->
         <DockPanel DockPanel.Dock="Top" Background="{DynamicResource Brush.Surface}" LastChildFill="True">
             <DockPanel Margin="8,6" LastChildFill="True">
-                <Button x:Name="BackButton" Style="{StaticResource ToolbarButton}" IsEnabled="False" Click="Back_Click" ToolTip="Назад (Alt+←)"><Path Style="{StaticResource Glyph}" Data="{StaticResource Icon.Back}"/></Button>
-                <Button x:Name="ForwardButton" Style="{StaticResource ToolbarButton}" Margin="2,0,0,0" IsEnabled="False" Click="Forward_Click" ToolTip="Вперёд (Alt+→)"><Path Style="{StaticResource Glyph}" Data="{StaticResource Icon.Forward}"/></Button>
-                <Button x:Name="ReloadButton" Style="{StaticResource ToolbarButton}" Margin="2,0,0,0" IsEnabled="False" Click="Reload_Click" ToolTip="Обновить (F5)"><Path x:Name="ReloadGlyph" Style="{StaticResource Glyph}" Data="{StaticResource Icon.Reload}"/></Button>
+                <Button x:Name="BackButton" Style="{StaticResource ToolbarButton}" IsEnabled="False" Click="Back_Click" ToolTip="{l:Tr Ru='Назад (Alt+←)', En='Back (Alt+←)'}"><Path Style="{StaticResource Glyph}" Data="{StaticResource Icon.Back}"/></Button>
+                <Button x:Name="ForwardButton" Style="{StaticResource ToolbarButton}" Margin="2,0,0,0" IsEnabled="False" Click="Forward_Click" ToolTip="{l:Tr Ru='Вперёд (Alt+→)', En='Forward (Alt+→)'}"><Path Style="{StaticResource Glyph}" Data="{StaticResource Icon.Forward}"/></Button>
+                <Button x:Name="ReloadButton" Style="{StaticResource ToolbarButton}" Margin="2,0,0,0" IsEnabled="False" Click="Reload_Click" ToolTip="{l:Tr Ru='Обновить (F5)', En='Reload (F5)'}"><Path x:Name="ReloadGlyph" Style="{StaticResource Glyph}" Data="{StaticResource Icon.Reload}"/></Button>
                 <!-- Меню браузера: история, закладки, масштаб, поиск, настройки и т. д. (BuildMainMenu). -->
                 <Button x:Name="MenuButton" DockPanel.Dock="Right" Style="{StaticResource ToolbarButton}" Margin="2,0,0,0" IsEnabled="False"
-                        Click="Menu_Click" ToolTip="Меню" AutomationProperties.Name="Меню"><Path Style="{StaticResource Glyph}" Data="{StaticResource Icon.Menu}"/></Button>
+                        Click="Menu_Click" ToolTip="{l:Tr Ru='Меню', En='Menu'}" AutomationProperties.Name="{l:Tr Ru='Меню', En='Menu'}"><Path Style="{StaticResource Glyph}" Data="{StaticResource Icon.Menu}"/></Button>
                 <Button x:Name="UpdateButton" DockPanel.Dock="Right" Style="{StaticResource ToolbarTextButton}" Height="34" Margin="2,0,0,0" Visibility="Collapsed"
                         Foreground="{DynamicResource Brush.AccentText}" FontWeight="SemiBold" Click="Update_Click"/>
                 <Button x:Name="DownloadsButton" DockPanel.Dock="Right" Style="{StaticResource ToolbarButton}" Margin="2,0,0,0"
-                        Click="Downloads_Click" ToolTip="Загрузки (Ctrl+J)"><Path Style="{StaticResource Glyph}" Data="{StaticResource Icon.Downloads}"/></Button>
+                        Click="Downloads_Click" ToolTip="{l:Tr Ru='Загрузки (Ctrl+J)', En='Downloads (Ctrl+J)'}"><Path Style="{StaticResource Glyph}" Data="{StaticResource Icon.Downloads}"/></Button>
                 <Button x:Name="ExtensionsButton" DockPanel.Dock="Right" Style="{StaticResource ToolbarButton}" Margin="2,0,0,0"
-                        IsEnabled="False" Click="Extensions_Click" ToolTip="Расширения" AutomationProperties.Name="Расширения"><Path Style="{StaticResource Glyph}" Data="{StaticResource Icon.Extension}"/></Button>
+                        IsEnabled="False" Click="Extensions_Click" ToolTip="{l:Tr Ru='Расширения', En='Extensions'}" AutomationProperties.Name="{l:Tr Ru='Расширения', En='Extensions'}"><Path Style="{StaticResource Glyph}" Data="{StaticResource Icon.Extension}"/></Button>
                 <StackPanel x:Name="ExtensionBar" DockPanel.Dock="Right" Orientation="Horizontal" Margin="4,0,0,0"/>
                 <!-- Адресная строка. Без фокуса поверх поля показан адрес с выделенным доменом (AddressDisplay),
                      в фокусе — обычное поле ввода с полным адресом. -->
@@ -78,12 +79,12 @@
                     </Border.Style>
                     <DockPanel LastChildFill="True">
                         <Button x:Name="BookmarkButton" DockPanel.Dock="Right" Style="{StaticResource ToolbarButton}" Width="28" Height="28" IsEnabled="False"
-                                Click="Bookmark_Click" ToolTip="Добавить в закладки (Ctrl+D)"><Path x:Name="BookmarkGlyph" Style="{StaticResource Glyph}" Data="{StaticResource Icon.Star}"/></Button>
+                                Click="Bookmark_Click" ToolTip="{l:Tr Ru='Добавить в закладки (Ctrl+D)', En='Add to bookmarks (Ctrl+D)'}"><Path x:Name="BookmarkGlyph" Style="{StaticResource Glyph}" Data="{StaticResource Icon.Star}"/></Button>
                         <!-- Индикатор защиты: состояние выбирает ProtectionStatus, по нажатию — сведения о защите. -->
                         <Button x:Name="ProtectionChip" DockPanel.Dock="Left" Style="{StaticResource ProtectionChip}" Click="ProtectionChip_Click">
                             <StackPanel Orientation="Horizontal">
                                 <Path x:Name="ProtectionGlyph" Style="{StaticResource Glyph}" Data="{StaticResource Icon.ShieldCheck}"/>
-                                <TextBlock x:Name="ProtectionLabel" Margin="6,0,0,0" VerticalAlignment="Center" Text="Защищено"/>
+                                <TextBlock x:Name="ProtectionLabel" Margin="6,0,0,0" VerticalAlignment="Center" Text="{l:Tr Ru='Защищено', En='Protected'}"/>
                             </StackPanel>
                         </Button>
                         <Grid>
@@ -139,10 +140,10 @@
                 BorderBrush="{DynamicResource Brush.Hairline}" BorderThickness="0,0,0,1">
             <DockPanel Margin="10,0,10,4" LastChildFill="True">
                 <Button x:Name="BookmarksOverflowButton" DockPanel.Dock="Right" Style="{StaticResource ToolbarButton}" Width="28" Height="26" Margin="4,0,0,0"
-                        Click="BookmarksOverflow_Click" ToolTip="Все закладки"><Path Style="{StaticResource Glyph}" Data="{StaticResource Icon.More}"/></Button>
+                        Click="BookmarksOverflow_Click" ToolTip="{l:Tr Ru='Все закладки', En='All bookmarks'}"><Path Style="{StaticResource Glyph}" Data="{StaticResource Icon.More}"/></Button>
                 <Grid ClipToBounds="True">
                     <StackPanel x:Name="BookmarksBarItems" Orientation="Horizontal"/>
-                    <TextBlock x:Name="BookmarksBarEmpty" Text="Закладок пока нет — нажмите ☆ или Ctrl+D на нужной странице"
+                    <TextBlock x:Name="BookmarksBarEmpty" Text="{l:Tr Ru='Закладок пока нет — нажмите ☆ или Ctrl+D на нужной странице', En='No bookmarks yet. Press ☆ or Ctrl+D on a page to add one'}"
                                Foreground="{DynamicResource Brush.Muted}" VerticalAlignment="Center" Margin="8,0,0,0"/>
                 </Grid>
             </DockPanel>
@@ -152,13 +153,13 @@
         <Border x:Name="FindBar" DockPanel.Dock="Top" Visibility="Collapsed" Background="{DynamicResource Brush.Surface}"
                 BorderBrush="{DynamicResource Brush.Hairline}" BorderThickness="0,0,0,1">
             <DockPanel Margin="10,4" LastChildFill="False">
-                <TextBlock Text="Найти на странице:" VerticalAlignment="Center"/>
+                <TextBlock Text="{l:Tr Ru='Найти на странице:', En='Find on page:'}" VerticalAlignment="Center"/>
                 <TextBox x:Name="FindBox" Width="280" Margin="8,0,0,0" VerticalContentAlignment="Center"
                          TextChanged="FindBox_TextChanged" KeyDown="FindBox_KeyDown"/>
                 <TextBlock x:Name="FindCount" Margin="10,0,0,0" MinWidth="60" VerticalAlignment="Center" Foreground="{DynamicResource Brush.Muted}"/>
-                <Button Style="{StaticResource ToolbarButton}" Width="30" Height="30" Margin="4,0,0,0" Click="FindPrevious_Click" ToolTip="Предыдущее (Shift+F3, Shift+Enter)"><Path Style="{StaticResource Glyph}" Data="{StaticResource Icon.Up}"/></Button>
-                <Button Style="{StaticResource ToolbarButton}" Width="30" Height="30" Margin="2,0,0,0" Click="FindNext_Click" ToolTip="Следующее (F3, Enter)"><Path Style="{StaticResource Glyph}" Data="{StaticResource Icon.Down}"/></Button>
-                <Button Style="{StaticResource ToolbarButton}" Width="30" Height="30" Margin="2,0,0,0" Click="FindClose_Click" ToolTip="Закрыть (Esc)"><Path Style="{StaticResource Glyph}" Data="{StaticResource Icon.Close}"/></Button>
+                <Button Style="{StaticResource ToolbarButton}" Width="30" Height="30" Margin="4,0,0,0" Click="FindPrevious_Click" ToolTip="{l:Tr Ru='Предыдущее (Shift+F3, Shift+Enter)', En='Previous (Shift+F3, Shift+Enter)'}"><Path Style="{StaticResource Glyph}" Data="{StaticResource Icon.Up}"/></Button>
+                <Button Style="{StaticResource ToolbarButton}" Width="30" Height="30" Margin="2,0,0,0" Click="FindNext_Click" ToolTip="{l:Tr Ru='Следующее (F3, Enter)', En='Next (F3, Enter)'}"><Path Style="{StaticResource Glyph}" Data="{StaticResource Icon.Down}"/></Button>
+                <Button Style="{StaticResource ToolbarButton}" Width="30" Height="30" Margin="2,0,0,0" Click="FindClose_Click" ToolTip="{l:Tr Ru='Закрыть (Esc)', En='Close (Esc)'}"><Path Style="{StaticResource Glyph}" Data="{StaticResource Icon.Close}"/></Button>
             </DockPanel>
         </Border>
 
@@ -169,7 +170,7 @@
             <DockPanel Margin="12,3,6,3" LastChildFill="True">
                 <Path x:Name="NoticeIcon" Style="{StaticResource Glyph}" VerticalAlignment="Center" Data="{StaticResource Icon.Info}"/>
                 <Button DockPanel.Dock="Right" Style="{StaticResource ToolbarTextButton}" Height="28" FontWeight="SemiBold"
-                        Content="Закрыть" Click="NoticeClose_Click"/>
+                        Content="{l:Tr Ru='Закрыть', En='Close'}" Click="NoticeClose_Click"/>
                 <TextBlock x:Name="NoticeText" Margin="8,0,8,0" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"
                            AutomationProperties.LiveSetting="Polite"/>
             </DockPanel>
@@ -179,7 +180,7 @@
             <!-- Сюда добавляются WebView2 вкладок; видна только активная. -->
             <Grid x:Name="ContentHost"/>
             <!-- WPF не может рисовать поверх HWND WebView2 (airspace), поэтому при нарушении защиты скрываем ContentHost целиком. -->
-            <TextBlock x:Name="HiddenNotice" Visibility="Collapsed" Text="Контент скрыт политикой защиты"
+            <TextBlock x:Name="HiddenNotice" Visibility="Collapsed" Text="{l:Tr Ru='Контент скрыт политикой защиты', En='Content is hidden by the protection policy'}"
                        HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="18"/>
         </Grid>
     </DockPanel>

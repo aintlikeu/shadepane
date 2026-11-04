@@ -18,6 +18,8 @@ internal static class BrowserEnvironment
         {
             // Без этого AddBrowserExtensionAsync возвращает ERROR_NOT_SUPPORTED.
             AreBrowserExtensionsEnabled = true,
+            // Язык меню и диалогов WebView2 и заголовок Accept-Language — как у интерфейса браузера.
+            Language = Shadepane.Core.Localization.Loc.IsEnglish ? "en-US" : "ru-RU",
         };
         return CoreWebView2Environment.CreateAsync(browserExecutableFolder: null, userDataFolder: AppPaths.WebViewData, options: options);
     }

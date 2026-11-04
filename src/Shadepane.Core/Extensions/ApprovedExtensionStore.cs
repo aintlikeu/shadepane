@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Shadepane.Core.Localization;
 
 namespace Shadepane.Core.Extensions;
 
@@ -30,12 +31,12 @@ public sealed class ApprovedExtensionStore(string filePath)
         {
             var items = JsonSerializer.Deserialize<List<ApprovedExtension>>(File.ReadAllText(FilePath), JsonOptions);
             if (items is null || items.Any(i => i is null || string.IsNullOrEmpty(i.Id) || string.IsNullOrEmpty(i.StagedPath) || string.IsNullOrEmpty(i.Hash)))
-                throw new InvalidDataException("в списке есть пустые записи");
+                throw new InvalidDataException(Loc.T("в списке есть пустые записи", "the list has empty entries"));
             return items;
         }
         catch (JsonException ex)
         {
-            throw new InvalidDataException($"список расширений повреждён: {ex.Message}", ex);
+            throw new InvalidDataException(Loc.T($"список расширений повреждён: {ex.Message}", $"the extension list is corrupted: {ex.Message}"), ex);
         }
     }
 

@@ -1,4 +1,5 @@
 using System.Text.RegularExpressions;
+using Shadepane.Core.Localization;
 
 namespace Shadepane.Core.Navigation;
 
@@ -23,17 +24,17 @@ public static partial class UrlPolicy
 
         if (s.Length == 0)
         {
-            error = "введите адрес";
+            error = Loc.T("введите адрес", "enter an address");
             return false;
         }
         if (s.Length > MaxInputLength)
         {
-            error = "адрес слишком длинный";
+            error = Loc.T("адрес слишком длинный", "the address is too long");
             return false;
         }
         if (s.Any(c => char.IsWhiteSpace(c) || char.IsControl(c)))
         {
-            error = "адрес не должен содержать пробелов и управляющих символов";
+            error = Loc.T("адрес не должен содержать пробелов и управляющих символов", "the address must not contain spaces or control characters");
             return false;
         }
 
@@ -42,23 +43,23 @@ public static partial class UrlPolicy
         var candidate = s.Contains("://", StringComparison.Ordinal) ? s : "https://" + s;
         if (!Uri.TryCreate(candidate, UriKind.Absolute, out var parsed))
         {
-            error = "некорректный адрес";
+            error = Loc.T("некорректный адрес", "invalid address");
             return false;
         }
         if (!IsWebScheme(parsed))
         {
-            error = $"схема '{parsed.Scheme}' запрещена: разрешены только http и https";
+            error = Loc.T($"схема '{parsed.Scheme}' запрещена: разрешены только http и https", $"the '{parsed.Scheme}' scheme is not allowed: only http and https are");
             return false;
         }
         if (string.IsNullOrEmpty(parsed.Host))
         {
-            error = "в адресе нет хоста";
+            error = Loc.T("в адресе нет хоста", "the address has no host");
             return false;
         }
         if (!string.IsNullOrEmpty(parsed.UserInfo))
         {
             // https://corp.example@evil.example — классическая маскировка фишинга.
-            error = "адреса с логином в URL (user@host) запрещены";
+            error = Loc.T("адреса с логином в URL (user@host) запрещены", "addresses with a login in the URL (user@host) are not allowed");
             return false;
         }
 

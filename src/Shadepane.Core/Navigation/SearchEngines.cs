@@ -1,3 +1,5 @@
+using Shadepane.Core.Localization;
+
 namespace Shadepane.Core.Navigation;
 
 /// <param name="SearchUrl">Шаблон адреса поиска: {query} заменяется закодированным запросом.</param>
@@ -36,34 +38,34 @@ public static class SearchEngines
         error = null;
         if (string.IsNullOrWhiteSpace(template))
         {
-            error = "шаблон поиска пуст";
+            error = Loc.T("шаблон поиска пуст", "the search template is empty");
             return false;
         }
         if (template.Length > MaxTemplateLength)
         {
-            error = "шаблон поиска слишком длинный";
+            error = Loc.T("шаблон поиска слишком длинный", "the search template is too long");
             return false;
         }
         if (!template.Contains(QueryPlaceholder, StringComparison.Ordinal))
         {
-            error = $"в шаблоне нет {QueryPlaceholder}";
+            error = Loc.T($"в шаблоне нет {QueryPlaceholder}", $"the template has no {QueryPlaceholder}");
             return false;
         }
         if (!template.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
         {
-            error = "шаблон поиска должен начинаться с https:// (запросы не должны уходить открытым текстом)";
+            error = Loc.T("шаблон поиска должен начинаться с https:// (запросы не должны уходить открытым текстом)", "the search template must start with https:// (queries must not be sent in clear text)");
             return false;
         }
 
         if (!TrySample(template, "test", out var first) || !TrySample(template, "other", out var second))
         {
-            error = "шаблон поиска — некорректный адрес";
+            error = Loc.T("шаблон поиска — некорректный адрес", "the search template is not a valid address");
             return false;
         }
         // Запрос не должен попадать в имя хоста: иначе текст запроса решал бы, на какой сайт уйти.
         if (!string.Equals(first!.IdnHost, second!.IdnHost, StringComparison.OrdinalIgnoreCase) || first.Port != second.Port)
         {
-            error = $"{QueryPlaceholder} не может быть частью имени сайта — только пути или параметров";
+            error = Loc.T($"{QueryPlaceholder} не может быть частью имени сайта — только пути или параметров", $"{QueryPlaceholder} cannot be part of the site name, only of the path or parameters");
             return false;
         }
         return true;

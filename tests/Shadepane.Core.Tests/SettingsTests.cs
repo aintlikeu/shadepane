@@ -370,3 +370,36 @@ public class ThemeSettingTests
         Assert.Equal(AppTheme.Dark, store.Load(out _).Theme);
     }
 }
+
+public class LanguageSettingTests
+{
+    [Theory]
+    [InlineData(AppLanguage.System, "ru", Localization.UiLanguage.Russian)]
+    [InlineData(AppLanguage.System, "RU", Localization.UiLanguage.Russian)]
+    [InlineData(AppLanguage.System, "en", Localization.UiLanguage.English)]
+    [InlineData(AppLanguage.System, "de", Localization.UiLanguage.English)]
+    [InlineData(AppLanguage.System, null, Localization.UiLanguage.English)]
+    [InlineData(AppLanguage.Russian, "en", Localization.UiLanguage.Russian)]
+    [InlineData(AppLanguage.English, "ru", Localization.UiLanguage.English)]
+    public void Resolve_FollowsChoiceOrWindows(AppLanguage choice, string? windows, Localization.UiLanguage expected) =>
+        Assert.Equal(expected, LanguageChoice.Resolve(choice, windows));
+
+    [Fact]
+    public void Language_DefaultsToSystem_AndRoundTripsAsString()
+    {
+        using var tmp = new TempDir();
+        var store = new UserSettingsStore(Path.Combine(tmp.Path, "settings.json"));
+        store.Save(UserSettings.Default with { Language = AppLanguage.English });
+        Assert.Contains("\"english\"", File.ReadAllText(store.FilePath));
+        Assert.Equal(AppLanguage.English, store.Load(out _).Language);
+        File.WriteAllText(store.FilePath, "{}");
+        Assert.Equal(AppLanguage.System, store.Load(out _).Language);
+    }
+
+    [Fact]
+    public void Pick_ChoosesByLanguage()
+    {
+        Assert.Equal("Сохранить", Localization.Loc.Pick(Localization.UiLanguage.Russian, "Сохранить", "Save"));
+        Assert.Equal("Save", Localization.Loc.Pick(Localization.UiLanguage.English, "Сохранить", "Save"));
+    }
+}

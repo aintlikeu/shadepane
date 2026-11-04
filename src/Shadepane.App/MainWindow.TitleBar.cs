@@ -4,6 +4,7 @@ using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Shell;
 using Shadepane.App.Native;
+using Shadepane.Core.Localization;
 
 namespace Shadepane.App;
 
@@ -151,7 +152,7 @@ public partial class MainWindow
     {
         var maximized = WindowState == WindowState.Maximized;
         MaximizeGlyph.Data = (Geometry)FindResource(maximized ? "Icon.Restore" : "Icon.Maximize");
-        var name = maximized ? "Восстановить" : "Развернуть";
+        var name = Loc.T(maximized ? "Восстановить" : "Развернуть", maximized ? "Restore" : "Maximize");
         MaximizeButton.ToolTip = name;
         System.Windows.Automation.AutomationProperties.SetName(MaximizeButton, name);
     }

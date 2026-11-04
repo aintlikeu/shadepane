@@ -2,6 +2,7 @@ using System.Windows;
 using System.Windows.Input;
 using Shadepane.App.Protection;
 using Shadepane.Core.History;
+using Shadepane.Core.Localization;
 
 namespace Shadepane.App;
 
@@ -31,7 +32,7 @@ public partial class HistoryWindow : ProtectedWindow
     private void Refresh()
     {
         List.ItemsSource = AppServices.History.Search(SearchBox.Text).Select(e => new Row(e)).ToList();
-        SavingNote.Text = AppServices.Settings.SaveHistory ? "" : "Сохранение истории отключено в настройках";
+        SavingNote.Text = AppServices.Settings.SaveHistory ? "" : Loc.T("Сохранение истории отключено в настройках", "Saving history is turned off in settings");
     }
 
     private IEnumerable<Row> Selected => List.SelectedItems.Cast<Row>().ToList();
@@ -58,7 +59,7 @@ public partial class HistoryWindow : ProtectedWindow
 
     private void ClearAll_Click(object sender, RoutedEventArgs e)
     {
-        if (MessageBox.Show(this, "Удалить всю историю посещений?", Title, MessageBoxButton.YesNo, MessageBoxImage.Question) == MessageBoxResult.Yes)
+        if (MessageBox.Show(this, Loc.T("Удалить всю историю посещений?", "Delete all browsing history?"), Title, MessageBoxButton.YesNo, MessageBoxImage.Question) == MessageBoxResult.Yes)
             AppServices.History.Clear();
     }
 

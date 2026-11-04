@@ -2,10 +2,11 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:protection="clr-namespace:Shadepane.App.Protection"
-        Title="Закладки — Shadepane" Width="860" Height="600" WindowStartupLocation="CenterOwner">
+        xmlns:l="clr-namespace:Shadepane.App.Localization"
+        Title="{l:Tr Ru='Закладки — Shadepane', En='Bookmarks — Shadepane'}" Width="860" Height="600" WindowStartupLocation="CenterOwner">
     <DockPanel Margin="16">
         <DockPanel DockPanel.Dock="Top" Margin="0,0,0,8">
-            <TextBlock Text="Поиск:" VerticalAlignment="Center"/>
+            <TextBlock Text="{l:Tr Ru='Поиск:', En='Search:'}" VerticalAlignment="Center"/>
             <TextBox x:Name="SearchBox" Margin="6,0,0,0" VerticalContentAlignment="Center" TextChanged="SearchBox_TextChanged"/>
         </DockPanel>
 
@@ -21,18 +22,18 @@
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
-            <TextBlock Text="Название:" VerticalAlignment="Center"/>
+            <TextBlock Text="{l:Tr Ru='Название:', En='Title:'}" VerticalAlignment="Center"/>
             <TextBox x:Name="TitleBox" Grid.Column="1" Margin="8,0,0,4" VerticalContentAlignment="Center"/>
-            <TextBlock Grid.Row="1" Text="Адрес:" VerticalAlignment="Center"/>
+            <TextBlock Grid.Row="1" Text="{l:Tr Ru='Адрес:', En='Address:'}" VerticalAlignment="Center"/>
             <TextBox x:Name="UrlBox" Grid.Row="1" Grid.Column="1" Margin="8,0,0,0" VerticalContentAlignment="Center"/>
             <TextBlock x:Name="ErrorText" Grid.Row="2" Grid.ColumnSpan="2" Foreground="{DynamicResource Brush.Danger}" Margin="0,4,0,0" Visibility="Collapsed"/>
             <StackPanel Grid.Row="3" Grid.ColumnSpan="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,8,0,0">
-                <Button Width="32" Click="MoveUp_Click" ToolTip="Выше (раньше на панели закладок)"><Path Style="{StaticResource Glyph}" Data="{StaticResource Icon.Up}"/></Button>
-                <Button Width="32" Margin="4,0,0,0" Click="MoveDown_Click" ToolTip="Ниже"><Path Style="{StaticResource Glyph}" Data="{StaticResource Icon.Down}"/></Button>
-                <Button Content="Сохранить изменения" Margin="12,0,0,0" Padding="8,2" Click="SaveEdit_Click"/>
-                <Button Content="Открыть" Width="100" Margin="8,0,0,0" Click="Open_Click"/>
-                <Button Content="В новой вкладке" Width="130" Margin="8,0,0,0" Click="OpenInNewTab_Click"/>
-                <Button Content="Удалить" Width="100" Margin="8,0,0,0" Click="Delete_Click"/>
+                <Button Width="32" Click="MoveUp_Click" ToolTip="{l:Tr Ru='Выше (раньше на панели закладок)', En='Up (earlier on the bookmarks bar)'}"><Path Style="{StaticResource Glyph}" Data="{StaticResource Icon.Up}"/></Button>
+                <Button Width="32" Margin="4,0,0,0" Click="MoveDown_Click" ToolTip="{l:Tr Ru='Ниже', En='Down'}"><Path Style="{StaticResource Glyph}" Data="{StaticResource Icon.Down}"/></Button>
+                <Button Content="{l:Tr Ru='Сохранить изменения', En='Save changes'}" Margin="12,0,0,0" Padding="8,2" Click="SaveEdit_Click"/>
+                <Button Content="{l:Tr Ru='Открыть', En='Open'}" Width="100" Margin="8,0,0,0" Click="Open_Click"/>
+                <Button Content="{l:Tr Ru='В новой вкладке', En='In new tab'}" Width="130" Margin="8,0,0,0" Click="OpenInNewTab_Click"/>
+                <Button Content="{l:Tr Ru='Удалить', En='Delete'}" Width="100" Margin="8,0,0,0" Click="Delete_Click"/>
             </StackPanel>
         </Grid>
 
@@ -40,8 +41,8 @@
                   MouseDoubleClick="List_MouseDoubleClick" KeyDown="List_KeyDown">
             <ListView.View>
                 <GridView>
-                    <GridViewColumn Header="Название" Width="360" DisplayMemberBinding="{Binding Title}"/>
-                    <GridViewColumn Header="Адрес" Width="440" DisplayMemberBinding="{Binding Url}"/>
+                    <GridViewColumn Header="{l:Tr Ru='Название', En='Title'}" Width="360" DisplayMemberBinding="{Binding Title}"/>
+                    <GridViewColumn Header="{l:Tr Ru='Адрес', En='Address'}" Width="440" DisplayMemberBinding="{Binding Url}"/>
                 </GridView>
             </ListView.View>
         </ListView>

@@ -1,3 +1,5 @@
+using Shadepane.Core.Localization;
+
 namespace Shadepane.Core.Policy;
 
 /// <summary>Одна запись ACL в платформенно-независимом виде (SID строкой, маска прав числом).</summary>
@@ -36,7 +38,7 @@ public static class AdminOnlyWriteCheck
     {
         // Владелец всегда может переписать ACL, поэтому он должен быть доверенным.
         if (!IsTrusted(ownerSid))
-            return $"владелец {ownerSid ?? "неизвестен"}";
+            return Loc.T($"владелец {ownerSid ?? "неизвестен"}", $"owner {ownerSid ?? "unknown"}");
 
         foreach (var ace in aces)
         {
@@ -44,7 +46,7 @@ public static class AdminOnlyWriteCheck
             if (!ace.IsAllow || ace.IsInheritOnly || ace.Sid == CreatorOwner)
                 continue;
             if (!IsTrusted(ace.Sid) && (ace.AccessMask & writeMask) != 0)
-                return $"право записи у {ace.Sid} (маска 0x{ace.AccessMask:X})";
+                return Loc.T($"право записи у {ace.Sid} (маска 0x{ace.AccessMask:X})", $"write access for {ace.Sid} (mask 0x{ace.AccessMask:X})");
         }
         return null;
     }

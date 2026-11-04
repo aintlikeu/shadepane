@@ -1,4 +1,5 @@
 using Shadepane.Core.Policy;
+using Shadepane.Core.Localization;
 
 namespace Shadepane.Core.Extensions;
 
@@ -20,7 +21,7 @@ public sealed class ExtensionStaging(string stagingRoot)
     {
         var source = Path.GetFullPath(sourceDirectory);
         if (ExtensionDirectory.IsInside(source, Root) || string.Equals(source, Root, StringComparison.OrdinalIgnoreCase))
-            throw new ExtensionDirectoryException("нельзя добавить расширение из служебной папки браузера");
+            throw new ExtensionDirectoryException(Loc.T("нельзя добавить расширение из служебной папки браузера", "an extension cannot be added from the browser's own data folder"));
 
         Directory.CreateDirectory(Root);
         var incoming = Path.Combine(Root, IncomingPrefix + Guid.NewGuid().ToString("N"));
@@ -67,14 +68,14 @@ public sealed class ExtensionStaging(string stagingRoot)
     public ValidationResult Verify(string stagedPath, string expectedHash, BrowserPolicy policy)
     {
         if (!ExtensionDirectory.IsInside(stagedPath, Root))
-            return ValidationResult.Denied("staging-path", "путь расширения вне служебной папки браузера");
+            return ValidationResult.Denied("staging-path", Loc.T("путь расширения вне служебной папки браузера", "the extension path is outside the browser's data folder"));
         if (!Directory.Exists(stagedPath))
-            return ValidationResult.Denied("missing", "файлы расширения не найдены");
+            return ValidationResult.Denied("missing", Loc.T("файлы расширения не найдены", "extension files not found"));
 
         try
         {
             if (ExtensionDirectory.ComputeHash(stagedPath) != expectedHash)
-                return ValidationResult.Denied("tampered", "файлы расширения изменены после одобрения");
+                return ValidationResult.Denied("tampered", Loc.T("файлы расширения изменены после одобрения", "extension files changed after approval"));
             return ExtensionValidator.Validate(ManifestReader.ReadFromDirectory(stagedPath), policy);
         }
         catch (Exception ex) when (ex is ManifestException or ExtensionDirectoryException or IOException or UnauthorizedAccessException)

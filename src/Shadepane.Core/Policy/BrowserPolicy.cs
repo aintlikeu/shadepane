@@ -2,6 +2,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using Shadepane.Core.Hosts;
 using Shadepane.Core.Navigation;
+using Shadepane.Core.Localization;
 
 namespace Shadepane.Core.Policy;
 
@@ -140,18 +141,18 @@ public sealed class BrowserPolicy
     public BrowserPolicy EnsureValid()
     {
         if (ProtectedHosts is null || BlockedPermissions is null)
-            throw new PolicyException("protectedHosts и blockedPermissions не могут быть null");
+            throw new PolicyException(Loc.T("protectedHosts и blockedPermissions не могут быть null", "protectedHosts and blockedPermissions cannot be null"));
         if (BlockedPermissions.Any(string.IsNullOrWhiteSpace))
-            throw new PolicyException("blockedPermissions содержит пустое значение");
+            throw new PolicyException(Loc.T("blockedPermissions содержит пустое значение", "blockedPermissions contains an empty value"));
         if (BlockedPermissions.Concat(AllowedPermissions ?? []).Any(p => string.Equals(p, ClipboardReadPermission, StringComparison.OrdinalIgnoreCase)))
-            throw new PolicyException($"'{ClipboardReadPermission}' нельзя указывать в blockedPermissions/allowedPermissions — используйте allowExtensionClipboardRead (true/false)");
+            throw new PolicyException(Loc.T($"'{ClipboardReadPermission}' нельзя указывать в blockedPermissions/allowedPermissions — используйте allowExtensionClipboardRead (true/false)", $"'{ClipboardReadPermission}' cannot be listed in blockedPermissions/allowedPermissions; use allowExtensionClipboardRead (true/false)"));
         if (AllowedPermissions is not null)
         {
             if (AllowedPermissions.Any(string.IsNullOrWhiteSpace))
-                throw new PolicyException("allowedPermissions содержит пустое значение");
+                throw new PolicyException(Loc.T("allowedPermissions содержит пустое значение", "allowedPermissions contains an empty value"));
             var conflict = AllowedPermissions.FirstOrDefault(BlockedPermissionSet.Contains);
             if (conflict is not null)
-                throw new PolicyException($"право '{conflict}' одновременно в allowedPermissions и blockedPermissions");
+                throw new PolicyException(Loc.T($"право '{conflict}' одновременно в allowedPermissions и blockedPermissions", $"the '{conflict}' permission is in both allowedPermissions and blockedPermissions"));
         }
         _ = ProtectedHostPatterns;
         if (HomeUrl is not null && HomeUrl != UrlPolicy.AboutBlank && !UrlPolicy.TryNormalizeUserInput(HomeUrl, out _, out var error))
@@ -169,7 +170,7 @@ public sealed class BrowserPolicy
             if (!HostPattern.TryParse(raw, out var p, out var error))
                 throw new PolicyException($"protectedHosts: '{raw}' — {error}");
             if (p!.Kind == HostPatternKind.Any)
-                throw new PolicyException("protectedHosts: '*' запрещён — это заблокировало бы расширениям весь веб; используйте allowBroadHostAccess=false");
+                throw new PolicyException(Loc.T("protectedHosts: '*' запрещён — это заблокировало бы расширениям весь веб; используйте allowBroadHostAccess=false", "protectedHosts: '*' is not allowed, it would block the whole web for extensions; use allowBroadHostAccess=false"));
             list.Add(p);
         }
         return list;
@@ -193,9 +194,9 @@ public sealed class BrowserPolicy
         }
         catch (JsonException ex)
         {
-            throw new PolicyException($"некорректный JSON политики: {ex.Message}");
+            throw new PolicyException(Loc.T($"некорректный JSON политики: {ex.Message}", $"invalid policy JSON: {ex.Message}"));
         }
-        return (policy ?? throw new PolicyException("политика пуста")).EnsureValid();
+        return (policy ?? throw new PolicyException(Loc.T("политика пуста", "the policy is empty"))).EnsureValid();
     }
 
     /// <summary>
@@ -215,7 +216,7 @@ public sealed class BrowserPolicy
                 // Сначала права, потом чтение: содержимое из небезопасного источника даже не разбираем.
                 var problem = candidate.FindSecurityProblem();
                 if (problem is not null)
-                    throw new PolicyException($"{candidate.Name}: политику может изменить не только администратор ({problem})");
+                    throw new PolicyException(Loc.T($"{candidate.Name}: политику может изменить не только администратор ({problem})", $"{candidate.Name}: the policy can be changed by non-administrators ({problem})"));
 
                 return (Parse(candidate.ReadJson()), candidate.Name);
             }
@@ -226,7 +227,7 @@ public sealed class BrowserPolicy
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.Security.SecurityException)
             {
                 // Источник есть, но прочитать его нельзя (например, пустой ACL) — тоже отказ, без перехода к следующему.
-                throw new PolicyException($"{candidate.Name}: не удалось прочитать политику ({ex.Message})");
+                throw new PolicyException(Loc.T($"{candidate.Name}: не удалось прочитать политику ({ex.Message})", $"{candidate.Name}: could not read the policy ({ex.Message})"));
             }
         }
         return (Default, "<default>");

@@ -13,6 +13,7 @@ using Shadepane.Core.Browsing;
 using Shadepane.Core.Extensions;
 using Shadepane.Core.Navigation;
 using Shadepane.Core.Policy;
+using Shadepane.Core.Localization;
 
 namespace Shadepane.App;
 
@@ -69,7 +70,7 @@ public partial class MainWindow : ProtectedWindow, IContentShield
     private void OnDownloadStarted(DownloadItem item)
     {
         if (!_closed)
-            SetStatus($"Загрузка: {item.FileName} — Ctrl+J, чтобы открыть список загрузок");
+            SetStatus(Loc.T($"Загрузка: {item.FileName} — Ctrl+J, чтобы открыть список загрузок", $"Downloading: {item.FileName}. Press Ctrl+J to see downloads"));
     }
 
     private void OnDownloadFinished(DownloadItem item)
@@ -77,9 +78,9 @@ public partial class MainWindow : ProtectedWindow, IContentShield
         if (_closed)
             return;
         if (item.IsCompleted)
-            SetStatus($"Загружено: {item.FileName}");
+            SetStatus(Loc.T($"Загружено: {item.FileName}", $"Downloaded: {item.FileName}"));
         else
-            Warn($"Загрузка не завершена: {item.FileName}");
+            Warn(Loc.T($"Загрузка не завершена: {item.FileName}", $"Download did not finish: {item.FileName}"));
     }
 
     // ---------- Обновления ----------
@@ -110,19 +111,19 @@ public partial class MainWindow : ProtectedWindow, IContentShield
             {
                 var label = new StackPanel { Orientation = Orientation.Horizontal };
                 label.Children.Add(Glyph("Update"));
-                label.Children.Add(new TextBlock { Text = $"Обновить до {update.Version}", Margin = new Thickness(6, 0, 0, 0), VerticalAlignment = VerticalAlignment.Center });
+                label.Children.Add(new TextBlock { Text = Loc.T($"Обновить до {update.Version}", $"Update to {update.Version}"), Margin = new Thickness(6, 0, 0, 0), VerticalAlignment = VerticalAlignment.Center });
                 UpdateButton.Content = label;
-                UpdateButton.ToolTip = $"Доступна версия {update.Version} (у вас {AppServices.Updates.Current})";
+                UpdateButton.ToolTip = Loc.T($"Доступна версия {update.Version} (у вас {AppServices.Updates.Current})", $"Version {update.Version} is available (you have {AppServices.Updates.Current})");
                 AppServices.Audit.Write("update-available", new { current = AppServices.Updates.Current.ToString(), available = update.Version.ToString() });
             }
             if (manual)
-                SetStatus(update is null ? $"Обновлений нет: у вас последняя версия ({AppServices.Updates.Current})" : $"Доступна версия {update.Version}");
+                SetStatus(update is null ? Loc.T($"Обновлений нет: у вас последняя версия ({AppServices.Updates.Current})", $"No updates: you have the latest version ({AppServices.Updates.Current})") : Loc.T($"Доступна версия {update.Version}", $"Version {update.Version} is available"));
         }
         catch (Exception ex) when (ex is System.Net.Http.HttpRequestException or TaskCanceledException or IOException)
         {
             AppServices.Audit.Write("update-check-failed", new { error = ex.Message });
             if (manual && !_closed)
-                Warn($"Не удалось проверить обновления: {ex.Message}");
+                Warn(Loc.T($"Не удалось проверить обновления: {ex.Message}", $"Could not check for updates: {ex.Message}"));
         }
     }
 
@@ -137,7 +138,7 @@ public partial class MainWindow : ProtectedWindow, IContentShield
             _ = OpenNewTabAsync(update.PageUrl);
             return;
         }
-        if (MessageBox.Show(this, $"Загрузить и установить Shadepane {update.Version}? Браузер закроется и запустится заново.",
+        if (MessageBox.Show(this, Loc.T($"Загрузить и установить Shadepane {update.Version}? Браузер закроется и запустится заново.", $"Download and install Shadepane {update.Version}? The browser will close and start again."),
                 Title, MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes)
             return;
 
@@ -156,7 +157,7 @@ public partial class MainWindow : ProtectedWindow, IContentShield
         {
             AppServices.Audit.Write("update-failed", Diagnostics.Details(ex));
             if (!_closed)
-                MessageBox.Show(this, $"Не удалось обновить браузер:\n\n{ex.Message}", Title, MessageBoxButton.OK, MessageBoxImage.Warning);
+                MessageBox.Show(this, Loc.T($"Не удалось обновить браузер:\n\n{ex.Message}", $"Could not update the browser:\n\n{ex.Message}"), Title, MessageBoxButton.OK, MessageBoxImage.Warning);
         }
         finally
         {
@@ -218,11 +219,11 @@ public partial class MainWindow : ProtectedWindow, IContentShield
 
     private ContextMenu BookmarkContextMenu(string url, string id)
     {
-        var openNew = new MenuItem { Header = "Открыть в новой вкладке" };
+        var openNew = new MenuItem { Header = Loc.T("Открыть в новой вкладке", "Open in new tab") };
         openNew.Click += (_, _) => OpenBookmark(url, newTab: true);
-        var manage = new MenuItem { Header = "Изменить…" };
+        var manage = new MenuItem { Header = Loc.T("Изменить…", "Edit…") };
         manage.Click += (_, _) => ShowBookmarksManager();
-        var remove = new MenuItem { Header = "Удалить" };
+        var remove = new MenuItem { Header = Loc.T("Удалить", "Delete") };
         remove.Click += (_, _) => AppServices.Bookmarks.Remove(id);
         return new ContextMenu { Items = { openNew, manage, new Separator(), remove } };
     }
@@ -246,7 +247,7 @@ public partial class MainWindow : ProtectedWindow, IContentShield
             menu.Items.Add(item);
         }
         menu.Items.Add(new Separator());
-        var manager = new MenuItem { Header = "Управление закладками… (Ctrl+Shift+O)" };
+        var manager = new MenuItem { Header = Loc.T("Управление закладками… (Ctrl+Shift+O)", "Manage bookmarks… (Ctrl+Shift+O)") };
         manager.Click += (_, _) => ShowBookmarksManager();
         menu.Items.Add(manager);
         menu.IsOpen = true;
@@ -260,7 +261,7 @@ public partial class MainWindow : ProtectedWindow, IContentShield
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
-            Warn($"Не удалось сохранить настройку: {ex.Message}");
+            Warn(Loc.T($"Не удалось сохранить настройку: {ex.Message}", $"Could not save the setting: {ex.Message}"));
         }
         return true;
     }
@@ -340,16 +341,16 @@ public partial class MainWindow : ProtectedWindow, IContentShield
         var state = CurrentProtection;
         var (icon, label, back, fore) = state switch
         {
-            ProtectionIndicator.ContentHidden => ("Icon.ShieldError", "Страница скрыта", "Brush.Danger", "Brush.OnAccent"),
-            ProtectionIndicator.CaptureBlocked => ("Icon.ShieldDismiss", "Захват экрана отклонён", "Brush.AccentStrong", "Brush.OnAccent"),
-            ProtectionIndicator.ProtectedSite => ("Icon.Lock", "Корпоративный сайт", "Brush.AccentSoft", "Brush.AccentText"),
-            _ => ("Icon.ShieldCheck", "Защищено", "Brush.AccentSoft", "Brush.AccentText"),
+            ProtectionIndicator.ContentHidden => ("Icon.ShieldError", Loc.T("Страница скрыта", "Page hidden"), "Brush.Danger", "Brush.OnAccent"),
+            ProtectionIndicator.CaptureBlocked => ("Icon.ShieldDismiss", Loc.T("Захват экрана отклонён", "Screen capture blocked"), "Brush.AccentStrong", "Brush.OnAccent"),
+            ProtectionIndicator.ProtectedSite => ("Icon.Lock", Loc.T("Корпоративный сайт", "Company site"), "Brush.AccentSoft", "Brush.AccentText"),
+            _ => ("Icon.ShieldCheck", Loc.T("Защищено", "Protected"), "Brush.AccentSoft", "Brush.AccentText"),
         };
         ProtectionGlyph.Data = (Geometry)FindResource(icon);
         ProtectionLabel.Text = label;
         ProtectionChip.SetResourceReference(BackgroundProperty, back);
         ProtectionChip.SetResourceReference(ForegroundProperty, fore);
-        ProtectionChip.ToolTip = $"{label}. Нажмите, чтобы посмотреть сведения о защите.";
+        ProtectionChip.ToolTip = Loc.T($"{label}. Нажмите, чтобы посмотреть сведения о защите.", $"{label}. Click to see protection details.");
         System.Windows.Automation.AutomationProperties.SetName(ProtectionChip, label);
         if (ProtectionPopup.IsOpen)
             FillProtectionDetails(state);
@@ -375,7 +376,7 @@ public partial class MainWindow : ProtectedWindow, IContentShield
         if (ProtectionPopup.Child is not null && !AppServices.Guard.ProtectTransient(ProtectionPopup.Child, "protection-details"))
         {
             ProtectionPopup.IsOpen = false;
-            Warn("Сведения о защите не показаны: не удалось защитить их окно от захвата экрана (подробности в audit.log)");
+            Warn(Loc.T("Сведения о защите не показаны: не удалось защитить их окно от захвата экрана (подробности в audit.log)", "Protection details were not shown: their window could not be protected from screen capture (see audit.log)"));
         }
     }
 
@@ -384,14 +385,14 @@ public partial class MainWindow : ProtectedWindow, IContentShield
         var policy = AppServices.Policy;
         var (title, summary, icon) = state switch
         {
-            ProtectionIndicator.ContentHidden => ("Страница скрыта",
-                "С окна сняли защиту от захвата экрана. Содержимое скрыто, браузер будет закрыт.", "Icon.ShieldError"),
-            ProtectionIndicator.CaptureBlocked => ("Захват экрана отклонён",
-                "Страница попыталась начать запись или демонстрацию экрана. Shadepane такие запросы отклоняет.", "Icon.ShieldDismiss"),
-            ProtectionIndicator.ProtectedSite => ("Корпоративный сайт",
-                "Сайт из списка защищённых доменов администратора: расширения его не видят, загрузки — по правилам политики.", "Icon.Lock"),
-            _ => ("Защита включена",
-                "Окно Shadepane не попадает на снимки экрана, в запись и в демонстрацию экрана.", "Icon.ShieldCheck"),
+            ProtectionIndicator.ContentHidden => (Loc.T("Страница скрыта", "Page hidden"),
+                Loc.T("С окна сняли защиту от захвата экрана. Содержимое скрыто, браузер будет закрыт.", "Screen capture protection was removed from the window. Content is hidden and the browser will close."), "Icon.ShieldError"),
+            ProtectionIndicator.CaptureBlocked => (Loc.T("Захват экрана отклонён", "Screen capture blocked"),
+                Loc.T("Страница попыталась начать запись или демонстрацию экрана. Shadepane такие запросы отклоняет.", "The page tried to start screen recording or sharing. Shadepane refuses such requests."), "Icon.ShieldDismiss"),
+            ProtectionIndicator.ProtectedSite => (Loc.T("Корпоративный сайт", "Company site"),
+                Loc.T("Сайт из списка защищённых доменов администратора: расширения его не видят, загрузки — по правилам политики.", "A site from the administrator's list of protected domains: extensions cannot see it, and downloads follow the policy."), "Icon.Lock"),
+            _ => (Loc.T("Защита включена", "Protection is on"),
+                Loc.T("Окно Shadepane не попадает на снимки экрана, в запись и в демонстрацию экрана.", "The Shadepane window stays out of screenshots, screen recordings and screen sharing."), "Icon.ShieldCheck"),
         };
         ProtectionTitle.Text = title;
         ProtectionSummary.Text = summary;
@@ -400,20 +401,20 @@ public partial class MainWindow : ProtectedWindow, IContentShield
             state == ProtectionIndicator.ContentHidden ? "Brush.Danger" : "Brush.Accent");
 
         var capture = _lastCaptureBlockedAt is { } at
-            ? $"Запрещён; последний запрос в {at:HH:mm}" + (_lastCaptureBlockedHost is { Length: > 0 } host ? $" ({host})" : "")
-            : "Запрещён";
+            ? Loc.T($"Запрещён; последний запрос в {at:HH:mm}", $"Blocked; last request at {at:HH:mm}") + (_lastCaptureBlockedHost is { Length: > 0 } host ? $" ({host})" : "")
+            : Loc.T("Запрещён", "Blocked");
         var protectedHosts = policy.ProtectedHosts.Count == 0
-            ? "Не заданы"
-            : $"{policy.ProtectedHosts.Count} в политике" + (state == ProtectionIndicator.ProtectedSite ? ", эта страница — среди них" : "");
+            ? Loc.T("Не заданы", "Not set")
+            : Loc.T($"{policy.ProtectedHosts.Count} в политике", $"{policy.ProtectedHosts.Count} in the policy") + (state == ProtectionIndicator.ProtectedSite ? Loc.T(", эта страница — среди них", ", this page is one of them") : "");
         var extensions = _extensions.Approved.Count();
         var rows = new (string Name, string Value)[]
         {
-            ("Снимки и запись экрана", _contentHidden ? "Защита нарушена" : "Окно скрыто"),
-            ("Захват экрана страницами", capture),
-            ("Удалённый рабочий стол", policy.BlockInRemoteSession ? "Запуск запрещён" : "Разрешён политикой"),
-            ("Защищённые сайты", protectedHosts),
-            ("Расширения", extensions == 0 ? "Не установлены" : $"{extensions} проверено политикой"),
-            ("Политика", AppServices.PolicySource == "<default>" ? "По умолчанию" : AppServices.PolicySource),
+            (Loc.T("Снимки и запись экрана", "Screenshots and recording"), _contentHidden ? Loc.T("Защита нарушена", "Protection broken") : Loc.T("Окно скрыто", "Window hidden")),
+            (Loc.T("Захват экрана страницами", "Screen capture by pages"), capture),
+            (Loc.T("Удалённый рабочий стол", "Remote desktop"), policy.BlockInRemoteSession ? Loc.T("Запуск запрещён", "Not allowed") : Loc.T("Разрешён политикой", "Allowed by policy")),
+            (Loc.T("Защищённые сайты", "Protected sites"), protectedHosts),
+            (Loc.T("Расширения", "Extensions"), extensions == 0 ? Loc.T("Не установлены", "None installed") : Loc.T($"{extensions} проверено политикой", $"{extensions} checked by policy")),
+            (Loc.T("Политика", "Policy"), AppServices.PolicySource == "<default>" ? Loc.T("По умолчанию", "Default") : AppServices.PolicySource),
         };
 
         ProtectionDetails.Children.Clear();
@@ -464,14 +465,14 @@ public partial class MainWindow : ProtectedWindow, IContentShield
         }
         catch (WebView2RuntimeNotFoundException)
         {
-            MessageBox.Show(this, "Не найден WebView2 Runtime. Установите его: https://developer.microsoft.com/microsoft-edge/webview2/",
+            MessageBox.Show(this, Loc.T("Не найден WebView2 Runtime. Установите его: https://developer.microsoft.com/microsoft-edge/webview2/", "WebView2 Runtime not found. Install it from https://developer.microsoft.com/microsoft-edge/webview2/"),
                 Title, MessageBoxButton.OK, MessageBoxImage.Error);
             Close();
         }
         catch (Exception ex) when (!_closed)
         {
             AppServices.Audit.Write("webview-init-failed", Diagnostics.Details(ex, stage));
-            MessageBox.Show(this, $"Не удалось запустить движок браузера.\n\nШаг: {stage}\n{Diagnostics.Describe(ex)}\n\nПодробности: {AppServices.Audit.FilePath}",
+            MessageBox.Show(this, Loc.T($"Не удалось запустить движок браузера.\n\nШаг: {stage}\n{Diagnostics.Describe(ex)}\n\nПодробности: {AppServices.Audit.FilePath}", $"Could not start the browser engine.\n\nStep: {stage}\n{Diagnostics.Describe(ex)}\n\nDetails: {AppServices.Audit.FilePath}"),
                 Title, MessageBoxButton.OK, MessageBoxImage.Error);
             Close();
         }
@@ -575,7 +576,7 @@ public partial class MainWindow : ProtectedWindow, IContentShield
         catch (Exception ex) when (!_closed)
         {
             AppServices.Audit.Write("new-tab-failed", Diagnostics.Details(ex));
-            Warn($"Не удалось открыть вкладку: {Diagnostics.Describe(ex)}");
+            Warn(Loc.T($"Не удалось открыть вкладку: {Diagnostics.Describe(ex)}", $"Could not open a tab: {Diagnostics.Describe(ex)}"));
         }
     }
 
@@ -681,7 +682,7 @@ public partial class MainWindow : ProtectedWindow, IContentShield
             Style = (Style)FindResource("TabCloseButton"),
             Content = Glyph("Close", small: true),
             Margin = new Thickness(6, 0, 0, 0),
-            ToolTip = "Закрыть вкладку (Ctrl+W)",
+            ToolTip = Loc.T("Закрыть вкладку (Ctrl+W)", "Close tab (Ctrl+W)"),
         };
         close.Click += (_, _) => CloseTab(tab);
         DockPanel.SetDock(close, Dock.Right);
@@ -760,7 +761,7 @@ public partial class MainWindow : ProtectedWindow, IContentShield
         BookmarkButton.IsEnabled = tab is not null && Shadepane.Core.Bookmarks.BookmarkCollection.IsBookmarkable(tab.Url);
         BookmarkGlyph.Data = (Geometry)FindResource(bookmarked ? "Icon.StarFilled" : "Icon.Star");
         BookmarkButton.SetResourceReference(ForegroundProperty, bookmarked ? "Brush.AccentText" : "Brush.Ink");
-        BookmarkButton.ToolTip = bookmarked ? "Удалить из закладок (Ctrl+D)" : "Добавить в закладки (Ctrl+D)";
+        BookmarkButton.ToolTip = bookmarked ? Loc.T("Удалить из закладок (Ctrl+D)", "Remove from bookmarks (Ctrl+D)") : Loc.T("Добавить в закладки (Ctrl+D)", "Add to bookmarks (Ctrl+D)");
     }
 
     /// <summary>Адрес активной вкладки для адресной строки (пустая страница — пустая строка).</summary>
@@ -784,7 +785,7 @@ public partial class MainWindow : ProtectedWindow, IContentShield
         var parts = AddressDisplay.Split(AddressBox.Text);
         if (parts.IsEmpty)
         {
-            AddressView.Inlines.Add(Themed(new System.Windows.Documents.Run("Введите адрес или поисковый запрос"), "Brush.Muted"));
+            AddressView.Inlines.Add(Themed(new System.Windows.Documents.Run(Loc.T("Введите адрес или поисковый запрос", "Enter an address or search query")), "Brush.Muted"));
             return;
         }
         if (parts.Prefix.Length > 0)
@@ -811,15 +812,15 @@ public partial class MainWindow : ProtectedWindow, IContentShield
         if (existing is not null)
         {
             AppServices.Bookmarks.Remove(existing.Id);
-            SetStatus("Удалено из закладок");
+            SetStatus(Loc.T("Удалено из закладок", "Removed from bookmarks"));
         }
         else if (AppServices.Bookmarks.TryAdd(tab.Url, tab.Core?.DocumentTitle, out var error))
         {
-            SetStatus("Добавлено в закладки");
+            SetStatus(Loc.T("Добавлено в закладки", "Added to bookmarks"));
         }
         else
         {
-            Warn($"Не добавлено в закладки: {error}");
+            Warn(Loc.T($"Не добавлено в закладки: {error}", $"Not added to bookmarks: {error}"));
         }
         return true;
     }
@@ -858,7 +859,7 @@ public partial class MainWindow : ProtectedWindow, IContentShield
         }
         else
         {
-            Warn($"Не открыто: {result.Error}");
+            Warn(Loc.T($"Не открыто: {result.Error}", $"Not opened: {result.Error}"));
         }
     }
 
@@ -1016,7 +1017,7 @@ public partial class MainWindow : ProtectedWindow, IContentShield
             return false;
         var view = _active.View;
         view.ZoomFactor = next(view.ZoomFactor);
-        SetStatus($"Масштаб: {ZoomLevels.Format(view.ZoomFactor)}");
+        SetStatus(Loc.T($"Масштаб: {ZoomLevels.Format(view.ZoomFactor)}", $"Zoom: {ZoomLevels.Format(view.ZoomFactor)}"));
         return true;
     }
 
@@ -1068,7 +1069,7 @@ public partial class MainWindow : ProtectedWindow, IContentShield
         }
         catch (Exception ex) when (ex is System.Runtime.InteropServices.COMException or InvalidOperationException)
         {
-            Warn($"Поиск на странице недоступен: {Diagnostics.Describe(ex)}");
+            Warn(Loc.T($"Поиск на странице недоступен: {Diagnostics.Describe(ex)}", $"Find on page is unavailable: {Diagnostics.Describe(ex)}"));
         }
     }
 
@@ -1086,7 +1087,7 @@ public partial class MainWindow : ProtectedWindow, IContentShield
         if (FindBar.Visibility != Visibility.Visible || tab.Core is null)
             return;
         var find = tab.Core.Find;
-        FindCount.Text = find.MatchCount == 0 ? "нет совпадений" : $"{Math.Max(find.ActiveMatchIndex, 0)} из {find.MatchCount}";
+        FindCount.Text = find.MatchCount == 0 ? Loc.T("нет совпадений", "no matches") : Loc.T($"{Math.Max(find.ActiveMatchIndex, 0)} из {find.MatchCount}", $"{Math.Max(find.ActiveMatchIndex, 0)} of {find.MatchCount}");
     }
 
     private void FindStep(bool forward)
@@ -1197,7 +1198,7 @@ public partial class MainWindow : ProtectedWindow, IContentShield
         _settingsWindow = new SettingsWindow { Owner = this };
         _settingsWindow.Closed += (_, _) => _settingsWindow = null;
         if (_settingsWindow.ShowDialog() == true)
-            SetStatus($"Настройки сохранены. Поиск: {AppServices.Config.SearchEngine.Name}.");
+            SetStatus(Loc.T($"Настройки сохранены. Поиск: {AppServices.Config.SearchEngine.Name}.", $"Settings saved. Search: {AppServices.Config.SearchEngine.Name}."));
     }
 
     // ---------- Расширения ----------
@@ -1210,7 +1211,7 @@ public partial class MainWindow : ProtectedWindow, IContentShield
         ExtensionsButton.IsEnabled = false;
         try
         {
-            var dialog = new OpenFolderDialog { Title = "Папка распакованного расширения (с manifest.json)" };
+            var dialog = new OpenFolderDialog { Title = Loc.T("Папка распакованного расширения (с manifest.json)", "Unpacked extension folder (with manifest.json)") };
             if (dialog.ShowDialog(this) != true)
                 return; // отмена
 
@@ -1220,21 +1221,21 @@ public partial class MainWindow : ProtectedWindow, IContentShield
             if (added is null)
             {
                 var reasons = string.Join("\n", validation.Violations.Select(v => "• " + v.Message));
-                MessageBox.Show(this, $"Расширение отклонено политикой:\n\n{reasons}", Title, MessageBoxButton.OK, MessageBoxImage.Warning);
+                MessageBox.Show(this, Loc.T($"Расширение отклонено политикой:\n\n{reasons}", $"The extension was rejected by policy:\n\n{reasons}"), Title, MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
 
             RebuildExtensionBar();
-            SetStatus($"Расширение добавлено: {added.Name}");
+            SetStatus(Loc.T($"Расширение добавлено: {added.Name}", $"Extension added: {added.Name}"));
         }
         catch (Exception ex) when (ex is ManifestException or ExtensionDirectoryException)
         {
-            MessageBox.Show(this, $"Расширение не принято:\n\n{ex.Message}", Title, MessageBoxButton.OK, MessageBoxImage.Warning);
+            MessageBox.Show(this, Loc.T($"Расширение не принято:\n\n{ex.Message}", $"The extension was not accepted:\n\n{ex.Message}"), Title, MessageBoxButton.OK, MessageBoxImage.Warning);
         }
         catch (Exception ex) when (!_closed)
         {
             AppServices.Audit.Write("extension-add-failed", Diagnostics.Details(ex));
-            MessageBox.Show(this, $"Не удалось добавить расширение:\n\n{Diagnostics.Describe(ex)}", Title, MessageBoxButton.OK, MessageBoxImage.Error);
+            MessageBox.Show(this, Loc.T($"Не удалось добавить расширение:\n\n{Diagnostics.Describe(ex)}", $"Could not add the extension:\n\n{Diagnostics.Describe(ex)}"), Title, MessageBoxButton.OK, MessageBoxImage.Error);
         }
         finally
         {
@@ -1248,7 +1249,7 @@ public partial class MainWindow : ProtectedWindow, IContentShield
     {
         if (_busy || _profile is null)
             return;
-        var answer = MessageBox.Show(this, $"Удалить расширение «{extension.Name}»?", Title, MessageBoxButton.YesNo, MessageBoxImage.Question);
+        var answer = MessageBox.Show(this, Loc.T($"Удалить расширение «{extension.Name}»?", $"Remove the \"{extension.Name}\" extension?"), Title, MessageBoxButton.YesNo, MessageBoxImage.Question);
         if (answer != MessageBoxResult.Yes)
             return;
 
@@ -1261,12 +1262,12 @@ public partial class MainWindow : ProtectedWindow, IContentShield
             if (_closed)
                 return;
             RebuildExtensionBar();
-            SetStatus($"Расширение удалено: {extension.Name}");
+            SetStatus(Loc.T($"Расширение удалено: {extension.Name}", $"Extension removed: {extension.Name}"));
         }
         catch (Exception ex) when (!_closed)
         {
             AppServices.Audit.Write("extension-remove-failed", Diagnostics.Details(ex));
-            MessageBox.Show(this, $"Не удалось удалить расширение:\n\n{Diagnostics.Describe(ex)}", Title, MessageBoxButton.OK, MessageBoxImage.Error);
+            MessageBox.Show(this, Loc.T($"Не удалось удалить расширение:\n\n{Diagnostics.Describe(ex)}", $"Could not remove the extension:\n\n{Diagnostics.Describe(ex)}"), Title, MessageBoxButton.OK, MessageBoxImage.Error);
         }
         finally
         {
@@ -1288,7 +1289,7 @@ public partial class MainWindow : ProtectedWindow, IContentShield
             };
             button.Click += (_, _) => OpenPopup(extension, button);
 
-            var remove = new MenuItem { Header = "Удалить расширение" };
+            var remove = new MenuItem { Header = Loc.T("Удалить расширение", "Remove extension") };
             remove.Click += async (_, _) => await RemoveExtensionAsync(extension);
             button.ContextMenu = new ContextMenu { Items = { remove } };
 
@@ -1338,7 +1339,7 @@ public partial class MainWindow : ProtectedWindow, IContentShield
         if (extension.PopupPath is null ||
             !ExtensionDirectory.TryResolveInside(extension.StagedPath, extension.PopupPath, out _, out var urlPath))
         {
-            Warn($"У «{extension.Name}» нет popup. Клик по иконке (action.onClicked) WebView2 не поддерживает.");
+            Warn(Loc.T($"У «{extension.Name}» нет popup. Клик по иконке (action.onClicked) WebView2 не поддерживает.", $"\"{extension.Name}\" has no popup. WebView2 does not support icon clicks (action.onClicked)."));
             return;
         }
 
@@ -1391,21 +1392,21 @@ public partial class MainWindow : ProtectedWindow, IContentShield
     {
         var hasTab = _active is not null;
         var menu = new ContextMenu();
-        menu.Items.Add(Item("Новая вкладка", "Ctrl+T", () => _ = OpenNewTabAsync(), NewTabButton.IsEnabled));
-        menu.Items.Add(Item("История", "Ctrl+H", ShowHistory));
-        menu.Items.Add(Item("Закладки", "Ctrl+Shift+O", ShowBookmarksManager));
-        menu.Items.Add(Item("Загрузки", "Ctrl+J", ShowDownloads));
+        menu.Items.Add(Item(Loc.T("Новая вкладка", "New tab"), "Ctrl+T", () => _ = OpenNewTabAsync(), NewTabButton.IsEnabled));
+        menu.Items.Add(Item(Loc.T("История", "History"), "Ctrl+H", ShowHistory));
+        menu.Items.Add(Item(Loc.T("Закладки", "Bookmarks"), "Ctrl+Shift+O", ShowBookmarksManager));
+        menu.Items.Add(Item(Loc.T("Загрузки", "Downloads"), "Ctrl+J", ShowDownloads));
         menu.Items.Add(new Separator());
         menu.Items.Add(BuildZoomItem(hasTab));
-        menu.Items.Add(Item("Найти на странице", "Ctrl+F", OpenFind, _active?.Core is not null));
-        menu.Items.Add(Item("Домашняя страница", "Alt+Home", () => { if (_active is not null) NavigateHome(_active); }, hasTab));
+        menu.Items.Add(Item(Loc.T("Найти на странице", "Find on page"), "Ctrl+F", OpenFind, _active?.Core is not null));
+        menu.Items.Add(Item(Loc.T("Домашняя страница", "Home page"), "Alt+Home", () => { if (_active is not null) NavigateHome(_active); }, hasTab));
         menu.Items.Add(new Separator());
-        var bar = new MenuItem { Header = "Панель закладок", InputGestureText = "Ctrl+Shift+B", IsCheckable = true, IsChecked = AppServices.Settings.ShowBookmarksBar };
+        var bar = new MenuItem { Header = Loc.T("Панель закладок", "Bookmarks bar"), InputGestureText = "Ctrl+Shift+B", IsCheckable = true, IsChecked = AppServices.Settings.ShowBookmarksBar };
         bar.Click += (_, _) => ToggleBookmarksBar();
         menu.Items.Add(bar);
-        menu.Items.Add(Item("Добавить расширение…", null, () => _ = AddExtensionAsync(), _profile is not null && !_busy));
-        menu.Items.Add(Item("Настройки", null, ShowSettings));
-        menu.Items.Add(Item("О Shadepane", null, ShowAbout));
+        menu.Items.Add(Item(Loc.T("Добавить расширение…", "Add extension…"), null, () => _ = AddExtensionAsync(), _profile is not null && !_busy));
+        menu.Items.Add(Item(Loc.T("Настройки", "Settings"), null, ShowSettings));
+        menu.Items.Add(Item(Loc.T("О Shadepane", "About Shadepane"), null, ShowAbout));
         return menu;
     }
 
@@ -1433,41 +1434,44 @@ public partial class MainWindow : ProtectedWindow, IContentShield
             return button;
         }
         var controls = new StackPanel { Orientation = Orientation.Horizontal };
-        controls.Children.Add(ZoomButton("−", "Уменьшить (Ctrl+−)", z => ZoomLevels.ZoomOut(z)));
+        controls.Children.Add(ZoomButton("−", Loc.T("Уменьшить (Ctrl+−)", "Zoom out (Ctrl+−)"), z => ZoomLevels.ZoomOut(z)));
         controls.Children.Add(percent);
-        controls.Children.Add(ZoomButton("+", "Увеличить (Ctrl+=)", z => ZoomLevels.ZoomIn(z)));
+        controls.Children.Add(ZoomButton("+", Loc.T("Увеличить (Ctrl+=)", "Zoom in (Ctrl+=)"), z => ZoomLevels.ZoomIn(z)));
         var row = new DockPanel { LastChildFill = true, MinWidth = 220 };
         DockPanel.SetDock(controls, Dock.Right);
         row.Children.Add(controls);
-        row.Children.Add(new TextBlock { Text = "Масштаб", VerticalAlignment = VerticalAlignment.Center });
+        row.Children.Add(new TextBlock { Text = Loc.T("Масштаб", "Zoom"), VerticalAlignment = VerticalAlignment.Center });
         return new MenuItem { Header = row, StaysOpenOnClick = true, IsEnabled = enabled };
     }
 
     private ContextMenu BuildExtensionsMenu()
     {
         var menu = new ContextMenu();
-        menu.Items.Add(Item("Добавить расширение…", null, () => _ = AddExtensionAsync(), _profile is not null && !_busy));
+        menu.Items.Add(Item(Loc.T("Добавить расширение…", "Add extension…"), null, () => _ = AddExtensionAsync(), _profile is not null && !_busy));
         var approved = _extensions.Approved.ToList();
         menu.Items.Add(new Separator());
         if (approved.Count == 0)
-            menu.Items.Add(new MenuItem { Header = "Расширений пока нет", IsEnabled = false });
+            menu.Items.Add(new MenuItem { Header = Loc.T("Расширений пока нет", "No extensions yet"), IsEnabled = false });
         foreach (var extension in approved)
         {
             var anchor = ExtensionsButton;
             menu.Items.Add(Item(extension.Name, null, () => OpenPopup(extension, anchor)));
         }
         if (approved.Count > 0)
-            menu.Items.Add(new MenuItem { Header = "Чтобы удалить расширение, нажмите на его значок правой кнопкой", IsEnabled = false });
+            menu.Items.Add(new MenuItem { Header = Loc.T("Чтобы удалить расширение, нажмите на его значок правой кнопкой", "To remove an extension, right-click its icon"), IsEnabled = false });
         return menu;
     }
 
     private void ShowAbout()
     {
         MessageBox.Show(this,
-            $"Shadepane {AppServices.Updates.Current}\n\nБраузер, который не попадает на снимки и запись экрана.\n" +
-            "Движок: Microsoft Edge WebView2 " + (_environment?.BrowserVersionString ?? "") + "\n\n" +
-            "Лицензия MIT. Исходный код и релизы: https://github.com/aintlikeu/shadepane",
-            "О Shadepane", MessageBoxButton.OK, MessageBoxImage.Information);
+            Loc.T($"Shadepane {AppServices.Updates.Current}\n\nБраузер, который не попадает на снимки и запись экрана.\n" +
+                  "Движок: Microsoft Edge WebView2 " + (_environment?.BrowserVersionString ?? "") + "\n\n" +
+                  "Лицензия MIT. Исходный код и релизы: https://github.com/aintlikeu/shadepane",
+                  $"Shadepane {AppServices.Updates.Current}\n\nA browser that stays out of screenshots and screen recordings.\n" +
+                  "Engine: Microsoft Edge WebView2 " + (_environment?.BrowserVersionString ?? "") + "\n\n" +
+                  "MIT license. Source code and releases: https://github.com/aintlikeu/shadepane"),
+            Loc.T("О Shadepane", "About Shadepane"), MessageBoxButton.OK, MessageBoxImage.Information);
     }
 
     // ---------- Уведомления и полоска загрузки ----------
@@ -1531,7 +1535,7 @@ public partial class MainWindow : ProtectedWindow, IContentShield
     {
         var loading = _active?.IsLoading == true;
         ReloadGlyph.Data = (Geometry)FindResource(loading ? "Icon.Close" : "Icon.Reload");
-        ReloadButton.ToolTip = loading ? "Остановить (Esc)" : "Обновить (F5)";
+        ReloadButton.ToolTip = loading ? Loc.T("Остановить (Esc)", "Stop (Esc)") : Loc.T("Обновить (F5)", "Reload (F5)");
         if (loading == _loadingShown)
             return;
         _loadingShown = loading;
