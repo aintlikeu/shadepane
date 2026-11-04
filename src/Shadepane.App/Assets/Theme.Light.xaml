@@ -1,0 +1,33 @@
+<!-- Цвета светлой темы. Окна берут их через DynamicResource, поэтому тему можно сменить на лету,
+     подменив этот словарь (тёмная — Theme.Dark.xaml с теми же ключами). -->
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <!-- Полоса вкладок и фон окна -->
+    <SolidColorBrush x:Key="Brush.Frame" Color="#E8EDF1"/>
+    <!-- Панель инструментов, активная вкладка, диалоги -->
+    <SolidColorBrush x:Key="Brush.Surface" Color="#F8FAFB"/>
+    <!-- Поля ввода, кнопки диалогов, меню -->
+    <SolidColorBrush x:Key="Brush.Control" Color="#FFFFFF"/>
+    <!-- Адресная строка -->
+    <SolidColorBrush x:Key="Brush.Pill" Color="#EBF0F3"/>
+    <SolidColorBrush x:Key="Brush.Ink" Color="#17212B"/>
+    <SolidColorBrush x:Key="Brush.Muted" Color="#5D6B78"/>
+    <SolidColorBrush x:Key="Brush.Disabled" Color="#A7B2BC"/>
+    <SolidColorBrush x:Key="Brush.Hairline" Color="#D3DBE2"/>
+    <SolidColorBrush x:Key="Brush.ControlBorder" Color="#C2CCD5"/>
+    <SolidColorBrush x:Key="Brush.Hover" Color="#E1E7EC"/>
+    <SolidColorBrush x:Key="Brush.Pressed" Color="#D3DBE2"/>
+    <!-- Акцент — синий из иконки. Для текста — более тёмный оттенок (контраст 4.5:1 на светлом фоне). -->
+    <SolidColorBrush x:Key="Brush.Accent" Color="#0E91CC"/>
+    <SolidColorBrush x:Key="Brush.AccentText" Color="#0A6A98"/>
+    <SolidColorBrush x:Key="Brush.AccentSoft" Color="#E6F2F9"/>
+    <SolidColorBrush x:Key="Brush.AccentStrong" Color="#0B6E9E"/>
+    <SolidColorBrush x:Key="Brush.OnAccent" Color="#FFFFFF"/>
+    <SolidColorBrush x:Key="Brush.Danger" Color="#B3261E"/>
+    <SolidColorBrush x:Key="Brush.WarningBack" Color="#FFF6E5"/>
+    <SolidColorBrush x:Key="Brush.WarningBorder" Color="#E9CF9A"/>
+    <SolidColorBrush x:Key="Brush.WarningText" Color="#5C3D00"/>
+    <SolidColorBrush x:Key="Brush.InfoBack" Color="#E6F2F9"/>
+    <SolidColorBrush x:Key="Brush.InfoBorder" Color="#B9DAEC"/>
+    <SolidColorBrush x:Key="Brush.InfoText" Color="#0A4F72"/>
+</ResourceDictionary>

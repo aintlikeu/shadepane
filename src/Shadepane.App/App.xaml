@@ -5,7 +5,10 @@
     <Application.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
+                <!-- Первым — словарь темы: его подменяет переключение светлой/тёмной темы. -->
+                <ResourceDictionary Source="Assets/Theme.Light.xaml"/>
                 <ResourceDictionary Source="Assets/Icons.xaml"/>
+                <ResourceDictionary Source="Assets/Controls.xaml"/>
             </ResourceDictionary.MergedDictionaries>
         </ResourceDictionary>
     </Application.Resources>

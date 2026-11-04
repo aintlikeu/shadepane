@@ -1,0 +1,112 @@
+<!-- Стили кнопок. Цвета — из Theme.*.xaml через DynamicResource (тема меняется на лету). -->
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!-- Рамка фокуса с клавиатуры (Tab): скруглённая, акцентным цветом, вместо пунктира. -->
+    <Style x:Key="FocusRing">
+        <Setter Property="Control.Template">
+            <Setter.Value>
+                <ControlTemplate>
+                    <Border Margin="-2" CornerRadius="8" BorderThickness="2" BorderBrush="{DynamicResource Brush.Accent}" SnapsToDevicePixels="True"/>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- Плоская кнопка панели: без рамки, подсветка при наведении и нажатии. -->
+    <Style x:Key="ToolbarButton" TargetType="Button">
+        <Setter Property="Width" Value="34"/>
+        <Setter Property="Height" Value="34"/>
+        <Setter Property="Padding" Value="0"/>
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="Foreground" Value="{DynamicResource Brush.Ink}"/>
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="FocusVisualStyle" Value="{StaticResource FocusRing}"/>
+        <Setter Property="Cursor" Value="Arrow"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="Bd" Background="{TemplateBinding Background}" CornerRadius="6" SnapsToDevicePixels="True">
+                        <ContentPresenter Margin="{TemplateBinding Padding}" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                          RecognizesAccessKey="True"/>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Bd" Property="Background" Value="{DynamicResource Brush.Hover}"/>
+                        </Trigger>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter TargetName="Bd" Property="Background" Value="{DynamicResource Brush.Pressed}"/>
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Foreground" Value="{DynamicResource Brush.Disabled}"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- Кнопка с текстом на панели (закладки, «Обновить до…»): та же плоская, ширина по содержимому. -->
+    <Style x:Key="ToolbarTextButton" TargetType="Button" BasedOn="{StaticResource ToolbarButton}">
+        <Setter Property="Width" Value="Auto"/>
+        <Setter Property="Height" Value="26"/>
+        <Setter Property="Padding" Value="8,0"/>
+        <Setter Property="HorizontalContentAlignment" Value="Left"/>
+    </Style>
+
+    <!-- Маленькая кнопка «закрыть» на вкладке. -->
+    <Style x:Key="TabCloseButton" TargetType="Button" BasedOn="{StaticResource ToolbarButton}">
+        <Setter Property="Width" Value="22"/>
+        <Setter Property="Height" Value="22"/>
+        <Setter Property="Foreground" Value="{DynamicResource Brush.Muted}"/>
+        <Setter Property="Focusable" Value="False"/>
+    </Style>
+
+    <!-- Кнопки диалогов (настройки, история, закладки, загрузки): скруглённые, тонкая рамка;
+         кнопка по умолчанию (IsDefault) — акцентная. -->
+    <Style TargetType="Button">
+        <Setter Property="Background" Value="{DynamicResource Brush.Control}"/>
+        <Setter Property="Foreground" Value="{DynamicResource Brush.Ink}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource Brush.ControlBorder}"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="Padding" Value="12,4"/>
+        <Setter Property="MinHeight" Value="30"/>
+        <Setter Property="FocusVisualStyle" Value="{StaticResource FocusRing}"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="Bd" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="4" SnapsToDevicePixels="True">
+                        <ContentPresenter Margin="{TemplateBinding Padding}" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                          RecognizesAccessKey="True"/>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Bd" Property="Background" Value="{DynamicResource Brush.Hover}"/>
+                        </Trigger>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter TargetName="Bd" Property="Background" Value="{DynamicResource Brush.Pressed}"/>
+                        </Trigger>
+                        <Trigger Property="IsDefault" Value="True">
+                            <Setter TargetName="Bd" Property="Background" Value="{DynamicResource Brush.AccentStrong}"/>
+                            <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource Brush.AccentStrong}"/>
+                            <Setter Property="Foreground" Value="{DynamicResource Brush.OnAccent}"/>
+                        </Trigger>
+                        <MultiTrigger>
+                            <MultiTrigger.Conditions>
+                                <Condition Property="IsDefault" Value="True"/>
+                                <Condition Property="IsMouseOver" Value="True"/>
+                            </MultiTrigger.Conditions>
+                            <Setter TargetName="Bd" Property="Background" Value="{DynamicResource Brush.AccentText}"/>
+                        </MultiTrigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Foreground" Value="{DynamicResource Brush.Disabled}"/>
+                            <Setter TargetName="Bd" Property="Background" Value="{DynamicResource Brush.Surface}"/>
+                            <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource Brush.Hairline}"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+</ResourceDictionary>

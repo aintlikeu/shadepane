@@ -28,6 +28,9 @@ public class ProtectedWindow : Window
     public ProtectedWindow()
     {
         Icon = AppIcon.Value;
+        // Цвета всех окон — из словаря темы (Assets/Theme.*.xaml); окно может задать свой фон в XAML.
+        SetResourceReference(BackgroundProperty, "Brush.Surface");
+        SetResourceReference(ForegroundProperty, "Brush.Ink");
     }
 
     protected override void OnSourceInitialized(EventArgs e)

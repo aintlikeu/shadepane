@@ -187,10 +187,10 @@ public partial class MainWindow : ProtectedWindow, IContentShield
         {
             var button = new Button
             {
+                Style = (Style)FindResource("ToolbarTextButton"),
                 Content = new TextBlock { Text = bookmark.Title, MaxWidth = 160, TextTrimming = TextTrimming.CharacterEllipsis },
                 ToolTip = $"{bookmark.Title}\n{bookmark.Url}",
-                Margin = new Thickness(0, 0, 4, 0),
-                Padding = new Thickness(6, 1, 6, 1),
+                Margin = new Thickness(0, 0, 2, 0),
                 Focusable = false,
             };
             var url = bookmark.Url;
@@ -489,15 +489,10 @@ public partial class MainWindow : ProtectedWindow, IContentShield
         };
         var close = new Button
         {
+            Style = (Style)FindResource("TabCloseButton"),
             Content = Glyph("Close", small: true),
-            Width = 20,
-            Height = 20,
             Margin = new Thickness(6, 0, 0, 0),
-            Padding = new Thickness(0),
-            BorderThickness = new Thickness(0),
-            Background = Brushes.Transparent,
             ToolTip = "Закрыть вкладку (Ctrl+W)",
-            Focusable = false,
         };
         close.Click += (_, _) => CloseTab(tab);
         DockPanel.SetDock(close, Dock.Right);
@@ -509,24 +504,37 @@ public partial class MainWindow : ProtectedWindow, IContentShield
         var header = new Border
         {
             Child = panel,
-            Padding = new Thickness(10, 4, 4, 4),
+            Width = 220,
+            Height = 34,
+            Padding = new Thickness(12, 0, 6, 0),
             Margin = new Thickness(0, 0, 2, 0),
-            BorderThickness = new Thickness(1, 1, 1, 0),
-            BorderBrush = SystemColors.ActiveBorderBrush,
-            CornerRadius = new CornerRadius(4, 4, 0, 0),
+            CornerRadius = new CornerRadius(8, 8, 0, 0),
             Tag = title,
-            Cursor = Cursors.Hand,
         };
+        header.MouseEnter += (_, _) => StyleTabHeader(header, tab == _active);
+        header.MouseLeave += (_, _) => StyleTabHeader(header, tab == _active);
         header.MouseLeftButtonUp += (_, e) => { if (e.OriginalSource is not Button) ActivateTab(tab); };
         header.MouseUp += (_, e) => { if (e.ChangedButton == MouseButton.Middle) CloseTab(tab); };
         return header;
     }
 
+    /// <summary>
+    /// Активная вкладка — цвета панели под ней (сливается с ней), остальные — прозрачные, текст приглушён;
+    /// при наведении — лёгкая подсветка. Цвета через ресурсы темы, чтобы работала смена темы на лету.
+    /// </summary>
     private static void StyleTabHeader(Border header, bool isActive)
     {
-        header.Background = isActive ? SystemColors.WindowBrush : SystemColors.ControlBrush;
+        if (isActive)
+            header.SetResourceReference(Border.BackgroundProperty, "Brush.Surface");
+        else if (header.IsMouseOver)
+            header.SetResourceReference(Border.BackgroundProperty, "Brush.Hover");
+        else
+            header.Background = Brushes.Transparent;
         if (header.Tag is TextBlock title)
+        {
             title.FontWeight = isActive ? FontWeights.SemiBold : FontWeights.Normal;
+            title.SetResourceReference(TextBlock.ForegroundProperty, isActive ? "Brush.Ink" : "Brush.Muted");
+        }
     }
 
     private void OnTabChanged(BrowserTab tab)
@@ -1024,8 +1032,8 @@ public partial class MainWindow : ProtectedWindow, IContentShield
         {
             var button = new Button
             {
-                Width = 30,
-                Margin = new Thickness(2, 0, 2, 0),
+                Style = (Style)FindResource("ToolbarButton"),
+                Margin = new Thickness(2, 0, 0, 0),
                 ToolTip = extension.Name,
                 Content = CreateIcon(extension),
             };
