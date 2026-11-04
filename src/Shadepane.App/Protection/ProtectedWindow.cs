@@ -31,6 +31,10 @@ public class ProtectedWindow : Window
         // Цвета всех окон — из словаря темы (Assets/Theme.*.xaml); окно может задать свой фон в XAML.
         SetResourceReference(BackgroundProperty, "Brush.Surface");
         SetResourceReference(ForegroundProperty, "Brush.Ink");
+        SetResourceReference(FontFamilyProperty, "Font.UI");
+        SetResourceReference(FontSizeProperty, "FontSize.UI");
+        // Display: текст привязан к пиксельной сетке — мелкий шрифт чётче при масштабе 100%.
+        TextOptions.SetTextFormattingMode(this, TextFormattingMode.Display);
     }
 
     protected override void OnSourceInitialized(EventArgs e)

@@ -3,14 +3,14 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:protection="clr-namespace:Shadepane.App.Protection"
         Title="История — Shadepane" Width="900" Height="600" WindowStartupLocation="CenterOwner">
-    <DockPanel Margin="10">
+    <DockPanel Margin="16">
         <DockPanel DockPanel.Dock="Top" Margin="0,0,0,8">
             <Button DockPanel.Dock="Right" Content="Очистить всю историю…" Margin="8,0,0,0" Padding="8,2" Click="ClearAll_Click"/>
             <TextBlock Text="Поиск:" VerticalAlignment="Center"/>
             <TextBox x:Name="SearchBox" Margin="6,0,0,0" VerticalContentAlignment="Center" TextChanged="SearchBox_TextChanged"/>
         </DockPanel>
         <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,8,0,0">
-            <TextBlock x:Name="SavingNote" Foreground="Gray" VerticalAlignment="Center" Margin="0,0,12,0"/>
+            <TextBlock x:Name="SavingNote" Foreground="{DynamicResource Brush.Muted}" VerticalAlignment="Center" Margin="0,0,12,0"/>
             <Button Content="Открыть" Width="110" Click="Open_Click"/>
             <Button Content="В новой вкладке" Width="130" Margin="8,0,0,0" Click="OpenInNewTab_Click"/>
             <Button Content="Удалить" Width="100" Margin="8,0,0,0" Click="Delete_Click"/>

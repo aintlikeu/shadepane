@@ -1,6 +1,11 @@
-<!-- Стили кнопок. Цвета — из Theme.*.xaml через DynamicResource (тема меняется на лету). -->
+<!-- Шрифт и стили элементов. Цвета — из Theme.*.xaml через DynamicResource (тема меняется на лету). -->
 <ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:sys="clr-namespace:System;assembly=mscorlib">
+
+    <!-- Шрифт интерфейса: Segoe UI Variable (Windows 11), на Windows 10 — Segoe UI. 13 px вместо стандартных 12. -->
+    <FontFamily x:Key="Font.UI">Segoe UI Variable Text, Segoe UI</FontFamily>
+    <sys:Double x:Key="FontSize.UI">13</sys:Double>
 
     <!-- Рамка фокуса с клавиатуры (Tab): скруглённая, акцентным цветом, вместо пунктира. -->
     <Style x:Key="FocusRing">
@@ -103,6 +108,96 @@
                             <Setter Property="Foreground" Value="{DynamicResource Brush.Disabled}"/>
                             <Setter TargetName="Bd" Property="Background" Value="{DynamicResource Brush.Surface}"/>
                             <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource Brush.Hairline}"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+    <!-- Поля ввода: скруглённые, тонкая рамка, в фокусе — акцентная. -->
+    <Style TargetType="TextBox">
+        <Setter Property="Background" Value="{DynamicResource Brush.Control}"/>
+        <Setter Property="Foreground" Value="{DynamicResource Brush.Ink}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource Brush.ControlBorder}"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="Padding" Value="6,4"/>
+        <Setter Property="CaretBrush" Value="{DynamicResource Brush.Ink}"/>
+        <Setter Property="SelectionBrush" Value="{DynamicResource Brush.Accent}"/>
+        <Setter Property="VerticalContentAlignment" Value="Center"/>
+        <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="TextBox">
+                    <Border x:Name="Bd" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="4" SnapsToDevicePixels="True">
+                        <ScrollViewer x:Name="PART_ContentHost" Margin="{TemplateBinding Padding}" Focusable="False"
+                                      HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Hidden"
+                                      VerticalAlignment="{TemplateBinding VerticalContentAlignment}"/>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource Brush.Muted}"/>
+                        </Trigger>
+                        <Trigger Property="IsKeyboardFocused" Value="True">
+                            <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource Brush.Accent}"/>
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter TargetName="Bd" Property="Opacity" Value="0.6"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- Группы в настройках: заголовок полужирным, без рамки «как в Windows XP». -->
+    <Style TargetType="GroupBox">
+        <Setter Property="Padding" Value="0"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="GroupBox">
+                    <DockPanel>
+                        <ContentPresenter DockPanel.Dock="Top" ContentSource="Header" RecognizesAccessKey="True" Margin="0,0,0,8"
+                                          TextElement.FontWeight="SemiBold" TextElement.FontSize="14"/>
+                        <ContentPresenter Margin="{TemplateBinding Padding}"/>
+                    </DockPanel>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- Списки (история, закладки, загрузки): тонкая рамка, строки повыше. -->
+    <Style TargetType="ListView">
+        <Setter Property="Background" Value="{DynamicResource Brush.Control}"/>
+        <Setter Property="Foreground" Value="{DynamicResource Brush.Ink}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource Brush.Hairline}"/>
+        <Setter Property="BorderThickness" Value="1"/>
+    </Style>
+    <Style TargetType="ListViewItem">
+        <Setter Property="Padding" Value="4,5"/>
+        <Setter Property="Foreground" Value="{DynamicResource Brush.Ink}"/>
+    </Style>
+    <Style TargetType="GridViewColumnHeader">
+        <Setter Property="Foreground" Value="{DynamicResource Brush.Muted}"/>
+        <Setter Property="HorizontalContentAlignment" Value="Left"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="GridViewColumnHeader">
+                    <Grid>
+                        <Border x:Name="Bd" Background="{DynamicResource Brush.Surface}" BorderBrush="{DynamicResource Brush.Hairline}" BorderThickness="0,0,1,1">
+                            <ContentPresenter Margin="8,6" HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                              VerticalAlignment="Center" RecognizesAccessKey="True"/>
+                        </Border>
+                        <!-- Перетаскивание границы колонки: без этого элемента колонки нельзя растянуть. -->
+                        <Thumb x:Name="PART_HeaderGripper" HorizontalAlignment="Right" Width="8" Margin="0,0,-4,0" Cursor="SizeWE">
+                            <Thumb.Template>
+                                <ControlTemplate TargetType="Thumb"><Border Background="Transparent"/></ControlTemplate>
+                            </Thumb.Template>
+                        </Thumb>
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Bd" Property="Background" Value="{DynamicResource Brush.Hover}"/>
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>

@@ -3,7 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:protection="clr-namespace:Shadepane.App.Protection"
         Title="Закладки — Shadepane" Width="860" Height="600" WindowStartupLocation="CenterOwner">
-    <DockPanel Margin="10">
+    <DockPanel Margin="16">
         <DockPanel DockPanel.Dock="Top" Margin="0,0,0,8">
             <TextBlock Text="Поиск:" VerticalAlignment="Center"/>
             <TextBox x:Name="SearchBox" Margin="6,0,0,0" VerticalContentAlignment="Center" TextChanged="SearchBox_TextChanged"/>
@@ -25,7 +25,7 @@
             <TextBox x:Name="TitleBox" Grid.Column="1" Margin="8,0,0,4" VerticalContentAlignment="Center"/>
             <TextBlock Grid.Row="1" Text="Адрес:" VerticalAlignment="Center"/>
             <TextBox x:Name="UrlBox" Grid.Row="1" Grid.Column="1" Margin="8,0,0,0" VerticalContentAlignment="Center"/>
-            <TextBlock x:Name="ErrorText" Grid.Row="2" Grid.ColumnSpan="2" Foreground="Firebrick" Margin="0,4,0,0" Visibility="Collapsed"/>
+            <TextBlock x:Name="ErrorText" Grid.Row="2" Grid.ColumnSpan="2" Foreground="{DynamicResource Brush.Danger}" Margin="0,4,0,0" Visibility="Collapsed"/>
             <StackPanel Grid.Row="3" Grid.ColumnSpan="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,8,0,0">
                 <Button Width="32" Click="MoveUp_Click" ToolTip="Выше (раньше на панели закладок)"><Path Style="{StaticResource Glyph}" Data="{StaticResource Icon.Up}"/></Button>
                 <Button Width="32" Margin="4,0,0,0" Click="MoveDown_Click" ToolTip="Ниже"><Path Style="{StaticResource Glyph}" Data="{StaticResource Icon.Down}"/></Button>

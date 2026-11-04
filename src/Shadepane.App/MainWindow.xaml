@@ -52,12 +52,12 @@
                                 Click="Bookmark_Click" ToolTip="Добавить в закладки (Ctrl+D)"><Path x:Name="BookmarkGlyph" Style="{StaticResource Glyph}" Data="{StaticResource Icon.Star}"/></Button>
                         <Grid>
                             <TextBox x:Name="AddressBox" Margin="6,0,4,0" VerticalContentAlignment="Center" IsEnabled="False"
-                                     BorderThickness="0" Background="Transparent" FontSize="14"
+                                     BorderThickness="0" Background="Transparent" Padding="0" FontSize="14"
                                      Foreground="{DynamicResource Brush.Ink}" CaretBrush="{DynamicResource Brush.Ink}"
                                      SelectionBrush="{DynamicResource Brush.Accent}"
                                      KeyDown="AddressBox_KeyDown" GotKeyboardFocus="AddressBox_GotKeyboardFocus"
                                      LostKeyboardFocus="AddressBox_LostKeyboardFocus"/>
-                            <TextBlock x:Name="AddressView" Margin="9,0,4,0" VerticalAlignment="Center" FontSize="14"
+                            <TextBlock x:Name="AddressView" Margin="8,0,4,0" VerticalAlignment="Center" FontSize="14"
                                        TextTrimming="CharacterEllipsis" IsHitTestVisible="False"/>
                         </Grid>
                     </DockPanel>

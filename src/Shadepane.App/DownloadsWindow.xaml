@@ -3,8 +3,8 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:protection="clr-namespace:Shadepane.App.Protection"
         Title="Загрузки — Shadepane" Width="820" Height="480" WindowStartupLocation="CenterOwner">
-    <DockPanel Margin="10">
-        <TextBlock x:Name="DisabledNote" DockPanel.Dock="Top" Foreground="Gray" Margin="0,0,0,8" Visibility="Collapsed"/>
+    <DockPanel Margin="16">
+        <TextBlock x:Name="DisabledNote" DockPanel.Dock="Top" Foreground="{DynamicResource Brush.Muted}" Margin="0,0,0,8" Visibility="Collapsed"/>
         <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,8,0,0">
             <Button Content="Открыть" Width="100" Click="Open_Click"/>
             <Button Content="Показать в папке" Width="130" Margin="8,0,0,0" Click="ShowInFolder_Click"/>
