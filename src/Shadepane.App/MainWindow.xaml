@@ -32,10 +32,36 @@
                 <Button x:Name="AddExtensionButton" DockPanel.Dock="Right" Style="{StaticResource ToolbarButton}" Margin="2,0,0,0"
                         IsEnabled="False" Click="AddExtension_Click" ToolTip="Добавить распакованное расширение (папку с manifest.json)"><Path Style="{StaticResource Glyph}" Data="{StaticResource Icon.Extension}"/></Button>
                 <StackPanel x:Name="ExtensionBar" DockPanel.Dock="Right" Orientation="Horizontal" Margin="4,0,0,0"/>
-                <Button x:Name="BookmarkButton" DockPanel.Dock="Right" Style="{StaticResource ToolbarButton}" Margin="2,0,0,0" IsEnabled="False"
-                        Click="Bookmark_Click" ToolTip="Добавить в закладки (Ctrl+D)"><Path x:Name="BookmarkGlyph" Style="{StaticResource Glyph}" Data="{StaticResource Icon.Star}"/></Button>
-                <TextBox x:Name="AddressBox" Margin="8,0,4,0" VerticalContentAlignment="Center" IsEnabled="False"
-                         KeyDown="AddressBox_KeyDown" GotKeyboardFocus="AddressBox_GotKeyboardFocus"/>
+                <!-- Адресная строка. Без фокуса поверх поля показан адрес с выделенным доменом (AddressDisplay),
+                     в фокусе — обычное поле ввода с полным адресом. -->
+                <Border x:Name="AddressPill" Height="34" Margin="8,0,6,0" CornerRadius="17" BorderThickness="1" Padding="4,0">
+                    <Border.Style>
+                        <Style TargetType="Border">
+                            <Setter Property="Background" Value="{DynamicResource Brush.Pill}"/>
+                            <Setter Property="BorderBrush" Value="Transparent"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsKeyboardFocusWithin, ElementName=AddressBox}" Value="True">
+                                    <Setter Property="Background" Value="{DynamicResource Brush.Control}"/>
+                                    <Setter Property="BorderBrush" Value="{DynamicResource Brush.Accent}"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Border.Style>
+                    <DockPanel LastChildFill="True">
+                        <Button x:Name="BookmarkButton" DockPanel.Dock="Right" Style="{StaticResource ToolbarButton}" Width="28" Height="28" IsEnabled="False"
+                                Click="Bookmark_Click" ToolTip="Добавить в закладки (Ctrl+D)"><Path x:Name="BookmarkGlyph" Style="{StaticResource Glyph}" Data="{StaticResource Icon.Star}"/></Button>
+                        <Grid>
+                            <TextBox x:Name="AddressBox" Margin="6,0,4,0" VerticalContentAlignment="Center" IsEnabled="False"
+                                     BorderThickness="0" Background="Transparent" FontSize="14"
+                                     Foreground="{DynamicResource Brush.Ink}" CaretBrush="{DynamicResource Brush.Ink}"
+                                     SelectionBrush="{DynamicResource Brush.Accent}"
+                                     KeyDown="AddressBox_KeyDown" GotKeyboardFocus="AddressBox_GotKeyboardFocus"
+                                     LostKeyboardFocus="AddressBox_LostKeyboardFocus"/>
+                            <TextBlock x:Name="AddressView" Margin="9,0,4,0" VerticalAlignment="Center" FontSize="14"
+                                       TextTrimming="CharacterEllipsis" IsHitTestVisible="False"/>
+                        </Grid>
+                    </DockPanel>
+                </Border>
             </DockPanel>
         </DockPanel>
 

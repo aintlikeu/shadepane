@@ -560,13 +560,53 @@ public partial class MainWindow : ProtectedWindow, IContentShield
         ForwardButton.IsEnabled = core?.CanGoForward == true;
         // Пока пользователь печатает в адресной строке, не затираем введённое.
         if (!AddressBox.IsKeyboardFocusWithin)
-            AddressBox.Text = tab?.Url == UrlPolicy.AboutBlank ? "" : tab?.Url ?? "";
+            AddressBox.Text = ActiveAddress;
+        UpdateAddressView();
         Title = tab is null ? ProductName : $"{tab.Title} — {ProductName}";
 
         var bookmarked = AppServices.Bookmarks.FindByUrl(tab?.Url) is not null;
         BookmarkButton.IsEnabled = tab is not null && Shadepane.Core.Bookmarks.BookmarkCollection.IsBookmarkable(tab.Url);
         BookmarkGlyph.Data = (Geometry)FindResource(bookmarked ? "Icon.StarFilled" : "Icon.Star");
+        BookmarkButton.SetResourceReference(ForegroundProperty, bookmarked ? "Brush.AccentText" : "Brush.Ink");
         BookmarkButton.ToolTip = bookmarked ? "Удалить из закладок (Ctrl+D)" : "Добавить в закладки (Ctrl+D)";
+    }
+
+    /// <summary>Адрес активной вкладки для адресной строки (пустая страница — пустая строка).</summary>
+    private string ActiveAddress => _active?.Url == UrlPolicy.AboutBlank ? "" : _active?.Url ?? "";
+
+    /// <summary>
+    /// Без фокуса поверх поля ввода показан адрес с выделенным доменом, а текст самого поля прозрачен;
+    /// в фокусе — обычное поле с полным адресом.
+    /// </summary>
+    private void UpdateAddressView()
+    {
+        var focused = AddressBox.IsKeyboardFocusWithin;
+        AddressView.Visibility = focused ? Visibility.Collapsed : Visibility.Visible;
+        if (focused)
+        {
+            AddressBox.SetResourceReference(ForegroundProperty, "Brush.Ink");
+            return;
+        }
+        AddressBox.Foreground = Brushes.Transparent;
+        AddressView.Inlines.Clear();
+        var parts = AddressDisplay.Split(AddressBox.Text);
+        if (parts.IsEmpty)
+        {
+            AddressView.Inlines.Add(Themed(new System.Windows.Documents.Run("Введите адрес или поисковый запрос"), "Brush.Muted"));
+            return;
+        }
+        if (parts.Prefix.Length > 0)
+            AddressView.Inlines.Add(Themed(new System.Windows.Documents.Run(parts.Prefix), "Brush.Muted"));
+        if (parts.Host.Length > 0)
+            AddressView.Inlines.Add(Themed(new System.Windows.Documents.Run(parts.Host), "Brush.Ink"));
+        if (parts.Rest.Length > 0)
+            AddressView.Inlines.Add(Themed(new System.Windows.Documents.Run(parts.Rest), parts.Host.Length > 0 ? "Brush.Muted" : "Brush.Ink"));
+    }
+
+    private static System.Windows.Documents.Run Themed(System.Windows.Documents.Run run, string brushKey)
+    {
+        run.SetResourceReference(System.Windows.Documents.TextElement.ForegroundProperty, brushKey);
+        return run;
     }
 
     /// <summary>Звёздочка / Ctrl+D: добавить текущую страницу в закладки или убрать её оттуда.</summary>
@@ -905,14 +945,26 @@ public partial class MainWindow : ProtectedWindow, IContentShield
             case Key.Escape:
                 // Отменить ввод: вернуть адрес активной вкладки и отдать фокус странице.
                 e.Handled = true;
-                AddressBox.Text = _active?.Url == UrlPolicy.AboutBlank ? "" : _active?.Url ?? "";
+                AddressBox.Text = ActiveAddress;
                 _active?.View.Focus();
                 break;
         }
     }
 
-    private void AddressBox_GotKeyboardFocus(object sender, KeyboardFocusChangedEventArgs e) =>
+    private void AddressBox_GotKeyboardFocus(object sender, KeyboardFocusChangedEventArgs e)
+    {
+        UpdateAddressView();
         Dispatcher.BeginInvoke(AddressBox.SelectAll); // после клика мышью выделение иначе сбрасывается
+    }
+
+    private void AddressBox_LostKeyboardFocus(object sender, KeyboardFocusChangedEventArgs e)
+    {
+        // Ушли из строки без Enter — недописанный ввод отбрасываем, как Esc. NewFocus == null — окно просто
+        // потеряло активность (Alt+Tab): тогда ввод сохраняем, фокус вернётся в строку.
+        if (e.NewFocus is not null)
+            AddressBox.Text = ActiveAddress;
+        UpdateAddressView();
+    }
 
     private void NewTab_Click(object sender, RoutedEventArgs e) => _ = OpenNewTabAsync();
     private void Back_Click(object sender, RoutedEventArgs e) => _active?.Core?.GoBack();
