@@ -12,8 +12,11 @@
     <WindowChrome.WindowChrome>
         <!-- Слева, справа и снизу рамка остаётся системной (NonClientFrameEdges): её невидимая полоса для изменения
              размера лежит снаружи окна и работает и над страницей. Внутри окна её не сделать — там окно WebView2,
-             и движения мыши над ним до заголовка не доходят. Своя только верхняя часть: ResizeBorderThickness — верхний край. -->
-        <WindowChrome CaptionHeight="40" ResizeBorderThickness="6" GlassFrameThickness="0" CornerRadius="0"
+             и движения мыши над ним до заголовка не доходят. Своя только верхняя часть: ResizeBorderThickness — верхний край.
+             GlassFrameThickness не 0: при 0 WindowChrome считает, что стекла нет, и ставит окну регион (SetWindowRgn) —
+             невидимая системная рамка становится видимой светлой полосой, пропадают тень и скругление Windows 11.
+             1 px снизу этого не делает, а под содержимым окна он не виден. -->
+        <WindowChrome CaptionHeight="40" ResizeBorderThickness="6" GlassFrameThickness="0,0,0,1" CornerRadius="0"
                       NonClientFrameEdges="Left,Right,Bottom" UseAeroCaptionButtons="False"/>
     </WindowChrome.WindowChrome>
     <DockPanel x:Name="RootPanel">
