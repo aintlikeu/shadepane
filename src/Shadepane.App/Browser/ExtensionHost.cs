@@ -31,7 +31,7 @@ internal sealed class ExtensionHost
 
     public async Task SyncAsync(CoreWebView2Profile profile)
     {
-        var policy = AppServices.Policy;
+        var policy = AppServices.ExtensionPolicy;
         var audit = AppServices.Audit;
 
         List<ApprovedExtension> stored;
@@ -103,7 +103,7 @@ internal sealed class ExtensionHost
     public async Task<(ApprovedExtension? Added, ValidationResult Validation)> AddFromFolderAsync(CoreWebView2Profile profile, string folder)
     {
         var audit = AppServices.Audit;
-        var result = _staging.Stage(folder, AppServices.Policy);
+        var result = _staging.Stage(folder, AppServices.ExtensionPolicy);
         if (result.Staged is null)
         {
             audit.Write("extension-rejected", new { folder, reasons = result.Validation.Violations.Select(v => v.Message) });

@@ -8,8 +8,8 @@
     "tabCapture", "desktopCapture", "pageCapture", "debugger", "activeTab", "downloads",
     "tabs", "history", "webNavigation", "declarativeNetRequestFeedback", "topSites", "sessions", "proxy"
   ],
-  // Чтение буфера обмена расширениями (право clipboardRead). false — запретить.
-  "allowExtensionClipboardRead": true,
+  // Чтение буфера обмена расширениями (право clipboardRead). Если задано — БЛОКИРУЕТ настройку пользователя.
+  // "allowExtensionClipboardRead": false,
   // Режим белого списка (рекомендуется для продуктива): разрешены только перечисленные права.
   // "allowedPermissions": ["storage", "alarms", "contextMenus", "notifications", "i18n"],
   "allowBroadHostAccess": false,

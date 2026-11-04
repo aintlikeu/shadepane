@@ -24,6 +24,9 @@ internal static class AppServices
     /// <summary>Итоговые значения изменились (сохранены настройки).</summary>
     public static event Action? ConfigChanged;
 
+    /// <summary>Политика для проверки расширений: выбор пользователя по буферу обмена, если администратор его не задал.</summary>
+    public static BrowserPolicy ExtensionPolicy => Policy.ForExtensions(Config.AllowExtensionClipboardRead);
+
     /// <summary>Шаблон поиска из адресной строки ({query}).</summary>
     public static string SearchUrl => Config.SearchEngine.SearchUrl;
 

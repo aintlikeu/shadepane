@@ -25,6 +25,9 @@ public sealed record UserSettings
     /// <summary>Id готового поисковика (SearchEngines.All) или "custom" — тогда CustomSearchUrl.</summary>
     public string SearchEngineId { get; init; } = Navigation.SearchEngines.Default.Id;
     public string? CustomSearchUrl { get; init; }
+
+    /// <summary>Разрешить расширениям читать буфер обмена (если не задано политикой). Применяется при запуске.</summary>
+    public bool AllowExtensionClipboardRead { get; init; } = true;
 }
 
 /// <summary>Файл настроек. Повреждённый или неполный файл не мешает запуску: берутся значения по умолчанию.</summary>

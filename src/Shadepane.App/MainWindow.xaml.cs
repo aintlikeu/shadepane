@@ -67,7 +67,7 @@ public partial class MainWindow : ProtectedWindow, IContentShield
             RebuildExtensionBar();
 
             stage = "navigate-home";
-            AddressBox.IsEnabled = ReloadButton.IsEnabled = HomeButton.IsEnabled = AddExtensionButton.IsEnabled = NewTabButton.IsEnabled = true;
+            AddressBox.IsEnabled = ReloadButton.IsEnabled = HomeButton.IsEnabled = AddExtensionButton.IsEnabled = NewTabButton.IsEnabled = SettingsButton.IsEnabled = true;
             NavigateHome(first);
         }
         catch (WebView2RuntimeNotFoundException)
@@ -626,6 +626,21 @@ public partial class MainWindow : ProtectedWindow, IContentShield
     private void Forward_Click(object sender, RoutedEventArgs e) => _active?.Core?.GoForward();
     private void Reload_Click(object sender, RoutedEventArgs e) => _active?.Core?.Reload();
     private void Home_Click(object sender, RoutedEventArgs e) { if (_active is not null) NavigateHome(_active); }
+
+    private SettingsWindow? _settingsWindow;
+
+    private void Settings_Click(object sender, RoutedEventArgs e)
+    {
+        if (_settingsWindow is not null)
+        {
+            _settingsWindow.Activate(); // одно окно настроек
+            return;
+        }
+        _settingsWindow = new SettingsWindow { Owner = this };
+        _settingsWindow.Closed += (_, _) => _settingsWindow = null;
+        if (_settingsWindow.ShowDialog() == true)
+            SetStatus($"Настройки сохранены. Поиск: {AppServices.Config.SearchEngine.Name}.");
+    }
 
     // ---------- Расширения ----------
 

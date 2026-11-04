@@ -72,12 +72,14 @@ Main options:
 | `protectedHosts` | `[]` | Hosts extensions may not access, e.g. `"*.corp.example"` |
 | `blockedPermissions` | capture, `activeTab`, `tabs`, `history`, `downloads`, … | Extension permissions that are refused |
 | `allowedPermissions` | not set | Allowlist mode: only these extension permissions are accepted |
-| `allowExtensionClipboardRead` | `true` | Allow extensions with `clipboardRead` |
+| `allowExtensionClipboardRead` | not set | Allow extensions with `clipboardRead`; when set, users cannot change it (default: allowed) |
 | `allowBroadHostAccess` | `false` | Allow `<all_urls>` / `*://*/*` |
 | `allowDownloads` | `false` | Allow file downloads |
 | `blockInRemoteSession` | `true` | Refuse to run in an RDP session |
 
-Browser data and the audit log (`audit.log`) live in `%LOCALAPPDATA%\Shadepane`.
+User preferences (home page, search engine, clipboard access for extensions) are set in the settings
+window (⚙) and stored in `%LOCALAPPDATA%\Shadepane\settings.json`. A value set by the policy wins and is
+shown as locked. Browser data and the audit log (`audit.log`) live in the same folder.
 
 ## Releasing
 

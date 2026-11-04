@@ -139,3 +139,70 @@ public class UserSettingsStoreTests
         Assert.Equal(HomePageKind.Blank, store.Load(out _).HomePage);
     }
 }
+
+public class ClipboardSettingTests
+{
+    [Fact]
+    public void Default_Allowed_Unlocked()
+    {
+        var c = EffectiveConfig.Resolve(BrowserPolicy.Default, UserSettings.Default);
+        Assert.True(c.AllowExtensionClipboardRead);
+        Assert.False(c.ClipboardLocked);
+    }
+
+    [Fact]
+    public void User_CanDisable() =>
+        Assert.False(EffectiveConfig.Resolve(BrowserPolicy.Default, new UserSettings { AllowExtensionClipboardRead = false }).AllowExtensionClipboardRead);
+
+    [Fact]
+    public void Policy_WinsAndLocks()
+    {
+        var c = EffectiveConfig.Resolve(BrowserPolicy.Parse("""{ "allowExtensionClipboardRead": false }"""),
+            new UserSettings { AllowExtensionClipboardRead = true });
+        Assert.False(c.AllowExtensionClipboardRead);
+        Assert.True(c.ClipboardLocked);
+    }
+
+    [Fact]
+    public void ForExtensions_AppliesUserChoice_OnlyWhenPolicyIsSilent()
+    {
+        var silent = BrowserPolicy.Default;
+        Assert.False(silent.ForExtensions(userAllowsClipboardRead: false).AllowExtensionClipboardRead);
+        var strict = BrowserPolicy.Parse("""{ "allowExtensionClipboardRead": false }""");
+        Assert.Same(strict, strict.ForExtensions(userAllowsClipboardRead: true));
+    }
+}
+
+public class BrowserPolicyCopyTests
+{
+    // Новое свойство политики? Добавьте его в ForExtensions, в этот список и в JSON ниже.
+    private static readonly string[] Expected =
+    [
+        "HomeUrl", "SearchUrl", "ProtectedHosts", "BlockedPermissions", "AllowedPermissions", "AllowBroadHostAccess",
+        "AllowManifestV2", "AllowExtensionClipboardRead", "AllowDownloads", "BlockInRemoteSession",
+    ];
+
+    private static IEnumerable<System.Reflection.PropertyInfo> Settable() =>
+        typeof(BrowserPolicy).GetProperties().Where(p => p.SetMethod is { IsPublic: true });
+
+    [Fact]
+    public void SettablePropertySet_IsKnown() =>
+        Assert.Equal(Expected.Order(), Settable().Select(p => p.Name).Order());
+
+    [Fact]
+    public void ForExtensions_CopiesEveryProperty()
+    {
+        var source = BrowserPolicy.Parse("""
+            {
+              "homeUrl": "https://home.example/", "searchUrl": "https://s.example/?q={query}",
+              "protectedHosts": ["*.corp.example"], "blockedPermissions": ["tabCapture"],
+              "allowedPermissions": ["storage"], "allowBroadHostAccess": true, "allowManifestV2": true,
+              "allowDownloads": true, "blockInRemoteSession": false
+            }
+            """);
+        var copy = source.ForExtensions(userAllowsClipboardRead: false);
+        foreach (var p in Settable().Where(p => p.Name != "AllowExtensionClipboardRead"))
+            Assert.Equal(p.GetValue(source), p.GetValue(copy));
+        Assert.False(copy.AllowExtensionClipboardRead);
+    }
+}

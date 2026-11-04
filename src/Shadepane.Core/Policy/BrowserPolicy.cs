@@ -62,11 +62,12 @@ public sealed class BrowserPolicy
     public bool AllowManifestV2 { get; init; }
 
     /// <summary>
-    /// Разрешить расширениям право clipboardRead (чтение буфера обмена). По умолчанию true: приоритет
-    /// продукта — защита от снимков экрана, а нужные пользователям расширения работают через буфер.
-    /// Единственный источник истины для clipboardRead: в blockedPermissions/allowedPermissions его указывать нельзя.
+    /// Разрешить расширениям право clipboardRead (чтение буфера обмена). null — решает пользователь
+    /// (по умолчанию разрешено: приоритет продукта — защита от снимков экрана, а нужные расширения работают
+    /// через буфер); задано — действует и блокирует настройку. Единственный источник истины для clipboardRead:
+    /// в blockedPermissions/allowedPermissions его указывать нельзя.
     /// </summary>
-    public bool AllowExtensionClipboardRead { get; init; } = true;
+    public bool? AllowExtensionClipboardRead { get; init; }
 
     public bool AllowDownloads { get; init; }
 
@@ -88,6 +89,28 @@ public sealed class BrowserPolicy
     [JsonIgnore]
     public IReadOnlySet<string>? AllowedPermissionSet =>
         AllowedPermissions is null ? null : _allowedSet ??= new HashSet<string>(AllowedPermissions, StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// Политика для проверки расширений с учётом настройки пользователя: если администратор не задал
+    /// allowExtensionClipboardRead, подставляется выбор пользователя. Копируются ВСЕ свойства — тест
+    /// BrowserPolicyCopyTests ловит забытые при добавлении новых.
+    /// </summary>
+    public BrowserPolicy ForExtensions(bool userAllowsClipboardRead) =>
+        AllowExtensionClipboardRead is not null
+            ? this
+            : new BrowserPolicy
+            {
+                HomeUrl = HomeUrl,
+                SearchUrl = SearchUrl,
+                ProtectedHosts = ProtectedHosts,
+                BlockedPermissions = BlockedPermissions,
+                AllowedPermissions = AllowedPermissions,
+                AllowBroadHostAccess = AllowBroadHostAccess,
+                AllowManifestV2 = AllowManifestV2,
+                AllowExtensionClipboardRead = userAllowsClipboardRead,
+                AllowDownloads = AllowDownloads,
+                BlockInRemoteSession = BlockInRemoteSession,
+            }.EnsureValid();
 
     /// <summary>Проверяет политику целиком; бросает PolicyException с понятным сообщением.</summary>
     public BrowserPolicy EnsureValid()

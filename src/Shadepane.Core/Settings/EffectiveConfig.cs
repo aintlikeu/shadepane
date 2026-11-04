@@ -7,14 +7,22 @@ namespace Shadepane.Core.Settings;
 /// Итоговые значения, с которыми работает браузер. Правило приоритета: значение из политики администратора
 /// действует и блокирует настройку (…Locked = true); иначе — настройка пользователя; иначе — по умолчанию.
 /// </summary>
-public sealed record EffectiveConfig(string HomeUrl, bool HomeLocked, SearchEngine SearchEngine, bool SearchLocked)
+public sealed record EffectiveConfig(
+    string HomeUrl,
+    bool HomeLocked,
+    SearchEngine SearchEngine,
+    bool SearchLocked,
+    bool AllowExtensionClipboardRead,
+    bool ClipboardLocked)
 {
     public static EffectiveConfig Resolve(BrowserPolicy policy, UserSettings user)
     {
         var (engine, searchLocked) = ResolveSearch(policy, user);
+        var clipboard = policy.AllowExtensionClipboardRead ?? user.AllowExtensionClipboardRead;
+        var clipboardLocked = policy.AllowExtensionClipboardRead is not null;
 
         if (policy.HomeUrl is not null)
-            return new(NormalizeHome(policy.HomeUrl) ?? engine.HomeUrl, true, engine, searchLocked);
+            return new(NormalizeHome(policy.HomeUrl) ?? engine.HomeUrl, true, engine, searchLocked, clipboard, clipboardLocked);
 
         var home = user.HomePage switch
         {
@@ -22,7 +30,7 @@ public sealed record EffectiveConfig(string HomeUrl, bool HomeLocked, SearchEngi
             HomePageKind.Custom => NormalizeHome(user.CustomHomeUrl) ?? engine.HomeUrl, // битый адрес — не ломаем запуск
             _ => engine.HomeUrl,
         };
-        return new(home, false, engine, searchLocked);
+        return new(home, false, engine, searchLocked, clipboard, clipboardLocked);
     }
 
     private static (SearchEngine Engine, bool Locked) ResolveSearch(BrowserPolicy policy, UserSettings user)

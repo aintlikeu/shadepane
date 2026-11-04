@@ -100,9 +100,9 @@ public class PolicyAndStoreTests
     }
 
     [Fact]
-    public void Policy_ClipboardReadOption_DefaultsToTrue_AndParses()
+    public void Policy_ClipboardReadOption_DefaultsToUnset_AndParses()
     {
-        Assert.True(BrowserPolicy.Parse("{}").AllowExtensionClipboardRead);
+        Assert.Null(BrowserPolicy.Parse("{}").AllowExtensionClipboardRead); // не задано — решает пользователь
         Assert.False(BrowserPolicy.Parse("""{ "allowExtensionClipboardRead": false }""").AllowExtensionClipboardRead);
     }
 

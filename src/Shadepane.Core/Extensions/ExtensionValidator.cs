@@ -41,7 +41,7 @@ public static class ExtensionValidator
         {
             if (string.Equals(permission, BrowserPolicy.ClipboardReadPermission, StringComparison.OrdinalIgnoreCase))
             {
-                if (!policy.AllowExtensionClipboardRead)
+                if (!(policy.AllowExtensionClipboardRead ?? true))
                     violations.Add(new("clipboard-read-disabled", "чтение буфера обмена расширениями отключено политикой (allowExtensionClipboardRead=false)"));
                 continue; // при true разрешено и в режиме белого списка
             }
