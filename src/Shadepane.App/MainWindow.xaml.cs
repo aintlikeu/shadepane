@@ -12,6 +12,7 @@ using Shadepane.App.Protection;
 using Shadepane.Core.Browsing;
 using Shadepane.Core.Extensions;
 using Shadepane.Core.Navigation;
+using Shadepane.Core.Policy;
 
 namespace Shadepane.App;
 
@@ -38,9 +39,15 @@ public partial class MainWindow : ProtectedWindow, IContentShield
         AppServices.ConfigChanged += OnConfigChanged;
         AppServices.Downloads.Started += OnDownloadStarted;
         AppServices.Downloads.Finished += OnDownloadFinished;
+        WebViewHardening.ScreenCaptureBlocked += OnScreenCaptureBlocked;
+        WebViewHardening.ProtectedContentChanged += OnProtectedContentChanged;
+        ProtectionPopup.Closed += (_, _) => _protectionPopupClosedAt = DateTime.UtcNow;
         Closed += (_, _) =>
         {
             _closed = true;
+            WebViewHardening.ScreenCaptureBlocked -= OnScreenCaptureBlocked;
+            WebViewHardening.ProtectedContentChanged -= OnProtectedContentChanged;
+            _captureFlashTimer?.Stop();
             AppServices.Bookmarks.Changed -= OnBookmarksChanged;
             AppServices.ConfigChanged -= OnConfigChanged;
             AppServices.Downloads.Started -= OnDownloadStarted;
@@ -260,6 +267,144 @@ public partial class MainWindow : ProtectedWindow, IContentShield
     {
         ContentHost.Visibility = Visibility.Collapsed;
         HiddenNotice.Visibility = Visibility.Visible;
+        _contentHidden = true;
+        UpdateProtectionIndicator();
+    }
+
+    // ---------- Индикатор защиты ----------
+
+    private static readonly TimeSpan CaptureFlashDuration = TimeSpan.FromSeconds(4);
+    private DispatcherTimer? _captureFlashTimer;
+    private DateTime? _lastCaptureBlockedAt;
+    private string? _lastCaptureBlockedHost;
+    private bool _contentHidden;
+
+    /// <summary>
+    /// Страница запросила захват экрана, запрос отклонён (WebViewHardening). Внешние программы для снимков
+    /// экрана браузер не видит — они просто получают пустое окно, поэтому индикатор вспыхивает только на запросы страниц.
+    /// </summary>
+    private void OnScreenCaptureBlocked(CoreWebView2 core)
+    {
+        if (_closed)
+            return;
+        _lastCaptureBlockedAt = DateTime.Now;
+        _lastCaptureBlockedHost = Uri.TryCreate(core.Source, UriKind.Absolute, out var uri) ? uri.Host : null;
+        if (_captureFlashTimer is null)
+        {
+            _captureFlashTimer = new DispatcherTimer { Interval = CaptureFlashDuration };
+            _captureFlashTimer.Tick += (_, _) => { _captureFlashTimer.Stop(); UpdateProtectionIndicator(); };
+        }
+        _captureFlashTimer.Stop();
+        _captureFlashTimer.Start();
+        UpdateProtectionIndicator();
+    }
+
+    private void OnProtectedContentChanged(CoreWebView2 core)
+    {
+        if (!_closed && _active?.Core == core)
+            UpdateProtectionIndicator();
+    }
+
+    private ProtectionIndicator CurrentProtection => ProtectionStatus.Resolve(
+        _contentHidden,
+        captureBlockedRecently: _captureFlashTimer?.IsEnabled == true,
+        showsProtectedSite: _active?.Core is { } core && WebViewHardening.ShowsProtectedContent(core));
+
+    private void UpdateProtectionIndicator()
+    {
+        var state = CurrentProtection;
+        var (icon, label, back, fore) = state switch
+        {
+            ProtectionIndicator.ContentHidden => ("Icon.ShieldError", "Страница скрыта", "Brush.Danger", "Brush.OnAccent"),
+            ProtectionIndicator.CaptureBlocked => ("Icon.ShieldDismiss", "Захват экрана отклонён", "Brush.AccentStrong", "Brush.OnAccent"),
+            ProtectionIndicator.ProtectedSite => ("Icon.Lock", "Корпоративный сайт", "Brush.AccentSoft", "Brush.AccentText"),
+            _ => ("Icon.ShieldCheck", "Защищено", "Brush.AccentSoft", "Brush.AccentText"),
+        };
+        ProtectionGlyph.Data = (Geometry)FindResource(icon);
+        ProtectionLabel.Text = label;
+        ProtectionChip.SetResourceReference(BackgroundProperty, back);
+        ProtectionChip.SetResourceReference(ForegroundProperty, fore);
+        ProtectionChip.ToolTip = $"{label}. Нажмите, чтобы посмотреть сведения о защите.";
+        System.Windows.Automation.AutomationProperties.SetName(ProtectionChip, label);
+        if (ProtectionPopup.IsOpen)
+            FillProtectionDetails(state);
+    }
+
+    private DateTime _protectionPopupClosedAt;
+
+    private void ProtectionChip_Click(object sender, RoutedEventArgs e)
+    {
+        // StaysOpen=False закрывает панель уже на нажатии мыши по индикатору — повторный клик не должен открыть её снова.
+        if (ProtectionPopup.IsOpen || DateTime.UtcNow - _protectionPopupClosedAt < TimeSpan.FromMilliseconds(300))
+        {
+            ProtectionPopup.IsOpen = false;
+            return;
+        }
+        FillProtectionDetails(CurrentProtection);
+        ProtectionPopup.IsOpen = true;
+    }
+
+    private void ProtectionPopup_Opened(object? sender, EventArgs e)
+    {
+        // Панель — отдельное окно; без флага защиты её нельзя показывать.
+        if (ProtectionPopup.Child is not null && !AppServices.Guard.ProtectTransient(ProtectionPopup.Child, "protection-details"))
+        {
+            ProtectionPopup.IsOpen = false;
+            Warn("Сведения о защите не показаны: не удалось защитить их окно от захвата экрана (подробности в audit.log)");
+        }
+    }
+
+    private void FillProtectionDetails(ProtectionIndicator state)
+    {
+        var policy = AppServices.Policy;
+        var (title, summary, icon) = state switch
+        {
+            ProtectionIndicator.ContentHidden => ("Страница скрыта",
+                "С окна сняли защиту от захвата экрана. Содержимое скрыто, браузер будет закрыт.", "Icon.ShieldError"),
+            ProtectionIndicator.CaptureBlocked => ("Захват экрана отклонён",
+                "Страница попыталась начать запись или демонстрацию экрана. Shadepane такие запросы отклоняет.", "Icon.ShieldDismiss"),
+            ProtectionIndicator.ProtectedSite => ("Корпоративный сайт",
+                "Сайт из списка защищённых доменов администратора: расширения его не видят, загрузки — по правилам политики.", "Icon.Lock"),
+            _ => ("Защита включена",
+                "Окно Shadepane не попадает на снимки экрана, в запись и в демонстрацию экрана.", "Icon.ShieldCheck"),
+        };
+        ProtectionTitle.Text = title;
+        ProtectionSummary.Text = summary;
+        ProtectionPopupGlyph.Data = (Geometry)FindResource(icon);
+        ProtectionPopupGlyph.SetResourceReference(System.Windows.Shapes.Shape.FillProperty,
+            state == ProtectionIndicator.ContentHidden ? "Brush.Danger" : "Brush.Accent");
+
+        var capture = _lastCaptureBlockedAt is { } at
+            ? $"Запрещён; последний запрос в {at:HH:mm}" + (_lastCaptureBlockedHost is { Length: > 0 } host ? $" ({host})" : "")
+            : "Запрещён";
+        var protectedHosts = policy.ProtectedHosts.Count == 0
+            ? "Не заданы"
+            : $"{policy.ProtectedHosts.Count} в политике" + (state == ProtectionIndicator.ProtectedSite ? ", эта страница — среди них" : "");
+        var extensions = _extensions.Approved.Count();
+        var rows = new (string Name, string Value)[]
+        {
+            ("Снимки и запись экрана", _contentHidden ? "Защита нарушена" : "Окно скрыто"),
+            ("Захват экрана страницами", capture),
+            ("Удалённый рабочий стол", policy.BlockInRemoteSession ? "Запуск запрещён" : "Разрешён политикой"),
+            ("Защищённые сайты", protectedHosts),
+            ("Расширения", extensions == 0 ? "Не установлены" : $"{extensions} проверено политикой"),
+            ("Политика", AppServices.PolicySource == "<default>" ? "По умолчанию" : AppServices.PolicySource),
+        };
+
+        ProtectionDetails.Children.Clear();
+        ProtectionDetails.RowDefinitions.Clear();
+        for (var i = 0; i < rows.Length; i++)
+        {
+            ProtectionDetails.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+            var name = new TextBlock { Text = rows[i].Name, Margin = new Thickness(0, 0, 16, 6) };
+            name.SetResourceReference(TextBlock.ForegroundProperty, "Brush.Muted");
+            var value = new TextBlock { Text = rows[i].Value, Margin = new Thickness(0, 0, 0, 6), TextWrapping = TextWrapping.Wrap };
+            Grid.SetRow(name, i);
+            Grid.SetRow(value, i);
+            Grid.SetColumn(value, 1);
+            ProtectionDetails.Children.Add(name);
+            ProtectionDetails.Children.Add(value);
+        }
     }
 
     private async Task InitializeAsync()
@@ -578,6 +723,7 @@ public partial class MainWindow : ProtectedWindow, IContentShield
             AddressBox.Text = ActiveAddress;
         UpdateAddressView();
         UpdateLoadingIndicator();
+        UpdateProtectionIndicator();
         Title = tab is null ? ProductName : $"{tab.Title} — {ProductName}";
 
         var bookmarked = AppServices.Bookmarks.FindByUrl(tab?.Url) is not null;

@@ -45,7 +45,8 @@ public partial class App : Application
 
         var guard = new CaptureGuard(policy, audit);
         guard.Tripped += OnGuardTripped;
-        AppServices.Initialize(policy, audit, guard);
+        AppServices.Initialize(policy, policySource, audit, guard);
+        ProtectTransientWindows(guard);
 
         audit.Write("app-start", new
         {
@@ -67,6 +68,27 @@ public partial class App : Application
         AppServices.History?.Flush(); // несохранённые посещения последних секунд
         AppServices.Audit?.Write("app-exit", new { code = e.ApplicationExitCode });
         base.OnExit(e);
+    }
+
+    /// <summary>
+    /// Меню и подсказки WPF открываются в собственных окнах верхнего уровня. В них бывают заголовки и адреса страниц
+    /// (закладки, вкладки), поэтому каждое такое окно получает тот же флаг защиты от захвата при открытии;
+    /// не получилось — окно закрывается.
+    /// </summary>
+    private static void ProtectTransientWindows(CaptureGuard guard)
+    {
+        EventManager.RegisterClassHandler(typeof(System.Windows.Controls.ContextMenu), System.Windows.Controls.ContextMenu.OpenedEvent,
+            new RoutedEventHandler((sender, _) =>
+            {
+                if (sender is System.Windows.Controls.ContextMenu menu && !guard.ProtectTransient(menu, "context-menu"))
+                    menu.IsOpen = false;
+            }));
+        EventManager.RegisterClassHandler(typeof(System.Windows.Controls.ToolTip), System.Windows.Controls.ToolTip.OpenedEvent,
+            new RoutedEventHandler((sender, _) =>
+            {
+                if (sender is System.Windows.Controls.ToolTip tip && !guard.ProtectTransient(tip, "tooltip"))
+                    tip.IsOpen = false;
+            }));
     }
 
     private void OnGuardTripped(string reason)

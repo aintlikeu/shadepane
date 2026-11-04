@@ -13,6 +13,9 @@ internal static class AppServices
     public static AuditLog Audit { get; private set; } = null!;
     public static CaptureGuard Guard { get; private set; } = null!;
 
+    /// <summary>Откуда взята политика (реестр, ProgramData) или "&lt;default&gt;" — для сведений о защите.</summary>
+    public static string PolicySource { get; private set; } = "<default>";
+
     public static UserSettingsStore SettingsStore { get; } = new(AppPaths.UserSettings);
 
     /// <summary>Настройки пользователя (окно настроек).</summary>
@@ -39,9 +42,10 @@ internal static class AppServices
     /// <summary>Шаблон поиска из адресной строки ({query}).</summary>
     public static string SearchUrl => Config.SearchEngine.SearchUrl;
 
-    public static void Initialize(BrowserPolicy policy, AuditLog audit, CaptureGuard guard)
+    public static void Initialize(BrowserPolicy policy, string policySource, AuditLog audit, CaptureGuard guard)
     {
         Policy = policy;
+        PolicySource = policySource;
         Audit = audit;
         Guard = guard;
         Settings = SettingsStore.Load(out var problem);

@@ -51,6 +51,15 @@ internal static class WebViewHardening
 
     private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<CoreWebView2, ProtectionState> States = new();
 
+    /// <summary>Страница запросила захват экрана (getDisplayMedia), запрос отклонён — для индикатора защиты.</summary>
+    public static event Action<CoreWebView2>? ScreenCaptureBlocked;
+
+    /// <summary>Изменилась отметка «показано содержимое защищённого домена» — для индикатора защиты.</summary>
+    public static event Action<CoreWebView2>? ProtectedContentChanged;
+
+    /// <summary>В показанном сейчас документе есть содержимое с домена из protectedHosts (сама страница или фрейм).</summary>
+    public static bool ShowsProtectedContent(CoreWebView2 core) => States.TryGetValue(core, out var state) && state.Committed;
+
     /// <summary>Новое окно, открытое защищённым документом, наследует его отметку (window.open + запись в окно).</summary>
     public static void InheritProtection(CoreWebView2 opener, CoreWebView2 child)
     {
@@ -80,6 +89,7 @@ internal static class WebViewHardening
         {
             e.Cancel = true;
             audit.Write("screen-capture-blocked", new { role, source = core.Source });
+            ScreenCaptureBlocked?.Invoke(core);
         };
 
         // Загрузки: запрет (политика или настройка) — отмена; иначе встроенное окно WebView2 скрываем
@@ -98,16 +108,22 @@ internal static class WebViewHardening
         };
         core.NavigationCompleted += (_, e) =>
         {
+            var before = state.Committed;
             if (e.IsSuccess)
                 state.Committed = state.Pending;
             state.Pending = false;
+            if (state.Committed != before)
+                ProtectedContentChanged?.Invoke(core);
         };
         core.FrameNavigationStarting += (_, e) =>
         {
             if (AppServices.Policy.IsProtectedUrl(e.Uri))
             {
+                var before = state.Committed;
                 state.Committed = true; // фрейм в текущем документе
                 state.Pending = true;   // или в документе, который сейчас загружается
+                if (!before)
+                    ProtectedContentChanged?.Invoke(core);
             }
         };
 

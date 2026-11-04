@@ -1,6 +1,7 @@
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Interop;
+using System.Windows.Media;
 using System.Windows.Threading;
 using Shadepane.App.Native;
 using Shadepane.Core.Audit;
@@ -52,6 +53,24 @@ internal sealed class CaptureGuard
 
         _windows.Add(window);
         window.Closed += (_, _) => _windows.Remove(window);
+    }
+
+    /// <summary>
+    /// Всплывающее окно WPF (меню, подсказка, панель): у него свой HWND верхнего уровня, флаг главного окна на него
+    /// не распространяется. Ставим тот же флаг; не получилось — false, и вызывающий закрывает окно (fail closed).
+    /// Контрольный цикл такие окна не проверяет: они живут секунды, а содержимого страниц в них нет.
+    /// </summary>
+    public bool ProtectTransient(Visual content, string kind)
+    {
+        if (PresentationSource.FromVisual(content) is not HwndSource source || source.Handle == IntPtr.Zero)
+        {
+            _audit.Write("popup-protect-failed", new { kind, reason = "no-hwnd" });
+            return false;
+        }
+        if (NativeMethods.SetWindowDisplayAffinity(source.Handle, NativeMethods.WDA_EXCLUDEFROMCAPTURE))
+            return true;
+        _audit.Write("popup-protect-failed", new { kind, win32 = Marshal.GetLastPInvokeError() });
+        return false;
     }
 
     private void Check()

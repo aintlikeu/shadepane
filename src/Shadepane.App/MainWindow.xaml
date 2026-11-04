@@ -50,7 +50,36 @@
                     <DockPanel LastChildFill="True">
                         <Button x:Name="BookmarkButton" DockPanel.Dock="Right" Style="{StaticResource ToolbarButton}" Width="28" Height="28" IsEnabled="False"
                                 Click="Bookmark_Click" ToolTip="Добавить в закладки (Ctrl+D)"><Path x:Name="BookmarkGlyph" Style="{StaticResource Glyph}" Data="{StaticResource Icon.Star}"/></Button>
+                        <!-- Индикатор защиты: состояние выбирает ProtectionStatus, по нажатию — сведения о защите. -->
+                        <Button x:Name="ProtectionChip" DockPanel.Dock="Left" Style="{StaticResource ProtectionChip}" Click="ProtectionChip_Click">
+                            <StackPanel Orientation="Horizontal">
+                                <Path x:Name="ProtectionGlyph" Style="{StaticResource Glyph}" Data="{StaticResource Icon.ShieldCheck}"/>
+                                <TextBlock x:Name="ProtectionLabel" Margin="6,0,0,0" VerticalAlignment="Center" Text="Защищено"/>
+                            </StackPanel>
+                        </Button>
                         <Grid>
+                            <!-- Без прозрачности (AllowsTransparency=False): обычное окно, на него надёжно ставится защита от захвата. -->
+                            <Popup x:Name="ProtectionPopup" PlacementTarget="{Binding ElementName=ProtectionChip}" Placement="Bottom"
+                                   VerticalOffset="6" StaysOpen="False" AllowsTransparency="False" Opened="ProtectionPopup_Opened">
+                                <Border Width="360" Padding="16" Background="{DynamicResource Brush.Control}"
+                                        BorderBrush="{DynamicResource Brush.Hairline}" BorderThickness="1"
+                                        TextElement.Foreground="{DynamicResource Brush.Ink}" TextElement.FontSize="13">
+                                    <StackPanel>
+                                        <StackPanel Orientation="Horizontal">
+                                            <Path x:Name="ProtectionPopupGlyph" Style="{StaticResource Glyph}" Fill="{DynamicResource Brush.Accent}"
+                                                  Data="{StaticResource Icon.ShieldCheck}"/>
+                                            <TextBlock x:Name="ProtectionTitle" Margin="8,0,0,0" FontSize="14" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                                        </StackPanel>
+                                        <TextBlock x:Name="ProtectionSummary" Margin="0,8,0,12" TextWrapping="Wrap" Foreground="{DynamicResource Brush.Muted}"/>
+                                        <Grid x:Name="ProtectionDetails">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto"/>
+                                                <ColumnDefinition Width="*"/>
+                                            </Grid.ColumnDefinitions>
+                                        </Grid>
+                                    </StackPanel>
+                                </Border>
+                            </Popup>
                             <TextBox x:Name="AddressBox" Margin="6,0,4,0" VerticalContentAlignment="Center" IsEnabled="False"
                                      BorderThickness="0" Background="Transparent" Padding="0" FontSize="14"
                                      Foreground="{DynamicResource Brush.Ink}" CaretBrush="{DynamicResource Brush.Ink}"
