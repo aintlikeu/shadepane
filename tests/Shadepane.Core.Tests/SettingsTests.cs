@@ -267,10 +267,62 @@ public class ProtectedUrlTests
     [InlineData("https://evilcorp.example/", false)]
     [InlineData("about:blank", false)]
     [InlineData("data:text/plain,x", false)]
+    [InlineData("blob:https://wiki.corp.example/6f1c", true)]       // blob от защищённого источника
+    [InlineData("filesystem:https://corp.example/temporary/a", true)]
+    [InlineData("blob:https://public.example/6f1c", false)]
     [InlineData(null, false)]
     public void IsProtectedUrl(string? url, bool expected) => Assert.Equal(expected, Policy.IsProtectedUrl(url));
 
     [Fact]
     public void NoProtectedHosts_NothingIsProtected() =>
         Assert.False(BrowserPolicy.Default.IsProtectedUrl("https://corp.example/"));
+}
+
+public class DownloadGateTests
+{
+    private static readonly BrowserPolicy Dlp = new BrowserPolicy { ProtectedHosts = ["*.corp.example"] }.EnsureValid();
+    private static readonly BrowserPolicy DlpAllowed = new BrowserPolicy { ProtectedHosts = ["*.corp.example"], AllowDownloads = true }.EnsureValid();
+    private const string Public = "https://public.example/file.zip";
+
+    private static string? Gate(BrowserPolicy policy, string? page, string? file, bool protectedSeen = false, bool popup = false, bool allowed = true) =>
+        DownloadGate.BlockReason(policy, allowed, downloadsLocked: false, popup, protectedSeen, page, file);
+
+    [Fact]
+    public void Disabled_IsBlocked() => Assert.Equal("user-setting", Gate(BrowserPolicy.Default, null, Public, allowed: false));
+
+    [Fact]
+    public void ExtensionPopup_IsBlocked() => Assert.Equal("extension-popup", Gate(BrowserPolicy.Default, null, Public, popup: true));
+
+    [Fact]
+    public void NoProtectedHosts_AnythingGoes()
+    {
+        Assert.Null(Gate(BrowserPolicy.Default, "https://corp.example/", "data:text/plain,x", protectedSeen: true));
+    }
+
+    [Theory]
+    [InlineData("https://wiki.corp.example/page", Public)]             // страница защищённая
+    [InlineData("https://public.example/", "https://corp.example/x")]  // файл защищённый
+    [InlineData("https://public.example/", "blob:https://wiki.corp.example/id")] // blob от защищённого фрейма
+    public void DlpMode_ProtectedPageOrFile_IsBlocked(string page, string file) =>
+        Assert.Equal("protected-host", Gate(Dlp, page, file));
+
+    [Fact]
+    public void DlpMode_TabShowedProtectedContent_IsBlocked() => // перенаправление на защищённый домен или защищённый фрейм
+        Assert.Equal("protected-host", Gate(Dlp, "https://public.example/", Public, protectedSeen: true));
+
+    [Theory]
+    [InlineData("data:text/plain,secret")]
+    [InlineData("about:blank")]
+    [InlineData(null)]
+    public void DlpMode_UnknownSource_IsBlocked(string? file) =>
+        Assert.Equal("unknown-source", Gate(Dlp, "https://public.example/", file));
+
+    [Theory]
+    [InlineData(Public)]
+    [InlineData("blob:https://public.example/id")]
+    public void DlpMode_PublicDownload_IsAllowed(string file) => Assert.Null(Gate(Dlp, "https://public.example/", file));
+
+    [Fact]
+    public void ExplicitAllowDownloads_LiftsDlpRestrictions() =>
+        Assert.Null(Gate(DlpAllowed, "https://wiki.corp.example/", "data:text/plain,x", protectedSeen: true));
 }

@@ -91,9 +91,14 @@ public sealed class BrowserPolicy
     public IReadOnlySet<string>? AllowedPermissionSet =>
         AllowedPermissions is null ? null : _allowedSet ??= new HashSet<string>(AllowedPermissions, StringComparer.OrdinalIgnoreCase);
 
-    /// <summary>Адрес http(s) на защищённом домене (protectedHosts). Некорректный или иной адрес — false.</summary>
+    /// <summary>
+    /// Адрес на защищённом домене (protectedHosts). blob:/filesystem: разворачиваются до источника внутри
+    /// ("blob:https://wiki.corp.example/uuid" — защищён). Прочие не-http(s) адреса — false (см. DownloadGate).
+    /// </summary>
     public bool IsProtectedUrl(string? url)
     {
+        if (url is not null && (url.StartsWith("blob:", StringComparison.OrdinalIgnoreCase) || url.StartsWith("filesystem:", StringComparison.OrdinalIgnoreCase)))
+            url = url[(url.IndexOf(':') + 1)..];
         if (!Uri.TryCreate(url, UriKind.Absolute, out var uri) || !UrlPolicy.IsWebScheme(uri))
             return false;
         if (!HostPattern.TryNormalizeHost(uri.IdnHost, out var host, out _))

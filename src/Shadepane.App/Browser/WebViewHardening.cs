@@ -1,5 +1,6 @@
 using Microsoft.Web.WebView2.Core;
 using Shadepane.Core.Navigation;
+using Shadepane.Core.Policy;
 
 namespace Shadepane.App.Browser;
 
@@ -62,9 +63,26 @@ internal static class WebViewHardening
 
         // Загрузки: запрет (политика или настройка) — отмена; иначе встроенное окно WebView2 скрываем
         // и показываем загрузку в своём окне загрузок (Ctrl+J).
+        // Было ли в ТЕКУЩЕМ документе вкладки содержимое с защищённого домена: сама страница, любое
+        // перенаправление по пути к ней, любой фрейм. Сбрасывается только новой обычной навигацией верхнего уровня.
+        var protectedContentSeen = false;
+        core.NavigationStarting += (_, e) =>
+        {
+            var isProtected = AppServices.Policy.IsProtectedUrl(e.Uri);
+            protectedContentSeen = e.IsRedirected ? protectedContentSeen || isProtected : isProtected;
+        };
+        core.FrameNavigationStarting += (_, e) =>
+        {
+            if (AppServices.Policy.IsProtectedUrl(e.Uri))
+                protectedContentSeen = true;
+        };
+
         core.DownloadStarting += (_, e) =>
         {
-            var reason = DownloadBlockReason(role, core.Source, e.DownloadOperation.Uri);
+            var config = AppServices.Config;
+            var reason = DownloadGate.BlockReason(AppServices.Policy, config.AllowDownloads, config.DownloadsLocked,
+                fromExtensionPopup: role.StartsWith("popup:", StringComparison.Ordinal),
+                tabShowedProtectedContent: protectedContentSeen, core.Source, e.DownloadOperation.Uri);
             if (reason is not null)
             {
                 e.Cancel = true;
@@ -100,20 +118,6 @@ internal static class WebViewHardening
         };
 
         await core.AddScriptToExecuteOnDocumentCreatedAsync(BlockPrintScript);
-    }
-
-    /// <summary>null — загрузку можно начать; иначе причина отказа для журнала.</summary>
-    private static string? DownloadBlockReason(string role, string? pageUrl, string? fileUrl)
-    {
-        if (!AppServices.Config.AllowDownloads)
-            return AppServices.Config.DownloadsLocked ? "policy" : "user-setting";
-        if (role.StartsWith("popup:", StringComparison.Ordinal))
-            return "extension-popup"; // окну расширения скачивать файлы незачем
-        // С защищённых доменов — только если администратор явно разрешил загрузки (allowDownloads: true).
-        var policy = AppServices.Policy;
-        if (policy.AllowDownloads != true && (policy.IsProtectedUrl(pageUrl) || policy.IsProtectedUrl(fileUrl)))
-            return "protected-host";
-        return null;
     }
 
     /// <summary>Оставляет разрешённые пункты и разделители между ними (без висячих и двойных разделителей).</summary>
