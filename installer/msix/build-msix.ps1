@@ -32,20 +32,37 @@ $manifest = $manifest -replace 'Version="0\.0\.0\.0"', "Version=""$packageVersio
 Set-Content -Path (Join-Path $layout "AppxManifest.xml") -Value $manifest -Encoding UTF8
 
 # resources.pri: по нему Windows выбирает логотип под масштаб экрана (scale-200, targetsize-24…).
-# Индексируем только Assets, а не сотни файлов приложения.
+# Имена ресурсов строятся от корня индексируемой папки, а манифест ищет логотипы как «Assets\Square44x44Logo.png»
+# (имя ресурса Files/Assets/Square44x44Logo.png). Поэтому индексируем отдельную папку, где лежит только Assets:
+# корень тот же, что у пакета, а сотни файлов приложения в индекс не попадают.
+$priRoot = Join-Path $OutDir "pri-root"
+if (Test-Path $priRoot) { Remove-Item -Recurse -Force $priRoot }
+New-Item -ItemType Directory -Force $priRoot | Out-Null
+Copy-Item -Recurse (Join-Path $here "Assets") (Join-Path $priRoot "Assets")
 $priConfig = Join-Path $OutDir "priconfig.xml"
 & $makepri createconfig /cf $priConfig /dq en-US /pv 10.0.0 /o | Out-Null
 if ($LASTEXITCODE -ne 0) { throw "makepri createconfig failed ($LASTEXITCODE)" }
 $config = Get-Content -Raw $priConfig
-$config = $config -replace 'startIndexAt="\\"', 'startIndexAt="\Assets"'
 # Без разбиения на ресурсные пакеты (resources.scale-200.pri и т. п.): они работают только в бандле,
 # а в одиночном .msix Windows видела бы лишь масштаб 100%. Всё — в одном resources.pri.
 $config = $config -replace '(?s)<packaging>.*?</packaging>', ''
 Set-Content -Path $priConfig -Value $config -Encoding UTF8
-& $makepri new /pr $layout /cf $priConfig /mn (Join-Path $layout "AppxManifest.xml") /of (Join-Path $layout "resources.pri") /o
+& $makepri new /pr $priRoot /cf $priConfig /mn (Join-Path $layout "AppxManifest.xml") /of (Join-Path $layout "resources.pri") /o
 if ($LASTEXITCODE -ne 0) { throw "makepri new failed ($LASTEXITCODE)" }
 $split = Get-ChildItem $layout -Filter "resources.*.pri"
 if ($split) { throw "makepri split resources into $($split.Name -join ', '): packaging section is still in priconfig" }
+
+# Проверка имён: без «Assets» в имени ресурса логотипы из манифеста не находятся и значки в «Пуске» пустые.
+$dumpFile = Join-Path $OutDir "resources.pri.xml"
+& $makepri dump /if (Join-Path $layout "resources.pri") /of $dumpFile /o | Out-Null
+if ($LASTEXITCODE -ne 0) { throw "makepri dump failed ($LASTEXITCODE)" }
+$dump = Get-Content -Raw $dumpFile
+foreach ($logo in "Square44x44Logo", "Square150x150Logo", "Wide310x150Logo", "StoreLogo") {
+    if ($dump -notmatch "Files/Assets/$logo\.png") {
+        throw "resources.pri has no Files/Assets/$logo.png, so the manifest logos would not resolve"
+    }
+}
+Write-Host "resources.pri: all manifest logos resolve (Files/Assets/*.png)"
 
 $msix = Join-Path $OutDir "Shadepane-$Version-win-x64.msix"
 & $makeappx pack /d $layout /p $msix /o
