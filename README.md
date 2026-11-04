@@ -10,6 +10,10 @@ dialogs — from screen capture (`WDA_EXCLUDEFROMCAPTURE`). It also closes the i
 Unpacked Chrome extensions are supported. Every extension is checked against the policy before it is
 loaded: capture permissions, access to all sites and access to protected hosts are refused.
 
+Everyday browsing: tabs, search from the address bar (DuckDuckGo by default; Startpage, Brave Search,
+Google, Bing or a custom template), home page, bookmarks and a bookmarks bar, history, downloads, find in
+page, zoom and the usual keyboard shortcuts.
+
 > Capture exclusion is a Windows feature, not DRM: it stops software, not a camera pointed at the screen.
 
 ## Download
@@ -35,6 +39,8 @@ Self-contained build, as produced by CI:
 ```powershell
 dotnet publish src\Shadepane.App -c Release -r win-x64 --self-contained true -o publish\Shadepane
 ```
+
+The UI is checked by hand on Windows: [`docs/TESTING.md`](docs/TESTING.md).
 
 Check an unpacked extension against a policy without starting the browser:
 
