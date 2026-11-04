@@ -1,11 +1,74 @@
-# Ручная проверка интерфейса на Windows
+# Ручная проверка на Windows
 
-Логика (адрес/поиск, настройки, история, закладки, горячие клавиши, шаги масштаба) покрыта тестами в
-`tests/`. Интерфейс WPF и поведение WebView2 тестами не покрыты — их нужно проверить руками по этому
-списку перед релизом. Защита от захвата экрана — отдельно, в [`SPIKE.md`](SPIKE.md) (шаги 1, 4, 6).
+Логика (адрес/поиск, настройки, история, закладки, горячие клавиши, шаги масштаба, проверка расширений
+и политики) покрыта тестами в `tests/`. Интерфейс WPF, поведение WebView2 и защита окна тестами не покрыты —
+их нужно проверить руками по этому списку перед релизом.
 
 ```powershell
 dotnet run --project src\Shadepane.App
+# тестовая страница по http (file:// браузер не открывает намеренно):
+python -m http.server 8000 --directory samples\test-pages     # или: npx --yes http-server samples\test-pages -p 8000
+```
+
+Тестовая страница: `http://localhost:8000/capture-test.html`. Журнал: `%LOCALAPPDATA%\Shadepane\audit.log`
+(в PowerShell — `$env:LOCALAPPDATA\Shadepane\audit.log`). Начать «с чистого листа» — закрыть браузер и удалить
+`%LOCALAPPDATA%\Shadepane`.
+
+## Защита от захвата экрана
+
+На открытой `capture-test.html`. Ожидаемо: окна браузера нет на снимке (или на его месте пусто), остальной
+рабочий стол виден.
+
+| Способ | Ожидаемо |
+|---|---|
+| Win+Shift+S, PrintScreen → Paint, Alt+PrintScreen | окна нет |
+| OBS: захват экрана и захват окна, ShareX, Win+G (запись) | окна нет |
+| Teams / Zoom: демонстрация экрана и окна Shadepane | окна нет |
+| Всплывающие элементы страницы (раздел 1): `<select>`, календарь, datalist, title-подсказка, выбор цвета, контекстное меню, `alert()` (раздел 2) | на снимке нет |
+| Popup расширения, панель «Сведения о защите», меню «⋯», подсказки | на снимке нет |
+
+Всплывающие элементы снимайте `tools\screen.ps1`: «Ножницы» с таймером забирают фокус, и элемент закрывается
+до снимка. `powershell -ExecutionPolicy Bypass -File tools\screen.ps1 -Delay 5`, затем открыть элемент
+и ничего не трогать до снимка.
+
+| Проверка | Ожидаемо |
+|---|---|
+| Debug-сборка: клик в адресную строку, Ctrl+Alt+Shift+D (снимает флаг защиты, как внедрённый код) | за ~200 мс содержимое скрыто, сообщение о нарушении защиты, браузер закрыт; в журнале `capture-guard-tripped` |
+| Запуск по RDP | отказ запуска |
+| Браузер запущен локально, затем подключение к этой сессии по RDP | срабатывание защиты (`remote-session`), закрытие |
+
+## Каналы утечки (раздел 3 тестовой страницы)
+
+| Действие | Ожидаемо |
+|---|---|
+| Ctrl+P, кнопка `window.print()` | ничего не происходит |
+| F12, Ctrl+Shift+I | DevTools не открываются |
+| Правый клик | нет «Печать», «Сохранить как», «Просмотреть код» |
+| `getDisplayMedia()` | заблокирован, `screen-capture-blocked` в журнале, индикатор «Захват экрана отклонён» |
+| `window.open(https)` | новая вкладка |
+| `window.open(data:)` | ничего, `new-window-blocked` в журнале |
+| «Открыть PDF» | встроенный просмотрщик без кнопок «Сохранить», «Сохранить как», «Печать» |
+| Ctrl+P / Ctrl+S в PDF, правый клик в PDF | ничего не происходит / только разрешённые пункты; в журнале `shortcut-blocked` |
+| Правый клик по выделенному тексту / в поле ввода | есть «Копировать» / «Вставить» / «Выделить всё» |
+
+## Расширения и политика
+
+| Проверка | Ожидаемо |
+|---|---|
+| Пазл → «Добавить расширение…» → `samples\extensions\spike-popup` | зелёная иконка; в popup все пункты зелёные; счётчик «+1» сохраняется после закрытия popup и перезапуска |
+| С политикой по умолчанию добавить `samples\extensions\evil-capture` | отказ с причинами (`activeTab`, `tabs`, `<all_urls>`) |
+| Debug: `samples\policies\spike-permissive.json` → `bin\Debug\net10.0-windows\policy.json`, запуск `dotnet run --no-build`, добавить `evil-capture`, затем вернуть `default.json` и перезапустить | расширение отозвано: иконки нет, в журнале `extension-revoked` |
+| Закрыть браузер, дописать строку в `popup.js` копии `spike-popup` в `%LOCALAPPDATA%\Shadepane\extensions`, запустить | расширение отозвано: «файлы расширения изменены после одобрения» |
+| Release, обычный пользователь: `C:\ProgramData\Shadepane\policy.json`, созданный без прав администратора | отказ запуска «политику может изменить не только администратор» |
+| Release: `C:\ProgramData\Shadepane` — junction на папку пользователя | отказ запуска «ссылка (symlink/junction)»; удалить ссылку `cmd /c rmdir C:\ProgramData\Shadepane` (не `Remove-Item`) |
+| Политика в `HKLM\Software\Policies\Shadepane` (README, «Политика») | запуск; в журнале `app-start` — `policySource` = ключ реестра |
+| Мусор в `policy.json` с правильными правами | отказ запуска, а не политика по умолчанию |
+| Своё расширение без браузера: `dotnet run tools/check-extension.cs -- <папка> samples\policies\default.json` | принято или причины отказа |
+
+Очистка после проверок политики (от администратора):
+```powershell
+Remove-Item -Recurse -Force 'HKLM:\Software\Policies\Shadepane' -ErrorAction SilentlyContinue
+Remove-Item -Recurse -Force C:\ProgramData\Shadepane -ErrorAction SilentlyContinue
 ```
 
 ## Вкладки

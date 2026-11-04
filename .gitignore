@@ -4,7 +4,7 @@ obj/
 .vs/
 TestResults/
 
-# снимки экрана из ручной проверки (docs/SPIKE.md)
+# снимки экрана из ручной проверки (docs/TESTING.md, tools/screen.ps1)
 pb-capture-*.png
 dist/
 publish/

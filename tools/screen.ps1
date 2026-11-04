@@ -1,4 +1,4 @@
-# screen.ps1 — full-screen capture (GDI BitBlt) without stealing focus, for docs/SPIKE.md step 1.
+# screen.ps1 — full-screen capture (GDI BitBlt) without stealing focus, for the capture checks in docs/TESTING.md.
 # Usage: powershell -ExecutionPolicy Bypass -File tools\screen.ps1 [-Delay 5]
 # Saves pb-capture-HHmmss.png into the CURRENT directory ($PWD) and opens it.
 param([int]$Delay = 5)

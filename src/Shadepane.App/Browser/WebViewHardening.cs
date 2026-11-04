@@ -161,7 +161,7 @@ internal static class WebViewHardening
         core.ContextMenuRequested += (_, e) =>
         {
 #if DEBUG
-            // Для сверки пунктов меню на стенде (docs/SPIKE.md, шаг 6): имя, подпись, CommandId, подменю.
+            // Для сверки пунктов меню на стенде (docs/TESTING.md, «Каналы утечки»): имя, подпись, CommandId, подменю.
             audit.Write("debug-context-menu", new { role, items = e.MenuItems.Select(Describe).ToArray() });
 #endif
             FilterContextMenu(e.MenuItems);
