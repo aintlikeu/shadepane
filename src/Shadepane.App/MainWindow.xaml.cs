@@ -97,6 +97,7 @@ public partial class MainWindow : ProtectedWindow, IContentShield
         tab.Changed += OnTabChanged;
         tab.CloseRequested += t => Dispatcher.BeginInvoke(() => CloseTab(t)); // не уничтожаем WebView2 внутри его события
         tab.Status += (t, message) => { if (t == _active) SetStatus(message); };
+        tab.NavigationCompleted += (t, success) => { if (success) AppServices.History.RecordVisit(t.Url, t.Core?.DocumentTitle); };
 
         var index = Math.Clamp(insertAt ?? _tabs.Count, 0, _tabs.Count);
         _tabs.Insert(index, tab);
@@ -311,6 +312,7 @@ public partial class MainWindow : ProtectedWindow, IContentShield
             title.Text = tab.Title;
             header.ToolTip = string.IsNullOrEmpty(tab.Url) ? tab.Title : $"{tab.Title}\n{tab.Url}";
         }
+        AppServices.History.UpdateTitle(tab.Url, tab.Core?.DocumentTitle); // заголовок часто приходит после навигации
         if (tab == _active)
             RefreshChrome();
     }
@@ -465,6 +467,9 @@ public partial class MainWindow : ProtectedWindow, IContentShield
                 return SetZoom(z => ZoomLevels.ZoomOut(z));
             case BrowserCommand.ZoomReset:
                 return SetZoom(_ => ZoomLevels.Default);
+            case BrowserCommand.History:
+                ShowHistory();
+                return true;
             case BrowserCommand.Stop:
                 // Esc в адресной строке обрабатывает сама строка (отмена ввода).
                 if (AddressBox.IsKeyboardFocusWithin)
@@ -626,6 +631,22 @@ public partial class MainWindow : ProtectedWindow, IContentShield
     private void Forward_Click(object sender, RoutedEventArgs e) => _active?.Core?.GoForward();
     private void Reload_Click(object sender, RoutedEventArgs e) => _active?.Core?.Reload();
     private void Home_Click(object sender, RoutedEventArgs e) { if (_active is not null) NavigateHome(_active); }
+
+    private HistoryWindow? _historyWindow;
+
+    private void ShowHistory()
+    {
+        if (_historyWindow is not null)
+        {
+            _historyWindow.Activate();
+            return;
+        }
+        _historyWindow = new HistoryWindow(url => { _active?.Navigate(url); Activate(); }, url => _ = OpenNewTabAsync(url)) { Owner = this };
+        _historyWindow.Closed += (_, _) => _historyWindow = null;
+        _historyWindow.Show();
+    }
+
+    private void History_Click(object sender, RoutedEventArgs e) => ShowHistory();
 
     private SettingsWindow? _settingsWindow;
 

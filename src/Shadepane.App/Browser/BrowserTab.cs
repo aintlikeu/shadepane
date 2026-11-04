@@ -50,8 +50,8 @@ internal sealed class BrowserTab
     /// <summary>Сообщение для строки состояния (например, переход заблокирован политикой).</summary>
     public event Action<BrowserTab, string>? Status;
 
-    /// <summary>Завершилась навигация верхнего уровня (для истории).</summary>
-    public event Action<BrowserTab>? NavigationCompleted;
+    /// <summary>Завершилась навигация верхнего уровня; bool — успешно ли (для истории).</summary>
+    public event Action<BrowserTab, bool>? NavigationCompleted;
 
     public async Task InitializeAsync(CoreWebView2Environment environment, WebViewHardening.NewWindowHandler onNewWindow)
     {
@@ -77,11 +77,11 @@ internal sealed class BrowserTab
             AppServices.Audit.Write("navigation-blocked", new { tab = Id, uri = e.Uri });
             Status?.Invoke(this, $"Переход заблокирован политикой: {Truncate(e.Uri, 120)}");
         };
-        core.NavigationCompleted += (_, _) =>
+        core.NavigationCompleted += (_, e) =>
         {
             IsLoading = false;
             Changed?.Invoke(this);
-            NavigationCompleted?.Invoke(this);
+            NavigationCompleted?.Invoke(this, e.IsSuccess);
         };
         core.SourceChanged += (_, _) => Changed?.Invoke(this);
         core.DocumentTitleChanged += (_, _) => Changed?.Invoke(this);

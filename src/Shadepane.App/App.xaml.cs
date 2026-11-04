@@ -64,6 +64,7 @@ public partial class App : Application
     protected override void OnExit(ExitEventArgs e)
     {
         AppServices.Guard?.Stop();
+        AppServices.History?.Flush(); // несохранённые посещения последних секунд
         AppServices.Audit?.Write("app-exit", new { code = e.ApplicationExitCode });
         base.OnExit(e);
     }

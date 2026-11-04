@@ -44,6 +44,7 @@ public partial class SettingsWindow : ProtectedWindow
         if (config.SearchLocked)
             SearchLockedNote.Text = $"Задано администратором: {config.SearchEngine.Name}";
 
+        SaveHistoryBox.IsChecked = settings.SaveHistory;
         ClipboardBox.IsChecked = config.AllowExtensionClipboardRead;
         SetLocked(config.ClipboardLocked, ClipboardLockedNote, ClipboardBox);
 
@@ -64,6 +65,12 @@ public partial class SettingsWindow : ProtectedWindow
         var custom = (SearchEngineBox.SelectedItem as EngineItem)?.Id == SearchEngines.CustomId;
         CustomSearchBox.IsEnabled = !config.SearchLocked && custom;
         CustomSearchHint.Visibility = custom ? Visibility.Visible : Visibility.Collapsed;
+    }
+
+    private void ClearHistory_Click(object sender, RoutedEventArgs e)
+    {
+        if (MessageBox.Show(this, "Удалить всю историю посещений?", Title, MessageBoxButton.YesNo, MessageBoxImage.Question) == MessageBoxResult.Yes)
+            AppServices.History.Clear();
     }
 
     private void HomeKind_Changed(object sender, RoutedEventArgs e) { if (IsLoaded) UpdateEnabledState(); }
@@ -106,6 +113,7 @@ public partial class SettingsWindow : ProtectedWindow
                 SearchEngineId = AppServices.Config.SearchLocked ? current.SearchEngineId : engineId,
                 CustomSearchUrl = AppServices.Config.SearchLocked ? current.CustomSearchUrl : (template.Length > 0 ? template : null),
                 AllowExtensionClipboardRead = AppServices.Config.ClipboardLocked ? current.AllowExtensionClipboardRead : ClipboardBox.IsChecked == true,
+                SaveHistory = SaveHistoryBox.IsChecked == true,
             };
             AppServices.UpdateSettings(updated);
             AppServices.Audit.Write("settings-saved", new { updated.HomePage, updated.SearchEngineId, updated.AllowExtensionClipboardRead });

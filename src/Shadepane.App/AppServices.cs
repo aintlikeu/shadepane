@@ -21,6 +21,9 @@ internal static class AppServices
     /// <summary>Итоговые значения: политика администратора поверх настроек пользователя.</summary>
     public static EffectiveConfig Config { get; private set; } = EffectiveConfig.Resolve(BrowserPolicy.Default, UserSettings.Default);
 
+    /// <summary>История посещений (создаётся в Initialize, нужен Dispatcher).</summary>
+    public static Browser.HistoryService History { get; private set; } = null!;
+
     /// <summary>Итоговые значения изменились (сохранены настройки).</summary>
     public static event Action? ConfigChanged;
 
@@ -39,6 +42,7 @@ internal static class AppServices
         if (problem is not null)
             audit.Write("settings-unreadable", new { file = SettingsStore.FilePath, problem });
         Config = EffectiveConfig.Resolve(policy, Settings);
+        History = new Browser.HistoryService(AppPaths.History);
     }
 
     /// <summary>Сохраняет настройки пользователя и пересчитывает итоговые значения.</summary>
@@ -61,4 +65,5 @@ internal static class AppPaths
     public static string ApprovedExtensions => Path.Combine(DataRoot, "approved-extensions.json");
     public static string AuditLog => Path.Combine(DataRoot, "audit.log");
     public static string UserSettings => Path.Combine(DataRoot, "settings.json");
+    public static string History => Path.Combine(DataRoot, "history.json");
 }

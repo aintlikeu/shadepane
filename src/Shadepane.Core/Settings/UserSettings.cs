@@ -28,6 +28,9 @@ public sealed record UserSettings
 
     /// <summary>Разрешить расширениям читать буфер обмена (если не задано политикой). Применяется при запуске.</summary>
     public bool AllowExtensionClipboardRead { get; init; } = true;
+
+    /// <summary>Записывать посещённые страницы в историю.</summary>
+    public bool SaveHistory { get; init; } = true;
 }
 
 /// <summary>Файл настроек. Повреждённый или неполный файл не мешает запуску: берутся значения по умолчанию.</summary>
