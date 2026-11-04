@@ -504,6 +504,7 @@ public partial class MainWindow : ProtectedWindow, IContentShield
         var header = CreateTabHeader(tab);
         _tabHeaders[tab] = header;
         TabStrip.Children.Insert(index, header);
+        UpdateTabWidths();
         if (activate || _active is null)
             ActivateTab(tab);
 
@@ -611,7 +612,10 @@ public partial class MainWindow : ProtectedWindow, IContentShield
             return -1;
         _tabs.RemoveAt(index);
         if (_tabHeaders.Remove(tab, out var header))
+        {
             TabStrip.Children.Remove(header);
+            UpdateTabWidths();
+        }
         ContentHost.Children.Remove(tab.View);
         _findSubscribed.Remove(tab);
         if (_active == tab)
@@ -669,7 +673,6 @@ public partial class MainWindow : ProtectedWindow, IContentShield
         var title = new TextBlock
         {
             Text = tab.Title,
-            MaxWidth = 180,
             TextTrimming = TextTrimming.CharacterEllipsis,
             VerticalAlignment = VerticalAlignment.Center,
         };
@@ -697,6 +700,7 @@ public partial class MainWindow : ProtectedWindow, IContentShield
             CornerRadius = new CornerRadius(8, 8, 0, 0),
             Tag = title,
         };
+        MarkInteractiveInTitleBar(header); // вкладки живут в заголовке окна
         header.MouseEnter += (_, _) => StyleTabHeader(header, tab == _active);
         header.MouseLeave += (_, _) => StyleTabHeader(header, tab == _active);
         header.MouseLeftButtonUp += (_, e) => { if (e.OriginalSource is not Button) ActivateTab(tab); };

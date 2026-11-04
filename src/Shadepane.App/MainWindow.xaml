@@ -2,17 +2,45 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:protection="clr-namespace:Shadepane.App.Protection"
-        Title="Shadepane" Width="1280" Height="800"
+        Title="Shadepane" Width="1280" Height="800" MinWidth="560" MinHeight="360"
         Background="{DynamicResource Brush.Frame}">
+    <!-- Вкладки в заголовке окна, как в Edge и Chrome. Верхние 40 px — область заголовка: за неё окно перетаскивают,
+         двойной щелчок разворачивает. Вкладки и кнопки помечены IsHitTestVisibleInChrome — они получают клики сами.
+         Системные кнопки заменены своими; «Развернуть» отвечает системе как HTMAXBUTTON, чтобы на Windows 11 при наведении
+         показывались раскладки Snap (MainWindow.TitleBar.cs). -->
+    <WindowChrome.WindowChrome>
+        <WindowChrome CaptionHeight="40" ResizeBorderThickness="6" GlassFrameThickness="0,0,0,1" CornerRadius="0"
+                      UseAeroCaptionButtons="False"/>
+    </WindowChrome.WindowChrome>
     <DockPanel>
-        <!-- Строка вкладок -->
-        <DockPanel DockPanel.Dock="Top" Margin="8,6,8,0" LastChildFill="True">
-            <Button x:Name="NewTabButton" DockPanel.Dock="Right" Style="{StaticResource ToolbarButton}" Width="30" Height="30" Margin="4,0,0,2"
-                    VerticalAlignment="Bottom" IsEnabled="False" Click="NewTab_Click" ToolTip="Новая вкладка (Ctrl+T)"><Path Style="{StaticResource Glyph}" Data="{StaticResource Icon.Add}"/></Button>
-            <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
+        <!-- Строка вкладок = заголовок окна -->
+        <Grid x:Name="TitleBar" DockPanel.Dock="Top" Height="40">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition x:Name="TabsColumn" Width="Auto"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            <Image x:Name="TitleIcon" Grid.Column="0" Width="16" Height="16" Margin="14,0,8,0" VerticalAlignment="Center"
+                   RenderOptions.BitmapScalingMode="HighQuality"/>
+            <ScrollViewer x:Name="TabScroller" Grid.Column="1" HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Disabled"
+                          VerticalAlignment="Bottom" PreviewMouseWheel="TabScroller_PreviewMouseWheel">
                 <StackPanel x:Name="TabStrip" Orientation="Horizontal"/>
             </ScrollViewer>
-        </DockPanel>
+            <Button x:Name="NewTabButton" Grid.Column="2" Style="{StaticResource ToolbarButton}" Width="30" Height="30" Margin="4,0,0,2"
+                    VerticalAlignment="Bottom" IsEnabled="False" Click="NewTab_Click" ToolTip="Новая вкладка (Ctrl+T)"
+                    WindowChrome.IsHitTestVisibleInChrome="True"><Path Style="{StaticResource Glyph}" Data="{StaticResource Icon.Add}"/></Button>
+            <!-- Колонка 3 — пустое место заголовка: за него окно перетаскивают. Ширину вкладок держим так, чтобы оно оставалось. -->
+            <StackPanel Grid.Column="4" Orientation="Horizontal" VerticalAlignment="Top" WindowChrome.IsHitTestVisibleInChrome="True">
+                <Button x:Name="MinimizeButton" Style="{StaticResource CaptionButton}" Click="Minimize_Click" ToolTip="Свернуть"
+                        AutomationProperties.Name="Свернуть"><Path Style="{StaticResource SmallGlyph}" Data="{StaticResource Icon.Minimize}"/></Button>
+                <Button x:Name="MaximizeButton" Style="{StaticResource CaptionButton}" Click="Maximize_Click" ToolTip="Развернуть"
+                        AutomationProperties.Name="Развернуть"><Path x:Name="MaximizeGlyph" Style="{StaticResource SmallGlyph}" Data="{StaticResource Icon.Maximize}"/></Button>
+                <Button x:Name="CloseButton" Style="{StaticResource CaptionCloseButton}" Click="CloseWindow_Click" ToolTip="Закрыть"
+                        AutomationProperties.Name="Закрыть"><Path Style="{StaticResource SmallGlyph}" Data="{StaticResource Icon.Close}"/></Button>
+            </StackPanel>
+        </Grid>
 
         <!-- Панель навигации -->
         <DockPanel DockPanel.Dock="Top" Background="{DynamicResource Brush.Surface}" LastChildFill="True">
