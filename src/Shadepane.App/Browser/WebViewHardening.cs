@@ -35,7 +35,28 @@ internal static class WebViewHardening
     /// Обработчик ОБЯЗАН выставить e.Handled = true или e.NewWindow — иначе WebView2 создаст своё окно,
     /// на которое мы не можем поставить флаг защиты.
     /// </summary>
-    public delegate void NewWindowHandler(CoreWebView2NewWindowRequestedEventArgs e);
+    public delegate void NewWindowHandler(CoreWebView2 opener, CoreWebView2NewWindowRequestedEventArgs e);
+
+    /// <summary>
+    /// Было ли содержимое с защищённого домена в документе этого WebView (для DownloadGate).
+    /// Committed — текущий показанный документ; Pending — идущая навигация. Пока навигация не завершилась
+    /// успешно, на экране может оставаться старый документ, поэтому действуют оба значения.
+    /// </summary>
+    private sealed class ProtectionState
+    {
+        public bool Committed;
+        public bool Pending;
+        public bool Effective => Committed || Pending;
+    }
+
+    private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<CoreWebView2, ProtectionState> States = new();
+
+    /// <summary>Новое окно, открытое защищённым документом, наследует его отметку (window.open + запись в окно).</summary>
+    public static void InheritProtection(CoreWebView2 opener, CoreWebView2 child)
+    {
+        if (States.TryGetValue(opener, out var from) && from.Effective)
+            States.GetOrCreateValue(child).Committed = true;
+    }
 
     /// <param name="onNewWindow">Куда открыть новое окно, если адрес разрешён политикой.</param>
     public static async Task ApplyAsync(CoreWebView2 core, string role, NewWindowHandler onNewWindow)
@@ -63,18 +84,29 @@ internal static class WebViewHardening
 
         // Загрузки: запрет (политика или настройка) — отмена; иначе встроенное окно WebView2 скрываем
         // и показываем загрузку в своём окне загрузок (Ctrl+J).
-        // Было ли в ТЕКУЩЕМ документе вкладки содержимое с защищённого домена: сама страница, любое
-        // перенаправление по пути к ней, любой фрейм. Сбрасывается только новой обычной навигацией верхнего уровня.
-        var protectedContentSeen = false;
+        // Было ли в документе содержимое с защищённого домена: сама страница, любое перенаправление по пути
+        // к ней, любой фрейм. Новое значение вступает в силу только после УСПЕШНОГО завершения навигации:
+        // отменённая/неудачная навигация или навигация, ставшая загрузкой, старый документ не «очищает».
+        var state = States.GetOrCreateValue(core);
         core.NavigationStarting += (_, e) =>
         {
-            var isProtected = AppServices.Policy.IsProtectedUrl(e.Uri);
-            protectedContentSeen = e.IsRedirected ? protectedContentSeen || isProtected : isProtected;
+            // about:blank (window.open() без адреса, затем запись из открывшей страницы) состояние не сбрасывает.
+            var isProtected = e.Uri == UrlPolicy.AboutBlank ? state.Committed : AppServices.Policy.IsProtectedUrl(e.Uri);
+            state.Pending = e.IsRedirected ? state.Pending || isProtected : isProtected;
+        };
+        core.NavigationCompleted += (_, e) =>
+        {
+            if (e.IsSuccess)
+                state.Committed = state.Pending;
+            state.Pending = false;
         };
         core.FrameNavigationStarting += (_, e) =>
         {
             if (AppServices.Policy.IsProtectedUrl(e.Uri))
-                protectedContentSeen = true;
+            {
+                state.Committed = true; // фрейм в текущем документе
+                state.Pending = true;   // или в документе, который сейчас загружается
+            }
         };
 
         core.DownloadStarting += (_, e) =>
@@ -82,7 +114,7 @@ internal static class WebViewHardening
             var config = AppServices.Config;
             var reason = DownloadGate.BlockReason(AppServices.Policy, config.AllowDownloads, config.DownloadsLocked,
                 fromExtensionPopup: role.StartsWith("popup:", StringComparison.Ordinal),
-                tabShowedProtectedContent: protectedContentSeen, core.Source, e.DownloadOperation.Uri);
+                tabShowedProtectedContent: state.Effective, core.Source, e.DownloadOperation.Uri);
             if (reason is not null)
             {
                 e.Cancel = true;
@@ -105,7 +137,7 @@ internal static class WebViewHardening
                 audit.Write("new-window-blocked", new { role, uri = e.Uri });
                 return;
             }
-            onNewWindow(e);
+            onNewWindow(core, e);
         };
 
         core.ContextMenuRequested += (_, e) =>

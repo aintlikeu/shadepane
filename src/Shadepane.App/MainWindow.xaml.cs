@@ -260,7 +260,7 @@ public partial class MainWindow : ProtectedWindow, IContentShield
     /// window.open / target=_blank / Ctrl+клик → новая вкладка. Через e.NewWindow, чтобы сохранить
     /// window.opener (без него не работают окна входа). Ctrl при клике — вкладка в фоне, как в Chrome.
     /// </summary>
-    private async void OnNewWindowRequested(CoreWebView2NewWindowRequestedEventArgs e)
+    private async void OnNewWindowRequested(CoreWebView2 opener, CoreWebView2NewWindowRequestedEventArgs e)
     {
         var deferral = e.GetDeferral();
         try
@@ -269,7 +269,10 @@ public partial class MainWindow : ProtectedWindow, IContentShield
             var insertAt = _active is null ? (int?)null : _tabs.IndexOf(_active) + 1;
             var tab = await CreateTabAsync(activate: !background, insertAt);
             if (tab?.Core is not null)
+            {
+                WebViewHardening.InheritProtection(opener, tab.Core);
                 e.NewWindow = tab.Core;
+            }
             e.Handled = true;
         }
         catch (Exception ex)

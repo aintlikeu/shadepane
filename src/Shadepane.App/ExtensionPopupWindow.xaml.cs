@@ -71,7 +71,7 @@ public partial class ExtensionPopupWindow : ProtectedWindow, IContentShield
 
             var core = WebView.CoreWebView2;
             // Из popup новые окна открываем вкладкой по адресу (без связи с popup: он сейчас закроется).
-            await WebViewHardening.ApplyAsync(core, $"popup:{_extension.Id}", e =>
+            await WebViewHardening.ApplyAsync(core, $"popup:{_extension.Id}", (_, e) =>
             {
                 e.Handled = true;
                 if (Uri.TryCreate(e.Uri, UriKind.Absolute, out var uri) && UrlPolicy.IsWebScheme(uri))
