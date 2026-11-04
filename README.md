@@ -91,12 +91,22 @@ Main options:
 | `allowExtensionClipboardRead` | not set | Allow extensions with `clipboardRead`; when set, users cannot change it (default: allowed) |
 | `allowBroadHostAccess` | `false` | Allow `<all_urls>` / `*://*/*` |
 | `allowDownloads` | not set | Allow file downloads; when set, users cannot change it (default: allowed) |
+| `checkForUpdates` | not set | Check GitHub Releases for updates; when set, users cannot change it (default: on) |
 | `blockInRemoteSession` | `true` | Refuse to run in an RDP session |
 
 User preferences (home page, search engine, downloads, clipboard access for extensions, history,
 bookmarks bar) are set in the settings
 window (⚙) and stored in `%LOCALAPPDATA%\Shadepane\settings.json`. A value set by the policy wins and is
 shown as locked. Browser data and the audit log (`audit.log`) live in the same folder.
+
+## Updates
+
+When installed with the installer, Shadepane checks the latest GitHub release a few seconds after start
+(and on "Check now" in settings) and offers an update button. The update is downloaded only from this
+repository's release assets, verified against the release's `SHA256SUMS.txt` and, if the running browser
+is code-signed, required to carry a valid signature from the same publisher; then it is installed silently
+and the browser restarts. The portable zip build opens the release page instead. The check sends a request
+to `api.github.com`; it can be switched off in settings or enforced with `checkForUpdates`.
 
 ## Releasing
 

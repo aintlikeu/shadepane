@@ -72,6 +72,12 @@ public sealed class BrowserPolicy
     /// <summary>Загрузка файлов. null — решает пользователь (по умолчанию разрешено); задано — действует и блокирует настройку.</summary>
     public bool? AllowDownloads { get; init; }
 
+    /// <summary>
+    /// Проверять обновления через GitHub Releases. null — решает пользователь (по умолчанию да); задано — блокирует
+    /// настройку (например, false при централизованном развёртывании).
+    /// </summary>
+    public bool? CheckForUpdates { get; init; }
+
     /// <summary>В RDP-сессии скриншот делается на клиентской машине, и флаг защиты окна там не действует.</summary>
     public bool BlockInRemoteSession { get; init; } = true;
 
@@ -126,6 +132,7 @@ public sealed class BrowserPolicy
                 AllowManifestV2 = AllowManifestV2,
                 AllowExtensionClipboardRead = userAllowsClipboardRead,
                 AllowDownloads = AllowDownloads,
+                CheckForUpdates = CheckForUpdates,
                 BlockInRemoteSession = BlockInRemoteSession,
             }.EnsureValid();
 

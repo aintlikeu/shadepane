@@ -46,6 +46,10 @@ public partial class SettingsWindow : ProtectedWindow
 
         SaveHistoryBox.IsChecked = settings.SaveHistory;
         ShowBookmarksBarBox.IsChecked = settings.ShowBookmarksBar;
+        CheckUpdatesBox.IsChecked = config.CheckForUpdates;
+        SetLocked(config.UpdatesLocked, UpdatesLockedNote, CheckUpdatesBox);
+        VersionText.Text = $"Версия: {AppServices.Updates.Current}" +
+            (Updates.UpdateService.IsInstalled ? "" : " (без установщика — обновление через страницу релиза)");
         AllowDownloadsBox.IsChecked = config.AllowDownloads;
         SetLocked(config.DownloadsLocked, DownloadsLockedNote, AllowDownloadsBox);
         ClipboardBox.IsChecked = config.AllowExtensionClipboardRead;
@@ -68,6 +72,16 @@ public partial class SettingsWindow : ProtectedWindow
         var custom = (SearchEngineBox.SelectedItem as EngineItem)?.Id == SearchEngines.CustomId;
         CustomSearchBox.IsEnabled = !config.SearchLocked && custom;
         CustomSearchHint.Visibility = custom ? Visibility.Visible : Visibility.Collapsed;
+    }
+
+    private async void CheckUpdates_Click(object sender, RoutedEventArgs e)
+    {
+        if (Owner is MainWindow main && sender is Button button)
+        {
+            button.IsEnabled = false;
+            try { await main.CheckForUpdatesAsync(manual: true); }
+            finally { button.IsEnabled = true; }
+        }
     }
 
     private void ClearHistory_Click(object sender, RoutedEventArgs e)
@@ -119,6 +133,7 @@ public partial class SettingsWindow : ProtectedWindow
                 SaveHistory = SaveHistoryBox.IsChecked == true,
                 ShowBookmarksBar = ShowBookmarksBarBox.IsChecked == true,
                 AllowDownloads = AppServices.Config.DownloadsLocked ? current.AllowDownloads : AllowDownloadsBox.IsChecked == true,
+                CheckForUpdates = AppServices.Config.UpdatesLocked ? current.CheckForUpdates : CheckUpdatesBox.IsChecked == true,
             };
             AppServices.UpdateSettings(updated);
             AppServices.Audit.Write("settings-saved", new { updated.HomePage, updated.SearchEngineId, updated.AllowExtensionClipboardRead });

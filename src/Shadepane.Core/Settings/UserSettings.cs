@@ -37,6 +37,9 @@ public sealed record UserSettings
 
     /// <summary>Разрешить загрузку файлов (если не задано политикой).</summary>
     public bool AllowDownloads { get; init; } = true;
+
+    /// <summary>Проверять обновления через GitHub Releases (если не задано политикой).</summary>
+    public bool CheckForUpdates { get; init; } = true;
 }
 
 /// <summary>Файл настроек. Повреждённый или неполный файл не мешает запуску: берутся значения по умолчанию.</summary>

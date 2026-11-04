@@ -180,7 +180,7 @@ public class BrowserPolicyCopyTests
     private static readonly string[] Expected =
     [
         "HomeUrl", "SearchUrl", "ProtectedHosts", "BlockedPermissions", "AllowedPermissions", "AllowBroadHostAccess",
-        "AllowManifestV2", "AllowExtensionClipboardRead", "AllowDownloads", "BlockInRemoteSession",
+        "AllowManifestV2", "AllowExtensionClipboardRead", "AllowDownloads", "CheckForUpdates", "BlockInRemoteSession",
     ];
 
     private static IEnumerable<System.Reflection.PropertyInfo> Settable() =>
@@ -198,7 +198,7 @@ public class BrowserPolicyCopyTests
               "homeUrl": "https://home.example/", "searchUrl": "https://s.example/?q={query}",
               "protectedHosts": ["*.corp.example"], "blockedPermissions": ["tabCapture"],
               "allowedPermissions": ["storage"], "allowBroadHostAccess": true, "allowManifestV2": true,
-              "allowDownloads": false, "blockInRemoteSession": false
+              "allowDownloads": false, "checkForUpdates": false, "blockInRemoteSession": false
             }
             """);
         var copy = source.ForExtensions(userAllowsClipboardRead: false);
@@ -325,4 +325,23 @@ public class DownloadGateTests
     [Fact]
     public void ExplicitAllowDownloads_LiftsDlpRestrictions() =>
         Assert.Null(Gate(DlpAllowed, "https://wiki.corp.example/", "data:text/plain,x", protectedSeen: true));
+}
+
+public class UpdatesSettingTests
+{
+    [Fact]
+    public void Default_On_Unlocked()
+    {
+        var c = EffectiveConfig.Resolve(BrowserPolicy.Default, UserSettings.Default);
+        Assert.True(c.CheckForUpdates);
+        Assert.False(c.UpdatesLocked);
+    }
+
+    [Fact]
+    public void Policy_WinsAndLocks()
+    {
+        var c = EffectiveConfig.Resolve(BrowserPolicy.Parse("""{ "checkForUpdates": false }"""), new UserSettings { CheckForUpdates = true });
+        Assert.False(c.CheckForUpdates);
+        Assert.True(c.UpdatesLocked);
+    }
 }

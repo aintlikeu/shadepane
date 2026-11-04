@@ -68,6 +68,87 @@ public partial class MainWindow : ProtectedWindow, IContentShield
             SetStatus(item.IsCompleted ? $"Загружено: {item.FileName}" : $"Загрузка не завершена: {item.FileName}");
     }
 
+    // ---------- Обновления ----------
+
+    private Shadepane.Core.Updates.UpdateCandidate? _update;
+    private bool _updating;
+
+    /// <summary>Через несколько секунд после запуска, если проверка включена и это не сборка разработчика.</summary>
+    private async Task CheckForUpdatesInBackgroundAsync()
+    {
+        await Task.Delay(TimeSpan.FromSeconds(10));
+        if (_closed || !AppServices.Config.CheckForUpdates || AppServices.Updates.Current.IsDevelopmentBuild)
+            return;
+        await CheckForUpdatesAsync(manual: false);
+    }
+
+    /// <summary>Проверка (фоновая или по кнопке «Проверить сейчас» в настройках).</summary>
+    internal async Task CheckForUpdatesAsync(bool manual)
+    {
+        try
+        {
+            var update = await AppServices.Updates.CheckAsync();
+            if (_closed)
+                return;
+            _update = update;
+            UpdateButton.Visibility = update is null ? Visibility.Collapsed : Visibility.Visible;
+            if (update is not null)
+            {
+                UpdateButton.Content = $"⬆ Обновить до {update.Version}";
+                UpdateButton.ToolTip = $"Доступна версия {update.Version} (у вас {AppServices.Updates.Current})";
+                AppServices.Audit.Write("update-available", new { current = AppServices.Updates.Current.ToString(), available = update.Version.ToString() });
+            }
+            if (manual)
+                SetStatus(update is null ? $"Обновлений нет: у вас последняя версия ({AppServices.Updates.Current})" : $"Доступна версия {update.Version}");
+        }
+        catch (Exception ex) when (ex is System.Net.Http.HttpRequestException or TaskCanceledException or IOException)
+        {
+            AppServices.Audit.Write("update-check-failed", new { error = ex.Message });
+            if (manual && !_closed)
+                SetStatus($"Не удалось проверить обновления: {ex.Message}");
+        }
+    }
+
+    private async void Update_Click(object sender, RoutedEventArgs e)
+    {
+        var update = _update;
+        if (update is null || _updating)
+            return; // защита от двойного нажатия
+        if (!Updates.UpdateService.IsInstalled)
+        {
+            // zip-версия: тихой установкой обновлять нечего — открываем страницу релиза
+            _ = OpenNewTabAsync(update.PageUrl);
+            return;
+        }
+        if (MessageBox.Show(this, $"Загрузить и установить Shadepane {update.Version}? Браузер закроется и запустится заново.",
+                Title, MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes)
+            return;
+
+        _updating = true;
+        UpdateButton.IsEnabled = false;
+        try
+        {
+            var progress = new Progress<string>(SetStatus);
+            var installer = await AppServices.Updates.DownloadAndVerifyAsync(update, progress);
+            AppServices.Audit.Write("update-installing", new { version = update.Version.ToString(), installer });
+            Updates.UpdateService.LaunchInstaller(installer);
+            Application.Current.Shutdown();
+        }
+        catch (Exception ex) when (ex is System.Net.Http.HttpRequestException or TaskCanceledException or IOException
+                                       or InvalidDataException or System.ComponentModel.Win32Exception)
+        {
+            AppServices.Audit.Write("update-failed", Diagnostics.Details(ex));
+            if (!_closed)
+                MessageBox.Show(this, $"Не удалось обновить браузер:\n\n{ex.Message}", Title, MessageBoxButton.OK, MessageBoxImage.Warning);
+        }
+        finally
+        {
+            _updating = false;
+            if (!_closed)
+                UpdateButton.IsEnabled = true;
+        }
+    }
+
     private DownloadsWindow? _downloadsWindow;
 
     private void ShowDownloads()
@@ -198,6 +279,7 @@ public partial class MainWindow : ProtectedWindow, IContentShield
             RebuildExtensionBar();
 
             stage = "navigate-home";
+            _ = CheckForUpdatesInBackgroundAsync();
             AddressBox.IsEnabled = ReloadButton.IsEnabled = HomeButton.IsEnabled = AddExtensionButton.IsEnabled = NewTabButton.IsEnabled = SettingsButton.IsEnabled = true;
             NavigateHome(first);
         }

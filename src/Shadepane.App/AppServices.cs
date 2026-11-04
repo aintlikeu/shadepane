@@ -28,6 +28,8 @@ internal static class AppServices
 
     public static Browser.DownloadService Downloads { get; } = new();
 
+    public static Updates.UpdateService Updates { get; } = new();
+
     /// <summary>Итоговые значения изменились (сохранены настройки).</summary>
     public static event Action? ConfigChanged;
 

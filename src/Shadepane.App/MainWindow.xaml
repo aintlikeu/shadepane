@@ -21,6 +21,8 @@
             <Button x:Name="HomeButton" Content="⌂" Width="32" Margin="4,0,0,0" IsEnabled="False" Click="Home_Click" ToolTip="Домашняя страница (Alt+Home)"/>
             <Button x:Name="SettingsButton" DockPanel.Dock="Right" Content="⚙" Width="32" Margin="6,0,0,0" IsEnabled="False"
                     Click="Settings_Click" ToolTip="Настройки"/>
+            <Button x:Name="UpdateButton" DockPanel.Dock="Right" Margin="6,0,0,0" Padding="8,2" Visibility="Collapsed"
+                    Click="Update_Click" FontWeight="SemiBold"/>
             <Button x:Name="HistoryButton" DockPanel.Dock="Right" Content="🕘" Width="32" Margin="6,0,0,0"
                     Click="History_Click" ToolTip="История (Ctrl+H)"/>
             <Button x:Name="DownloadsButton" DockPanel.Dock="Right" Content="⬇" Width="32" Margin="6,0,0,0"
