@@ -68,6 +68,24 @@ public class BookmarksTests
         Assert.False(c.Move(third.Id, 2)); // уже там
     }
 
+    [Theory]
+    // 4 закладки: A B C D. Перетаскиваем закладку с позиции from и бросаем перед позицией slot (4 — в конец).
+    [InlineData(0, 2, "BACD")] // A перед C
+    [InlineData(0, 4, "BCDA")] // A в конец
+    [InlineData(3, 0, "DABC")] // D в начало
+    [InlineData(2, 1, "ACBD")] // C перед B
+    [InlineData(1, 1, "ABCD")] // B перед собой — на месте
+    [InlineData(1, 2, "ABCD")] // B перед соседом справа — тоже на месте
+    public void DropIndex_PutsBookmarkWhereItWasDropped(int from, int slot, string expected)
+    {
+        var urls = new[] { "https://a.example/", "https://b.example/", "https://c.example/", "https://d.example/" };
+        var c = new BookmarkCollection();
+        foreach (var (u, t) in urls.Zip(new[] { "A", "B", "C", "D" }))
+            Assert.True(c.TryAdd(u, t, T0, out _, out _));
+        c.Move(c.Items[from].Id, BookmarkCollection.DropIndex(from, slot));
+        Assert.Equal(expected, string.Concat(c.Items.Select(b => b.Title)));
+    }
+
     [Fact]
     public void Search_TitleOrUrl_CaseInsensitive()
     {

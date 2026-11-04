@@ -89,6 +89,14 @@ public sealed class BookmarkCollection
     }
 
     /// <summary>Переставить закладку на позицию newIndex (с ограничением по краям).</summary>
+    /// <summary>
+    /// Перетаскивание: закладку с позиции <paramref name="fromIndex"/> бросили перед закладкой на позиции
+    /// <paramref name="insertBefore"/> (Count — в конец). Возвращает итоговую позицию для Move: после удаления
+    /// перетаскиваемой закладки всё, что правее неё, сдвигается на одну позицию влево.
+    /// </summary>
+    public static int DropIndex(int fromIndex, int insertBefore) =>
+        insertBefore > fromIndex ? insertBefore - 1 : insertBefore;
+
     public bool Move(string id, int newIndex)
     {
         var index = _items.FindIndex(b => b.Id == id);

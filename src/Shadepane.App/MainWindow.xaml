@@ -144,8 +144,13 @@
             <DockPanel Margin="10,0,10,4" LastChildFill="True">
                 <Button x:Name="BookmarksOverflowButton" DockPanel.Dock="Right" Style="{StaticResource ToolbarButton}" Width="28" Height="26" Margin="4,0,0,0"
                         Click="BookmarksOverflow_Click" ToolTip="{l:Tr Ru='Все закладки', En='All bookmarks'}"><Path Style="{StaticResource Glyph}" Data="{StaticResource Icon.More}"/></Button>
-                <Grid ClipToBounds="True">
+                <!-- Закладки можно переставлять перетаскиванием; черта показывает, куда встанет закладка. Background нужен,
+                     чтобы перетаскивание «видело» и пустое место справа от закладок. -->
+                <Grid ClipToBounds="True" AllowDrop="True" Background="Transparent"
+                      DragEnter="BookmarksBar_DragOver" DragOver="BookmarksBar_DragOver" DragLeave="BookmarksBar_DragLeave" Drop="BookmarksBar_Drop">
                     <StackPanel x:Name="BookmarksBarItems" Orientation="Horizontal"/>
+                    <Rectangle x:Name="BookmarkDropMarker" Width="2" Height="22" RadiusX="1" RadiusY="1" HorizontalAlignment="Left"
+                               VerticalAlignment="Center" Fill="{DynamicResource Brush.Accent}" Visibility="Collapsed" IsHitTestVisible="False"/>
                     <TextBlock x:Name="BookmarksBarEmpty" Text="{l:Tr Ru='Закладок пока нет — нажмите ☆ или Ctrl+D на нужной странице', En='No bookmarks yet. Press ☆ or Ctrl+D on a page to add one'}"
                                Foreground="{DynamicResource Brush.Muted}" VerticalAlignment="Center" Margin="8,0,0,0"/>
                 </Grid>

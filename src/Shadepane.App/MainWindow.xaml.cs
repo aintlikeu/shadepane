@@ -212,11 +212,90 @@ public partial class MainWindow : ProtectedWindow, IContentShield
             };
             var url = bookmark.Url;
             var id = bookmark.Id;
-            button.Click += (_, _) => OpenBookmark(url, newTab: Keyboard.Modifiers.HasFlag(ModifierKeys.Control));
+            button.Click += (_, _) =>
+            {
+                if (!_bookmarkDragJustEnded) // отпускание после перетаскивания — не клик
+                    OpenBookmark(url, newTab: Keyboard.Modifiers.HasFlag(ModifierKeys.Control));
+            };
             button.MouseUp += (_, e) => { if (e.ChangedButton == MouseButton.Middle) OpenBookmark(url, newTab: true); };
+            button.PreviewMouseLeftButtonDown += (_, e) => _bookmarkDragStart = e.GetPosition(BookmarksBarItems);
+            button.PreviewMouseMove += (_, e) => MaybeStartBookmarkDrag(button, id, e);
             button.ContextMenu = BookmarkContextMenu(url, id);
             BookmarksBarItems.Children.Add(button);
         }
+    }
+
+    // ---------- Перетаскивание закладок на панели ----------
+
+    /// <summary>Свой формат данных: закладку можно бросить только на панель закладок, страница её не примет.</summary>
+    private const string BookmarkDragFormat = "Shadepane.BookmarkId";
+    private Point? _bookmarkDragStart;
+    private bool _bookmarkDragJustEnded;
+
+    private void MaybeStartBookmarkDrag(Button button, string id, MouseEventArgs e)
+    {
+        if (e.LeftButton != MouseButtonState.Pressed || _bookmarkDragStart is not { } start)
+            return;
+        var now = e.GetPosition(BookmarksBarItems);
+        if (Math.Abs(now.X - start.X) < SystemParameters.MinimumHorizontalDragDistance &&
+            Math.Abs(now.Y - start.Y) < SystemParameters.MinimumVerticalDragDistance)
+            return; // ещё клик, а не перетаскивание
+        _bookmarkDragStart = null;
+        try
+        {
+            DragDrop.DoDragDrop(button, new DataObject(BookmarkDragFormat, id), DragDropEffects.Move);
+        }
+        finally
+        {
+            BookmarkDropMarker.Visibility = Visibility.Collapsed;
+            button.ReleaseMouseCapture();
+            // Кнопка могла запомнить нажатие и выдать Click на отпускании — гасим его до конца обработки ввода.
+            _bookmarkDragJustEnded = true;
+            Dispatcher.BeginInvoke(() => _bookmarkDragJustEnded = false, DispatcherPriority.Background);
+        }
+    }
+
+    /// <summary>Перед какой закладкой окажется брошенная (Count — в конец) и где нарисовать черту.</summary>
+    private (int Slot, double X) BookmarkDropSlot(Point position)
+    {
+        var buttons = BookmarksBarItems.Children.OfType<FrameworkElement>().ToList();
+        for (var i = 0; i < buttons.Count; i++)
+        {
+            var left = buttons[i].TranslatePoint(new Point(0, 0), BookmarksBarItems).X;
+            if (position.X < left + buttons[i].ActualWidth / 2)
+                return (i, left - 1);
+        }
+        var last = buttons.LastOrDefault();
+        return (buttons.Count, last is null ? 0 : last.TranslatePoint(new Point(last.ActualWidth, 0), BookmarksBarItems).X);
+    }
+
+    private void BookmarksBar_DragOver(object sender, DragEventArgs e)
+    {
+        e.Handled = true;
+        if (!e.Data.GetDataPresent(BookmarkDragFormat))
+        {
+            e.Effects = DragDropEffects.None;
+            return;
+        }
+        e.Effects = DragDropEffects.Move;
+        var (_, x) = BookmarkDropSlot(e.GetPosition(BookmarksBarItems));
+        BookmarkDropMarker.Margin = new Thickness(Math.Max(0, x - 1), 0, 0, 0);
+        BookmarkDropMarker.Visibility = Visibility.Visible;
+    }
+
+    private void BookmarksBar_DragLeave(object sender, DragEventArgs e) => BookmarkDropMarker.Visibility = Visibility.Collapsed;
+
+    private void BookmarksBar_Drop(object sender, DragEventArgs e)
+    {
+        e.Handled = true;
+        BookmarkDropMarker.Visibility = Visibility.Collapsed;
+        if (e.Data.GetData(BookmarkDragFormat) is not string id)
+            return;
+        var from = AppServices.Bookmarks.Items.ToList().FindIndex(b => b.Id == id);
+        if (from < 0)
+            return; // закладку удалили, пока её тащили
+        var (slot, _) = BookmarkDropSlot(e.GetPosition(BookmarksBarItems));
+        AppServices.Bookmarks.Move(id, Shadepane.Core.Bookmarks.BookmarkCollection.DropIndex(from, slot)); // Changed перестроит панель
     }
 
     private ContextMenu BookmarkContextMenu(string url, string id)
