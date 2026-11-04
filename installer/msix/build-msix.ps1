@@ -38,9 +38,14 @@ $priConfig = Join-Path $OutDir "priconfig.xml"
 if ($LASTEXITCODE -ne 0) { throw "makepri createconfig failed ($LASTEXITCODE)" }
 $config = Get-Content -Raw $priConfig
 $config = $config -replace 'startIndexAt="\\"', 'startIndexAt="\Assets"'
+# Без разбиения на ресурсные пакеты (resources.scale-200.pri и т. п.): они работают только в бандле,
+# а в одиночном .msix Windows видела бы лишь масштаб 100%. Всё — в одном resources.pri.
+$config = $config -replace '(?s)<packaging>.*?</packaging>', ''
 Set-Content -Path $priConfig -Value $config -Encoding UTF8
 & $makepri new /pr $layout /cf $priConfig /mn (Join-Path $layout "AppxManifest.xml") /of (Join-Path $layout "resources.pri") /o
 if ($LASTEXITCODE -ne 0) { throw "makepri new failed ($LASTEXITCODE)" }
+$split = Get-ChildItem $layout -Filter "resources.*.pri"
+if ($split) { throw "makepri split resources into $($split.Name -join ', '): packaging section is still in priconfig" }
 
 $msix = Join-Path $OutDir "Shadepane-$Version-win-x64.msix"
 & $makeappx pack /d $layout /p $msix /o
