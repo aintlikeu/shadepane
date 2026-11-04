@@ -79,6 +79,13 @@ public sealed class BrowserPolicy
     /// </summary>
     public bool? CheckForUpdates { get; init; }
 
+    /// <summary>
+    /// Открывать при запуске вкладки прошлого сеанса. Для этого адреса открытых вкладок сохраняются на диск
+    /// (%LOCALAPPDATA%\Shadepane\session.json). null — решает пользователь (по умолчанию нет); false — запрещено
+    /// (адреса не сохраняются); true — включено. Заданное значение блокирует настройку.
+    /// </summary>
+    public bool? RestoreSession { get; init; }
+
     /// <summary>В RDP-сессии скриншот делается на клиентской машине, и флаг защиты окна там не действует.</summary>
     public bool BlockInRemoteSession { get; init; } = true;
 
@@ -134,6 +141,7 @@ public sealed class BrowserPolicy
                 AllowExtensionClipboardRead = userAllowsClipboardRead,
                 AllowDownloads = AllowDownloads,
                 CheckForUpdates = CheckForUpdates,
+                RestoreSession = RestoreSession,
                 BlockInRemoteSession = BlockInRemoteSession,
             }.EnsureValid();
 

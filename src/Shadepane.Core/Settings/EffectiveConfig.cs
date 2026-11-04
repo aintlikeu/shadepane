@@ -17,7 +17,9 @@ public sealed record EffectiveConfig(
     bool AllowDownloads,
     bool DownloadsLocked,
     bool CheckForUpdates,
-    bool UpdatesLocked)
+    bool UpdatesLocked,
+    bool RestoreSession = false,
+    bool RestoreSessionLocked = false)
 {
     public static EffectiveConfig Resolve(BrowserPolicy policy, UserSettings user)
     {
@@ -28,9 +30,11 @@ public sealed record EffectiveConfig(
         var downloadsLocked = policy.AllowDownloads is not null;
         var updates = policy.CheckForUpdates ?? user.CheckForUpdates;
         var updatesLocked = policy.CheckForUpdates is not null;
+        var restore = policy.RestoreSession ?? user.RestoreSession;
+        var restoreLocked = policy.RestoreSession is not null;
 
         if (policy.HomeUrl is not null)
-            return new(NormalizeHome(policy.HomeUrl) ?? engine.HomeUrl, true, engine, searchLocked, clipboard, clipboardLocked, downloads, downloadsLocked, updates, updatesLocked);
+            return new(NormalizeHome(policy.HomeUrl) ?? engine.HomeUrl, true, engine, searchLocked, clipboard, clipboardLocked, downloads, downloadsLocked, updates, updatesLocked, restore, restoreLocked);
 
         var home = user.HomePage switch
         {
@@ -38,7 +42,7 @@ public sealed record EffectiveConfig(
             HomePageKind.Custom => NormalizeHome(user.CustomHomeUrl) ?? engine.HomeUrl, // битый адрес — не ломаем запуск
             _ => engine.HomeUrl,
         };
-        return new(home, false, engine, searchLocked, clipboard, clipboardLocked, downloads, downloadsLocked, updates, updatesLocked);
+        return new(home, false, engine, searchLocked, clipboard, clipboardLocked, downloads, downloadsLocked, updates, updatesLocked, restore, restoreLocked);
     }
 
     private static (SearchEngine Engine, bool Locked) ResolveSearch(BrowserPolicy policy, UserSettings user)

@@ -88,6 +88,9 @@ public sealed record UserSettings
 
     /// <summary>Язык интерфейса; применяется при следующем запуске.</summary>
     public AppLanguage Language { get; init; } = AppLanguage.System;
+
+    /// <summary>При запуске открывать вкладки, которые были открыты перед закрытием (иначе — домашнюю страницу).</summary>
+    public bool RestoreSession { get; init; }
 }
 
 /// <summary>Файл настроек. Повреждённый или неполный файл не мешает запуску: берутся значения по умолчанию.</summary>

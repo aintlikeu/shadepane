@@ -182,6 +182,7 @@ public class BrowserPolicyCopyTests
     [
         "HomeUrl", "SearchUrl", "ProtectedHosts", "BlockedPermissions", "AllowedPermissions", "AllowBroadHostAccess",
         "AllowManifestV2", "AllowExtensionClipboardRead", "AllowDownloads", "CheckForUpdates", "BlockInRemoteSession",
+        "RestoreSession",
     ];
 
     private static IEnumerable<System.Reflection.PropertyInfo> Settable() =>
@@ -199,7 +200,7 @@ public class BrowserPolicyCopyTests
               "homeUrl": "https://home.example/", "searchUrl": "https://s.example/?q={query}",
               "protectedHosts": ["*.corp.example"], "blockedPermissions": ["tabCapture"],
               "allowedPermissions": ["storage"], "allowBroadHostAccess": true, "allowManifestV2": true,
-              "allowDownloads": false, "checkForUpdates": false, "blockInRemoteSession": false
+              "allowDownloads": false, "checkForUpdates": false, "blockInRemoteSession": false, "restoreSession": false
             }
             """);
         var copy = source.ForExtensions(userAllowsClipboardRead: false);

@@ -100,8 +100,18 @@ internal sealed class BrowserTab
     {
         if (Core is null || IsClosed)
             return;
+        _requestedUrl = url;
         Core.Navigate(url);
     }
+
+    private string? _requestedUrl;
+
+    /// <summary>
+    /// Адрес для сохранения сеанса: открытый документ, а пока он ещё не загрузился (вкладку только что восстановили
+    /// или открыли) — запрошенный адрес, чтобы быстрый перезапуск не терял вкладки.
+    /// </summary>
+    public string? SessionUrl =>
+        Shadepane.Core.Browsing.SessionState.IsRestorable(Core?.Source) ? Core!.Source : _requestedUrl;
 
     public void Close()
     {

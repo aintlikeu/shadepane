@@ -6,7 +6,18 @@
         Title="{l:Tr Ru='Настройки — Shadepane', En='Settings — Shadepane'}" Width="560" SizeToContent="Height" ResizeMode="NoResize"
         WindowStartupLocation="CenterOwner" ShowInTaskbar="False">
     <StackPanel Margin="16">
-        <GroupBox Header="{l:Tr Ru='Домашняя страница', En='Home page'}" Padding="8">
+        <GroupBox Header="{l:Tr Ru='При запуске', En='On startup'}" Padding="8">
+            <StackPanel>
+                <RadioButton x:Name="StartupHome" Content="{l:Tr Ru='Открывать домашнюю страницу', En='Open the home page'}" GroupName="Startup"/>
+                <RadioButton x:Name="StartupRestore" Content="{l:Tr Ru='Открывать вкладки, которые были открыты перед закрытием', En='Open the tabs that were open before closing'}"
+                             GroupName="Startup" Margin="0,4,0,0"/>
+                <TextBlock Text="{l:Tr Ru='Для этого адреса открытых вкладок хранятся на этом компьютере.', En='For this, the addresses of open tabs are kept on this computer.'}"
+                           Foreground="{DynamicResource Brush.Muted}" TextWrapping="Wrap" Margin="0,4,0,0"/>
+                <TextBlock x:Name="StartupLockedNote" Text="{l:Tr Ru='Задано администратором', En='Set by the administrator'}" Foreground="{DynamicResource Brush.Muted}" Margin="0,4,0,0" Visibility="Collapsed"/>
+            </StackPanel>
+        </GroupBox>
+
+        <GroupBox Header="{l:Tr Ru='Домашняя страница', En='Home page'}" Padding="8" Margin="0,10,0,0">
             <StackPanel>
                 <RadioButton x:Name="HomeSearchEngine" Content="{l:Tr Ru='Страница поисковика', En='Search engine page'}" GroupName="Home" Checked="HomeKind_Changed"/>
                 <RadioButton x:Name="HomeBlank" Content="{l:Tr Ru='Пустая страница', En='Blank page'}" GroupName="Home" Margin="0,4,0,0" Checked="HomeKind_Changed"/>

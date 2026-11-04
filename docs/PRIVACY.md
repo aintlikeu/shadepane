@@ -15,6 +15,8 @@ version, inside the app's package folder):
   together with the last bookmark of a site;
 - cookies, cache and site data of the browser engine;
 - installed extensions;
+- if "Open the tabs that were open before closing" is on: the addresses of open tabs (`session.json`),
+  deleted when the option is turned off;
 - a security log (`audit.log`) with protection events, such as blocked navigations, blocked screen capture
   requests and extension checks.
 
@@ -54,6 +56,8 @@ Shadepane — браузер для Windows, издатель Quietglass. В н�
   вместе с последней закладкой сайта;
 - cookie, кэш и данные сайтов движка браузера;
 - установленные расширения;
+- если включено «Открывать вкладки, которые были открыты перед закрытием»: адреса открытых вкладок
+  (`session.json`), удаляются при выключении опции;
 - журнал защиты (`audit.log`): заблокированные переходы, отклонённые запросы захвата экрана, проверки расширений.
 
 Shadepane никуда это не отправляет. При удалении версии из Microsoft Store эти данные удаляются.

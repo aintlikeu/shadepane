@@ -96,6 +96,7 @@ Main options:
 | `allowBroadHostAccess` | `false` | Allow `<all_urls>` / `*://*/*` |
 | `allowDownloads` | not set | Allow file downloads; when set, users cannot change it (default: allowed) |
 | `checkForUpdates` | not set | Check GitHub Releases for updates; when set, users cannot change it (default: on) |
+| `restoreSession` | not set | Reopen the previous tabs on start; this keeps the addresses of open tabs in `session.json`. `false` forbids it (nothing is stored), `true` turns it on; when set, users cannot change it (default: off) |
 | `blockInRemoteSession` | `true` | Refuse to run in an RDP session |
 
 User preferences (home page, search engine, downloads, clipboard access for extensions, history,

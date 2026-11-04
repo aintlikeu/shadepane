@@ -83,4 +83,5 @@ internal static class AppPaths
     public static string History => Path.Combine(DataRoot, "history.json");
     public static string Bookmarks => Path.Combine(DataRoot, "bookmarks.json");
     public static string Favicons => Path.Combine(DataRoot, "favicons");
+    public static string Session => Path.Combine(DataRoot, "session.json");
 }

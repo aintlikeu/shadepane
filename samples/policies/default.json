@@ -16,5 +16,7 @@
   "allowManifestV2": false,
   // Загрузка файлов. Если задано — БЛОКИРУЕТ настройку пользователя.
   // "allowDownloads": false,
+  // Восстановление вкладок прошлого сеанса (адреса вкладок хранятся в session.json). false — запрещено, ничего не хранится.
+  // "restoreSession": false,
   "blockInRemoteSession": true
 }

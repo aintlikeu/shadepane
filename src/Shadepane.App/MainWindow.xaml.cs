@@ -45,6 +45,9 @@ public partial class MainWindow : ProtectedWindow, IContentShield
         WebViewHardening.ProtectedContentChanged += OnProtectedContentChanged;
         ProtectionPopup.Closed += (_, _) => _protectionPopupClosedAt = DateTime.UtcNow;
         Appearance.ThemeService.Changed += ApplyPageTheme;
+        // Закрытие окна — последний момент, когда вкладки ещё на месте: сохраняем сеанс сразу, без задержки.
+        // (Закрыли последнюю вкладку — вкладок нет, сеанс пустой, файл удаляется: восстанавливать нечего.)
+        Closing += (_, _) => { _sessionTimer?.Stop(); SaveSessionNow(); };
         Closed += (_, _) =>
         {
             _closed = true;
@@ -195,8 +198,91 @@ public partial class MainWindow : ProtectedWindow, IContentShield
 
     private void OnConfigChanged()
     {
-        if (!_closed)
-            RebuildBookmarksBar();
+        if (_closed)
+            return;
+        RebuildBookmarksBar();
+        if (AppServices.Config.RestoreSession)
+            ScheduleSessionSave();
+        else
+            DeleteSession(); // восстановление выключили — адреса вкладок на диске больше не держим
+    }
+
+    // ---------- Сеанс: вкладки для восстановления при запуске ----------
+
+    private static readonly TimeSpan SessionSaveDelay = TimeSpan.FromSeconds(2);
+    private readonly Shadepane.Core.Browsing.SessionStore _session = new(AppPaths.Session);
+    private DispatcherTimer? _sessionTimer;
+    private bool _sessionReady; // до восстановления не сохраняем: иначе первая вкладка затёрла бы прошлый сеанс
+
+    /// <summary>Открывает вкладки прошлого сеанса в первой вкладке и новых. false — восстанавливать нечего или выключено.</summary>
+    private async Task<bool> RestoreSessionAsync(BrowserTab first)
+    {
+        if (!AppServices.Config.RestoreSession)
+        {
+            DeleteSession(); // восстановление выключено (в том числе политикой) — старый файл не храним
+            return false;
+        }
+        var state = _session.Load(out var problem);
+        if (problem is not null)
+            AppServices.Audit.Write("session-unreadable", new { file = _session.FilePath, problem });
+        if (state.IsEmpty)
+            return false;
+
+        first.Navigate(state.Urls[0]);
+        var tabs = new List<BrowserTab> { first };
+        foreach (var url in state.Urls.Skip(1))
+        {
+            var tab = await CreateTabAsync(activate: false);
+            if (tab is null || _closed)
+                return true;
+            tab.Navigate(url);
+            tabs.Add(tab);
+        }
+        ActivateTab(tabs[Math.Clamp(state.ActiveIndex, 0, tabs.Count - 1)]);
+        AppServices.Audit.Write("session-restored", new { tabs = tabs.Count });
+        return true;
+    }
+
+    /// <summary>Сохранение с задержкой: после серии переходов и открытий вкладок пишем файл один раз.</summary>
+    private void ScheduleSessionSave()
+    {
+        if (!_sessionReady || _closed || !AppServices.Config.RestoreSession)
+            return;
+        if (_sessionTimer is null)
+        {
+            _sessionTimer = new DispatcherTimer { Interval = SessionSaveDelay };
+            _sessionTimer.Tick += (_, _) => { _sessionTimer.Stop(); SaveSessionNow(); };
+        }
+        _sessionTimer.Stop();
+        _sessionTimer.Start();
+    }
+
+    private void SaveSessionNow()
+    {
+        if (!_sessionReady || !AppServices.Config.RestoreSession)
+            return;
+        try
+        {
+            var active = _active is null ? 0 : _tabs.IndexOf(_active);
+            _session.Save(Shadepane.Core.Browsing.SessionState.FromTabs([.. _tabs.Select(t => t.SessionUrl)], active));
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            AppServices.Audit.Write("session-save-failed", new { error = ex.Message });
+        }
+    }
+
+    private void DeleteSession()
+    {
+        try
+        {
+            _sessionTimer?.Stop();
+            _session.Delete();
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            AppServices.Audit.Write("session-delete-failed", new { error = ex.Message });
+        }
     }
 
     // ---------- Панель закладок ----------
@@ -606,7 +692,9 @@ public partial class MainWindow : ProtectedWindow, IContentShield
             stage = "navigate-home";
             _ = CheckForUpdatesInBackgroundAsync();
             AddressBox.IsEnabled = ReloadButton.IsEnabled = NewTabButton.IsEnabled = MenuButton.IsEnabled = ExtensionsButton.IsEnabled = true;
-            NavigateHome(first);
+            if (!await RestoreSessionAsync(first))
+                NavigateHome(first);
+            _sessionReady = true;
         }
         catch (WebView2RuntimeNotFoundException)
         {
@@ -749,6 +837,7 @@ public partial class MainWindow : ProtectedWindow, IContentShield
         RefreshChrome();
         if (_tabHeaders.TryGetValue(tab, out var active))
             active.BringIntoView();
+        ScheduleSessionSave(); // активная вкладка — часть сеанса
     }
 
     /// <summary>Убирает вкладку из окна и уничтожает её WebView2. Возвращает её прежний индекс или -1.</summary>
@@ -771,6 +860,7 @@ public partial class MainWindow : ProtectedWindow, IContentShield
             _active = null;
         }
         tab.Close();
+        ScheduleSessionSave();
         return index;
     }
 
@@ -878,6 +968,7 @@ public partial class MainWindow : ProtectedWindow, IContentShield
     {
         if (_closed || tab.IsClosed)
             return;
+        ScheduleSessionSave(); // адрес вкладки мог измениться
         if (_tabHeaders.TryGetValue(tab, out var header) && header.Tag is TextBlock title)
         {
             title.Text = tab.Title;

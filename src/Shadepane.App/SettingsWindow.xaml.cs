@@ -49,6 +49,10 @@ public partial class SettingsWindow : ProtectedWindow
 
     private void Load(UserSettings settings, EffectiveConfig config)
     {
+        StartupRestore.IsChecked = config.RestoreSession;
+        StartupHome.IsChecked = !config.RestoreSession;
+        SetLocked(config.RestoreSessionLocked, StartupLockedNote, StartupHome, StartupRestore);
+
         HomeSearchEngine.IsChecked = settings.HomePage == HomePageKind.SearchEngine;
         HomeBlank.IsChecked = settings.HomePage == HomePageKind.Blank;
         HomeCustom.IsChecked = settings.HomePage == HomePageKind.Custom;
@@ -169,6 +173,7 @@ public partial class SettingsWindow : ProtectedWindow
                 AllowDownloads = AppServices.Config.DownloadsLocked ? current.AllowDownloads : AllowDownloadsBox.IsChecked == true,
                 CheckForUpdates = AppServices.Config.UpdatesLocked ? current.CheckForUpdates : CheckUpdatesBox.IsChecked == true,
                 Theme = SelectedTheme,
+                RestoreSession = AppServices.Config.RestoreSessionLocked ? current.RestoreSession : StartupRestore.IsChecked == true,
                 Language = LanguageRussian.IsChecked == true ? AppLanguage.Russian : LanguageEnglish.IsChecked == true ? AppLanguage.English : AppLanguage.System,
             };
             AppServices.UpdateSettings(updated);
