@@ -78,7 +78,7 @@
         <GroupBox Header="{l:Tr Ru='Обновления', En='Updates'}" Padding="8" Margin="0,10,0,0">
             <StackPanel>
                 <DockPanel>
-                    <Button DockPanel.Dock="Right" Content="{l:Tr Ru='Проверить сейчас', En='Check now'}" Padding="8,2" Click="CheckUpdates_Click"/>
+                    <Button x:Name="CheckNowButton" DockPanel.Dock="Right" Content="{l:Tr Ru='Проверить сейчас', En='Check now'}" Padding="8,2" Click="CheckUpdates_Click"/>
                     <CheckBox x:Name="CheckUpdatesBox" Content="{l:Tr Ru='Проверять обновления автоматически (GitHub Releases)', En='Check for updates automatically (GitHub Releases)'}" VerticalAlignment="Center"/>
                 </DockPanel>
                 <TextBlock x:Name="VersionText" Foreground="{DynamicResource Brush.Muted}" Margin="0,4,0,0"/>

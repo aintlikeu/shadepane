@@ -30,6 +30,12 @@ internal static partial class NativeMethods
     [LibraryImport("user32.dll")]
     public static partial int GetSystemMetrics(int nIndex);
 
+    /// <summary>Нет пакета MSIX: процесс запущен не из Store-установки.</summary>
+    public const int APPMODEL_ERROR_NO_PACKAGE = 15700;
+
+    [LibraryImport("kernel32.dll")]
+    public static partial int GetCurrentPackageFullName(ref uint packageFullNameLength, IntPtr packageFullName);
+
     /// <summary>Тёмный заголовок окна (Windows 10 2004+ и Windows 11).</summary>
     public const int DWMWA_USE_IMMERSIVE_DARK_MODE = 20;
 

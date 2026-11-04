@@ -112,6 +112,16 @@ is code-signed, required to carry a valid signature from the same publisher; the
 and the browser restarts. The portable zip build opens the release page instead. The check sends a request
 to `api.github.com`; it can be switched off in settings or enforced with `checkForUpdates`.
 
+## Microsoft Store
+
+CI also builds an MSIX package (artifact `Shadepane-msix`) for the Microsoft Store, published by Quietglass.
+The Store signs and updates it; the GitHub update check is off in that version. Packaging, local testing,
+listing texts and certification notes: [`docs/STORE.md`](docs/STORE.md).
+
+## Privacy
+
+No accounts, telemetry or analytics. See [`docs/PRIVACY.md`](docs/PRIVACY.md).
+
 ## Code signing
 
 Release builds are signed in CI with [Azure Artifact Signing](https://azure.microsoft.com/pricing/details/artifact-signing/)

@@ -74,7 +74,14 @@ public partial class SettingsWindow : ProtectedWindow
         CheckUpdatesBox.IsChecked = config.CheckForUpdates;
         SetLocked(config.UpdatesLocked, UpdatesLockedNote, CheckUpdatesBox);
         VersionText.Text = Loc.T($"Версия: {AppServices.Updates.Current}", $"Version: {AppServices.Updates.Current}") +
-            (Updates.UpdateService.IsInstalled ? "" : Loc.T(" (без установщика — обновление через страницу релиза)", " (no installer: updates open the release page)"));
+            (Updates.UpdateService.IsStorePackage ? Loc.T(". Обновления приходят через Microsoft Store.", ". Updates come through the Microsoft Store.")
+             : Updates.UpdateService.IsInstalled ? "" : Loc.T(" (без установщика — обновление через страницу релиза)", " (no installer: updates open the release page)"));
+        if (Updates.UpdateService.IsStorePackage)
+        {
+            CheckUpdatesBox.Visibility = Visibility.Collapsed;
+            CheckNowButton.Visibility = Visibility.Collapsed;
+            UpdatesLockedNote.Visibility = Visibility.Collapsed;
+        }
         AllowDownloadsBox.IsChecked = config.AllowDownloads;
         SetLocked(config.DownloadsLocked, DownloadsLockedNote, AllowDownloadsBox);
         ClipboardBox.IsChecked = config.AllowExtensionClipboardRead;

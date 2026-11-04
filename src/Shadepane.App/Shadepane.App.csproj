@@ -29,6 +29,16 @@
     <ProjectReference Include="..\Shadepane.Core\Shadepane.Core.csproj" />
   </ItemGroup>
 
+  <!-- Сборка для скриншотов карточки Microsoft Store: защита от захвата ВЫКЛЮЧЕНА, иначе окно на снимке пустое.
+       Только Debug и только явно: параметр -p:ScreenshotBuild=true (команда — в docs/STORE.md)
+       Release с этим флагом не собирается (ошибка ниже), CI его не задаёт. -->
+  <PropertyGroup Condition="'$(ScreenshotBuild)' == 'true'">
+    <DefineConstants>$(DefineConstants);SCREENSHOTS</DefineConstants>
+  </PropertyGroup>
+  <Target Name="RefuseScreenshotRelease" BeforeTargets="Build" Condition="'$(ScreenshotBuild)' == 'true' And '$(Configuration)' != 'Debug'">
+    <Error Text="ScreenshotBuild disables screen capture protection and is allowed only in Debug builds." />
+  </Target>
+
   <!-- policy.json рядом с exe читается только Debug-сборкой (стенд). Release берёт политику из HKLM/ProgramData. -->
   <ItemGroup Condition="'$(Configuration)' == 'Debug'">
     <None Include="..\..\samples\policies\default.json" Link="policy.json" CopyToOutputDirectory="PreserveNewest" />

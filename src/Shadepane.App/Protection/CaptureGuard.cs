@@ -37,13 +37,19 @@ internal sealed class CaptureGuard
 
     public static bool IsRemoteSession => NativeMethods.GetSystemMetrics(NativeMethods.SM_REMOTESESSION) != 0;
 
+#if SCREENSHOTS
+    // Сборка для скриншотов Store (Shadepane.App.csproj, ScreenshotBuild): окна не защищаются и не проверяются.
+    public void Start() => _audit.Write("screenshot-build", new { warning = "screen capture protection is OFF" });
+#else
     public void Start() => _timer.Start();
+#endif
 
     public void Stop() => _timer.Stop();
 
     /// <summary>Вызывать из OnSourceInitialized: HWND уже есть, а первый кадр ещё не нарисован.</summary>
     public void Protect(Window window)
     {
+#if !SCREENSHOTS
         var hwnd = new WindowInteropHelper(window).Handle;
         if (!NativeMethods.SetWindowDisplayAffinity(hwnd, NativeMethods.WDA_EXCLUDEFROMCAPTURE))
         {
@@ -53,6 +59,7 @@ internal sealed class CaptureGuard
 
         _windows.Add(window);
         window.Closed += (_, _) => _windows.Remove(window);
+#endif
     }
 
     /// <summary>
@@ -62,6 +69,9 @@ internal sealed class CaptureGuard
     /// </summary>
     public bool ProtectTransient(Visual content, string kind)
     {
+#if SCREENSHOTS
+        return true;
+#else
         if (PresentationSource.FromVisual(content) is not HwndSource source || source.Handle == IntPtr.Zero)
         {
             _audit.Write("popup-protect-failed", new { kind, reason = "no-hwnd" });
@@ -71,6 +81,7 @@ internal sealed class CaptureGuard
             return true;
         _audit.Write("popup-protect-failed", new { kind, win32 = Marshal.GetLastPInvokeError() });
         return false;
+#endif
     }
 
     private void Check()

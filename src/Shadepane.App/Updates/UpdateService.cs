@@ -31,6 +31,26 @@ internal sealed class UpdateService
     /// <summary>Установлен ли браузер нашим установщиком (рядом лежит деинсталлятор Inno Setup). Иначе — zip-версия.</summary>
     public static bool IsInstalled => File.Exists(Path.Combine(AppContext.BaseDirectory, "unins000.exe"));
 
+    /// <summary>
+    /// Запущен из пакета MSIX (Microsoft Store). Такую версию обновляет только Store: правила Store запрещают
+    /// приложению обновляться самому или отправлять за обновлением на сторонний сайт, поэтому проверка обновлений
+    /// через GitHub в ней выключена целиком.
+    /// </summary>
+    public static bool IsStorePackage { get; } = DetectPackage();
+
+    private static bool DetectPackage()
+    {
+        uint length = 0;
+        try
+        {
+            return Native.NativeMethods.GetCurrentPackageFullName(ref length, IntPtr.Zero) != Native.NativeMethods.APPMODEL_ERROR_NO_PACKAGE;
+        }
+        catch (EntryPointNotFoundException)
+        {
+            return false;
+        }
+    }
+
     /// <summary>null — обновлений нет (или релизов ещё нет).</summary>
     public async Task<UpdateCandidate?> CheckAsync(CancellationToken ct = default)
     {

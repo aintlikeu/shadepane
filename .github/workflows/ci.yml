@@ -1,4 +1,5 @@
 # Сборка и тесты на каждый push/PR в main и develop; при теге vX.Y.Z — релиз: архив, установщик и SHA256SUMS.txt.
+# Пакет MSIX для Microsoft Store собирается всегда и выкладывается отдельным артефактом (Shadepane-msix).
 # Ветки: develop — текущая работа; main — стабильная, в неё сливается develop при выпуске версии.
 # Сторонние actions закреплены по SHA коммита (метку версии можно переписать, SHA — нет).
 name: CI
@@ -70,6 +71,14 @@ jobs:
           timestamp-rfc3161: http://timestamp.acs.microsoft.com
           timestamp-digest: SHA256
 
+      # Пакет для Microsoft Store: не подписан (Store подписывает сам), в релиз на GitHub не входит —
+      # отдельный артефакт, его загружают в Partner Center. Порядок отправки — docs/STORE.md.
+      - name: Package MSIX (Microsoft Store)
+        shell: pwsh
+        env:
+          VERSION: ${{ steps.version.outputs.value }}
+        run: ./installer/msix/build-msix.ps1 -SourceDir publish/Shadepane -Version $env:VERSION -OutDir store
+
       - name: Package (zip + installer)
         shell: pwsh
         env:
@@ -113,6 +122,12 @@ jobs:
         with:
           name: Shadepane-win-x64
           path: dist/*
+          if-no-files-found: error
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: Shadepane-msix
+          path: store/*.msix
           if-no-files-found: error
 
   release:

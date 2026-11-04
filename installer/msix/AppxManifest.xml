@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Манифест пакета MSIX для Microsoft Store. Identity и PublisherDisplayName — из Partner Center
+     (Product management → Product identity), менять нельзя. Version подставляет build-msix.ps1. -->
+<Package xmlns="http://schemas.microsoft.com/appx/manifest/foundation/windows10"
+         xmlns:uap="http://schemas.microsoft.com/appx/manifest/uap/windows10"
+         xmlns:rescap="http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities"
+         IgnorableNamespaces="uap rescap">
+  <Identity Name="Quietglass.Shadepane"
+            Publisher="CN=549688AC-D212-483D-BF6E-99C8F76F7787"
+            Version="0.0.0.0"
+            ProcessorArchitecture="x64"/>
+  <Properties>
+    <DisplayName>Shadepane</DisplayName>
+    <PublisherDisplayName>Quietglass</PublisherDisplayName>
+    <Logo>Assets\StoreLogo.png</Logo>
+  </Properties>
+  <Dependencies>
+    <!-- WDA_EXCLUDEFROMCAPTURE полностью работает с Windows 10 2004 (сборка 19041). -->
+    <TargetDeviceFamily Name="Windows.Desktop" MinVersion="10.0.19041.0" MaxVersionTested="10.0.26100.0"/>
+  </Dependencies>
+  <Resources>
+    <Resource Language="en-US"/>
+    <Resource Language="ru-RU"/>
+  </Resources>
+  <Applications>
+    <Application Id="Shadepane" Executable="Shadepane.exe" EntryPoint="Windows.FullTrustApplication">
+      <uap:VisualElements DisplayName="Shadepane"
+                          Description="A browser that stays out of screenshots, screen recordings and screen sharing."
+                          BackgroundColor="transparent"
+                          Square150x150Logo="Assets\Square150x150Logo.png"
+                          Square44x44Logo="Assets\Square44x44Logo.png">
+        <uap:DefaultTile Wide310x150Logo="Assets\Wide310x150Logo.png"/>
+      </uap:VisualElements>
+    </Application>
+  </Applications>
+  <Capabilities>
+    <Capability Name="internetClient"/>
+    <!-- Обычное настольное приложение (WPF + WebView2). Для отправки в Store нужно пояснение — см. docs/STORE.md. -->
+    <rescap:Capability Name="runFullTrust"/>
+  </Capabilities>
+</Package>

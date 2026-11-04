@@ -92,14 +92,16 @@ public partial class MainWindow : ProtectedWindow, IContentShield
     private async Task CheckForUpdatesInBackgroundAsync()
     {
         await Task.Delay(TimeSpan.FromSeconds(10));
-        if (_closed || !AppServices.Config.CheckForUpdates || AppServices.Updates.Current.IsDevelopmentBuild)
-            return;
+        if (_closed || !AppServices.Config.CheckForUpdates || AppServices.Updates.Current.IsDevelopmentBuild || Updates.UpdateService.IsStorePackage)
+            return; // версию из Store обновляет Store
         await CheckForUpdatesAsync(manual: false);
     }
 
     /// <summary>Проверка (фоновая или по кнопке «Проверить сейчас» в настройках).</summary>
     internal async Task CheckForUpdatesAsync(bool manual)
     {
+        if (Updates.UpdateService.IsStorePackage)
+            return;
         try
         {
             var update = await AppServices.Updates.CheckAsync();
