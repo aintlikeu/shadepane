@@ -1,4 +1,6 @@
 using System.Windows;
+using System.Windows.Media;
+using System.Windows.Media.Imaging;
 
 namespace Shadepane.App.Protection;
 
@@ -14,6 +16,20 @@ internal interface IContentShield
 /// </summary>
 public class ProtectedWindow : Window
 {
+    // BitmapFrame из .ico: WPF сам выбирает из файла подходящие размеры для маленькой (заголовок) и
+    // большой (Alt+Tab) иконки окна, а не масштабирует один кадр.
+    private static readonly Lazy<ImageSource> AppIcon = new(() =>
+    {
+        var frame = BitmapFrame.Create(new Uri("pack://application:,,,/Assets/Shadepane.ico", UriKind.Absolute));
+        frame.Freeze();
+        return frame;
+    });
+
+    public ProtectedWindow()
+    {
+        Icon = AppIcon.Value;
+    }
+
     protected override void OnSourceInitialized(EventArgs e)
     {
         base.OnSourceInitialized(e);

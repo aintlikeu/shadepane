@@ -35,6 +35,7 @@ Compression=lzma2/max
 SolidCompression=yes
 WizardStyle=modern
 LicenseFile=..\LICENSE
+SetupIconFile=..\src\Shadepane.App\Assets\Shadepane.ico
 UninstallDisplayIcon={app}\Shadepane.exe
 UninstallDisplayName=Shadepane
 ; Закрыть запущенный браузер перед заменой файлов (обновление).
