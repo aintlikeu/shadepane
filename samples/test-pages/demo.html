@@ -1,12 +1,12 @@
 <!doctype html>
-<html lang="ru">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>План релиза 2.4 — Wiki</title>
+<title>Release 2.4 plan — Wiki</title>
 <!--
   Демо-страница для скриншотов карточки Microsoft Store (docs/STORE.md). Все данные вымышленные.
-  Язык — по языку браузера (у Shadepane — язык интерфейса) или ?lang=en / ?lang=ru.
+  Английская по умолчанию; русская версия — ?lang=ru.
   Тема — prefers-color-scheme, то есть как у Shadepane. Внешних ресурсов нет.
 -->
 <style>
@@ -58,75 +58,103 @@
 <body>
 <div class="layout">
   <nav>
-    <div class="brand"><span>W</span><span data-t="wiki">Внутренняя wiki</span></div>
-    <h3 data-t="nav-product">Продукт</h3>
-    <a href="#" data-t="nav-roadmap">Дорожная карта</a>
-    <a href="#" class="active" data-t="nav-releases">Релизы</a>
-    <a href="#" data-t="nav-pricing">Цены и тарифы</a>
-    <h3 data-t="nav-teams">Команды</h3>
-    <a href="#" data-t="nav-platform">Платформа</a>
-    <a href="#" data-t="nav-sales">Продажи</a>
-    <a href="#" data-t="nav-support">Поддержка</a>
+    <div class="brand"><span>W</span><span data-t="wiki">Internal wiki</span></div>
+    <h3 data-t="nav-product">Product</h3>
+    <a href="#" data-t="nav-roadmap">Roadmap</a>
+    <a href="#" class="active" data-t="nav-releases">Releases</a>
+    <a href="#" data-t="nav-pricing">Pricing and plans</a>
+    <h3 data-t="nav-teams">Teams</h3>
+    <a href="#" data-t="nav-platform">Platform</a>
+    <a href="#" data-t="nav-sales">Sales</a>
+    <a href="#" data-t="nav-support">Support</a>
   </nav>
   <main>
-    <div class="crumbs" data-t="crumbs">Wiki / Продукт / Релизы</div>
-    <h1 data-t="title">План релиза 2.4</h1>
+    <div class="crumbs" data-t="crumbs">Wiki / Product / Releases</div>
+    <h1 data-t="title">Release 2.4 plan</h1>
     <div class="meta">
-      <span data-t="updated">Обновлено 2 ноября, команда платформы</span>
-      <span class="tag" data-t="confidential">Конфиденциально — только для сотрудников</span>
+      <span data-t="updated">Updated November 2 by the platform team</span>
+      <span class="tag" data-t="confidential">Confidential — employees only</span>
     </div>
 
-    <p data-t="intro">Релиз выходит двумя волнами. Первая волна получает новый биллинг и отчёты для партнёров,
-      вторая — миграцию старых аккаунтов. Цены и названия партнёров до публикации не выносим за пределы этой страницы.</p>
+    <p data-t="intro">The release ships in two waves. The first wave gets the new billing and partner reports, the second migrates legacy accounts. Prices and partner names stay on this page until the announcement.</p>
 
     <div class="cards">
-      <div class="card"><div class="label" data-t="budget">Бюджет релиза</div><div class="value" data-t="budget-v">48,6 млн ₽</div></div>
-      <div class="card"><div class="label" data-t="partners">Партнёры первой волны</div><div class="value">12</div></div>
-      <div class="card"><div class="label" data-t="price">Новый тариф «Бизнес»</div><div class="value" data-t="price-v">2 490 ₽/мес</div></div>
+      <div class="card"><div class="label" data-t="budget">Release budget</div><div class="value" data-t="budget-v">$620,000</div></div>
+      <div class="card"><div class="label" data-t="partners">First-wave partners</div><div class="value">12</div></div>
+      <div class="card"><div class="label" data-t="price">New Business plan</div><div class="value" data-t="price-v">$29/month</div></div>
     </div>
 
     <table>
-      <thead><tr><th data-t="th-stage">Этап</th><th data-t="th-date">Срок</th><th data-t="th-owner">Ответственный</th><th data-t="th-status">Статус</th></tr></thead>
+      <thead><tr><th data-t="th-stage">Stage</th><th data-t="th-date">Date</th><th data-t="th-owner">Owner</th><th data-t="th-status">Status</th></tr></thead>
       <tbody>
-        <tr><td data-t="s1">Заморозка кода</td><td data-t="d1">14 ноября</td><td data-t="o1">А. Ветрова</td><td class="status-ok" data-t="st-done">Готово</td></tr>
-        <tr><td data-t="s2">Первая волна: биллинг и отчёты</td><td data-t="d2">21 ноября</td><td data-t="o2">М. Орлов</td><td class="status-warn" data-t="st-progress">В работе</td></tr>
-        <tr><td data-t="s3">Вторая волна: миграция аккаунтов</td><td data-t="d3">5 декабря</td><td data-t="o3">Е. Лисицына</td><td data-t="st-planned">Запланировано</td></tr>
-        <tr><td data-t="s4">Публичный анонс</td><td data-t="d4">12 декабря</td><td data-t="o4">Д. Карпов</td><td data-t="st-planned">Запланировано</td></tr>
+        <tr><td data-t="s1">Code freeze</td><td data-t="d1">November 14</td><td data-t="o1">A. Vetrova</td><td class="status-ok" data-t="st-done">Done</td></tr>
+        <tr><td data-t="s2">Wave 1: billing and reports</td><td data-t="d2">November 21</td><td data-t="o2">M. Orlov</td><td class="status-warn" data-t="st-progress">In progress</td></tr>
+        <tr><td data-t="s3">Wave 2: account migration</td><td data-t="d3">December 5</td><td data-t="o3">E. Lisitsyna</td><td data-t="st-planned">Planned</td></tr>
+        <tr><td data-t="s4">Public announcement</td><td data-t="d4">December 12</td><td data-t="o4">D. Karpov</td><td data-t="st-planned">Planned</td></tr>
       </tbody>
     </table>
 
-    <p data-t="risks">Риски: задержка сертификации платёжного модуля; перенос анонса возможен не позже 1 декабря.</p>
+    <p data-t="risks">Risks: payment module certification may slip; the announcement can move no later than December 1.</p>
 
     <div class="share">
-      <button id="share" type="button" data-t="share">Показать экран на встрече</button>
+      <button id="share" type="button" data-t="share">Share screen in a meeting</button>
       <span id="share-result" aria-live="polite"></span>
     </div>
   </main>
 </div>
 <script>
-  const en = {
-    "wiki": "Internal wiki", "nav-product": "Product", "nav-roadmap": "Roadmap", "nav-releases": "Releases",
-    "nav-pricing": "Pricing and plans", "nav-teams": "Teams", "nav-platform": "Platform", "nav-sales": "Sales",
-    "nav-support": "Support", "crumbs": "Wiki / Product / Releases", "title": "Release 2.4 plan",
-    "updated": "Updated November 2 by the platform team", "confidential": "Confidential — employees only",
-    "intro": "The release ships in two waves. The first wave gets the new billing and partner reports, the second migrates legacy accounts. Prices and partner names stay on this page until the announcement.",
-    "budget": "Release budget", "budget-v": "$620,000", "partners": "First-wave partners", "price": "New Business plan",
-    "price-v": "$29/month", "th-stage": "Stage", "th-date": "Date", "th-owner": "Owner", "th-status": "Status",
-    "s1": "Code freeze", "d1": "November 14", "o1": "A. Vetrova", "s2": "Wave 1: billing and reports", "d2": "November 21",
-    "o2": "M. Orlov", "s3": "Wave 2: account migration", "d3": "December 5", "o3": "E. Lisitsyna", "s4": "Public announcement",
-    "d4": "December 12", "o4": "D. Karpov", "st-done": "Done", "st-progress": "In progress", "st-planned": "Planned",
-    "risks": "Risks: payment module certification may slip; the announcement can move no later than December 1.",
-    "share": "Share screen in a meeting", "refused": "The browser refused the screen sharing request.",
-    "unavailable": "Screen sharing is not available on this page."
+  const ru = {
+    "wiki": "Внутренняя wiki",
+    "nav-product": "Продукт",
+    "nav-roadmap": "Дорожная карта",
+    "nav-releases": "Релизы",
+    "nav-pricing": "Цены и тарифы",
+    "nav-teams": "Команды",
+    "nav-platform": "Платформа",
+    "nav-sales": "Продажи",
+    "nav-support": "Поддержка",
+    "crumbs": "Wiki / Продукт / Релизы",
+    "title": "План релиза 2.4",
+    "updated": "Обновлено 2 ноября, команда платформы",
+    "confidential": "Конфиденциально — только для сотрудников",
+    "intro": "Релиз выходит двумя волнами. Первая волна получает новый биллинг и отчёты для партнёров, вторая — миграцию старых аккаунтов. Цены и названия партнёров до публикации не выносим за пределы этой страницы.",
+    "budget": "Бюджет релиза",
+    "budget-v": "48,6 млн ₽",
+    "partners": "Партнёры первой волны",
+    "price": "Новый тариф «Бизнес»",
+    "price-v": "2 490 ₽/мес",
+    "th-stage": "Этап",
+    "th-date": "Срок",
+    "th-owner": "Ответственный",
+    "th-status": "Статус",
+    "s1": "Заморозка кода",
+    "d1": "14 ноября",
+    "o1": "А. Ветрова",
+    "st-done": "Готово",
+    "s2": "Первая волна: биллинг и отчёты",
+    "d2": "21 ноября",
+    "o2": "М. Орлов",
+    "st-progress": "В работе",
+    "s3": "Вторая волна: миграция аккаунтов",
+    "d3": "5 декабря",
+    "o3": "Е. Лисицына",
+    "st-planned": "Запланировано",
+    "s4": "Публичный анонс",
+    "d4": "12 декабря",
+    "o4": "Д. Карпов",
+    "risks": "Риски: задержка сертификации платёжного модуля; перенос анонса возможен не позже 1 декабря.",
+    "share": "Показать экран на встрече",
+    "refused": "Браузер отклонил запрос на демонстрацию экрана.",
+    "unavailable": "Демонстрация экрана на этой странице недоступна."
   };
-  const ru = { "refused": "Браузер отклонил запрос на демонстрацию экрана.", "unavailable": "Демонстрация экрана на этой странице недоступна." };
-  const param = new URLSearchParams(location.search).get("lang");
-  const lang = param || (navigator.language || "ru").slice(0, 2);
-  const t = lang === "en" ? en : ru;
-  if (lang === "en") {
-    document.documentElement.lang = "en";
-    document.title = "Release 2.4 plan — Wiki";
-    document.querySelectorAll("[data-t]").forEach(el => { const v = en[el.dataset.t]; if (v) el.textContent = v; });
+  const en = { "refused": "The browser refused the screen sharing request.", "unavailable": "Screen sharing is not available on this page." };
+  // По умолчанию английский; русская версия — ?lang=ru.
+  const lang = new URLSearchParams(location.search).get("lang") === "ru" ? "ru" : "en";
+  const t = lang === "ru" ? ru : en;
+  if (lang === "ru") {
+    document.documentElement.lang = "ru";
+    document.title = "План релиза 2.4 — Wiki";
+    document.querySelectorAll("[data-t]").forEach(el => { const v = ru[el.dataset.t]; if (v) el.textContent = v; });
   }
   // Для кадра «Захват экрана отклонён»: Shadepane отклоняет запрос и на 4 секунды показывает это в адресной строке.
   document.getElementById("share").addEventListener("click", async () => {

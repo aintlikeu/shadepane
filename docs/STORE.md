@@ -58,8 +58,8 @@ dotnet run --project src\Shadepane.App -p:ScreenshotBuild=true
 ```powershell
 python -m http.server 8000 --directory samples\test-pages
 ```
-В Shadepane: `http://localhost:8000/demo.html`. Язык страницы — как у интерфейса браузера (или `?lang=en` / `?lang=ru`),
-тема — как у Shadepane. Кнопка «Показать экран на встрече» запрашивает демонстрацию экрана: Shadepane отклоняет запрос
+В Shadepane: `http://localhost:8000/demo.html` — страница на английском; русская версия — `demo.html?lang=ru`.
+Тема — как у Shadepane. Кнопка «Показать экран на встрече» запрашивает демонстрацию экрана: Shadepane отклоняет запрос
 и на 4 секунды показывает «Захват экрана отклонён» — успейте сделать снимок.
 
 | № | Кадр | Подпись RU | Подпись EN |
