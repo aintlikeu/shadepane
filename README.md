@@ -19,7 +19,7 @@ and can be switched in settings.
 
 ## Download
 
-From [Releases](https://github.com/aintlikeu/shadepane/releases):
+From [the latest release](https://github.com/aintlikeu/shadepane/releases/latest):
 
 - `Shadepane-<version>-win-x64-setup.exe` — installer. Installs for the current user without admin rights
   (`%LOCALAPPDATA%\Programs\Shadepane`); choose "for all users" (or run with `/ALLUSERS`) to install into
@@ -29,35 +29,8 @@ From [Releases](https://github.com/aintlikeu/shadepane/releases):
 
 Requirements: Windows 10 2004+ or Windows 11, and the
 [WebView2 Runtime](https://developer.microsoft.com/microsoft-edge/webview2/) (preinstalled on Windows 11).
-.NET is bundled. Builds are not code-signed yet (see [Code signing](#code-signing)), so SmartScreen may warn
-on first run (*More info* → *Run anyway*).
-
-## Build
-
-Requires the [.NET 10 SDK](https://dotnet.microsoft.com/download).
-
-```powershell
-dotnet test                                  # core tests (also run on Linux)
-dotnet run --project src\Shadepane.App       # run the browser (Windows only)
-```
-
-Self-contained build and installer, as produced by CI (installer needs [Inno Setup 6](https://jrsoftware.org/isinfo.php),
-e.g. `winget install --id JRSoftware.InnoSetup -e`). Run the commands one by one; the installer lands in `dist\`:
-
-```powershell
-dotnet publish src\Shadepane.App -c Release -r win-x64 --self-contained true -p:Version=0.1.0 -o publish\Shadepane
-# Inno Setup is in Program Files, or in %LOCALAPPDATA%\Programs when installed without admin rights
-$iscc = (Get-ChildItem "$env:ProgramFiles\Inno Setup*", "${env:ProgramFiles(x86)}\Inno Setup*", "$env:LOCALAPPDATA\Programs\Inno Setup*" -Filter ISCC.exe -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1).FullName
-& $iscc /DAppVersion=0.1.0 "/DSourceDir=$PWD\publish\Shadepane" installer\Shadepane.iss
-```
-
-The UI is checked by hand on Windows: [`docs/TESTING.md`](docs/TESTING.md).
-
-Check an unpacked extension against a policy without starting the browser:
-
-```powershell
-dotnet run tools/check-extension.cs -- <extension-folder> [policy.json]
-```
+.NET is bundled. The builds are not code-signed yet, so Windows SmartScreen may warn on first run
+(*More info* → *Run anyway*).
 
 ## Policy
 
@@ -74,6 +47,13 @@ set `allowDownloads: false` / `allowExtensionClipboardRead: false` in the policy
 
 If no source exists, built-in defaults are used. An invalid or insecure source stops the browser instead
 of falling back to defaults.
+
+Check an unpacked extension against a policy without starting the browser (needs the .NET 10 SDK and a clone of
+this repository):
+
+```powershell
+dotnet run tools/check-extension.cs -- <extension-folder> [policy.json]
+```
 
 Set the policy from an elevated PowerShell:
 
@@ -113,43 +93,20 @@ is code-signed, required to carry a valid signature from the same publisher; the
 and the browser restarts. The portable zip build opens the release page instead. The check sends a request
 to `api.github.com`; it can be switched off in settings or enforced with `checkForUpdates`.
 
-## Microsoft Store
-
-CI also builds an MSIX package (artifact `Shadepane-msix`) for the Microsoft Store, published by Quietglass.
-The Store signs and updates it; the GitHub update check is off in that version. Packaging, local testing,
-listing texts and certification notes: [`docs/STORE.md`](docs/STORE.md).
-
 ## Privacy
 
 No accounts, telemetry or analytics. See [`docs/PRIVACY.md`](docs/PRIVACY.md).
 
-## Code signing
+## Building from source
 
-Release builds are signed in CI with [Azure Artifact Signing](https://azure.microsoft.com/pricing/details/artifact-signing/)
-once it is configured; until then they are unsigned. Since 2023 code-signing keys must live in hardware or a
-cloud HSM, so a `.pfx` in a GitHub secret is no longer an option for new certificates. To enable signing:
-
-1. Create an Artifact Signing account and a certificate profile (identity validation is done by Microsoft).
-2. Create an app registration / service principal and give it the certificate-profile signer role on the profile.
-3. In the repository settings add variables `ARTIFACT_SIGNING_ENDPOINT`, `ARTIFACT_SIGNING_ACCOUNT`,
-   `ARTIFACT_SIGNING_PROFILE` and secrets `AZURE_TENANT_ID`, `AZURE_CLIENT_ID`, `AZURE_CLIENT_SECRET`.
-
-The next `vX.Y.Z` tag then signs `Shadepane.exe`, `Shadepane.dll`, `Shadepane.Core.dll` and the installer
-before checksums are computed. A signed browser accepts only updates signed by the same publisher.
-A free alternative for open-source projects is [SignPath Foundation](https://signpath.org/) (the publisher
-shown is SignPath Foundation; its GitHub Actions integration has to be set up with SignPath).
-
-## Releasing
-
-Development happens on `develop`; `main` holds released code. CI builds and tests every push to both.
-To release, merge `develop` into `main` and push a `vX.Y.Z` tag — CI publishes a release with the installer, zip and checksums:
+Requires the [.NET 10 SDK](https://dotnet.microsoft.com/download):
 
 ```powershell
-git checkout main
-git merge --ff-only develop
-git tag v0.1.0
-git push origin main v0.1.0
+dotnet test                                  # core tests (also run on Linux)
+dotnet run --project src\Shadepane.App       # run the browser (Windows only)
 ```
+
+Installer, releases, the Microsoft Store package and code signing: [`docs/MAINTAINING.md`](docs/MAINTAINING.md).
 
 ## License
 

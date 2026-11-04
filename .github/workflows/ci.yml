@@ -18,7 +18,7 @@ jobs:
   build:
     runs-on: windows-latest
     env:
-      # Подпись кода включается, когда в репозитории заданы переменные/секреты Azure Artifact Signing (см. README).
+      # Подпись кода включается, когда в репозитории заданы переменные/секреты Azure Artifact Signing (см. docs/MAINTAINING.md, «Code signing»).
       SIGNING_CONFIGURED: ${{ vars.ARTIFACT_SIGNING_ACCOUNT != '' }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1

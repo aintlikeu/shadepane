@@ -61,7 +61,7 @@ python -m http.server 8000 --directory samples\test-pages     # или: npx --ye
 | Закрыть браузер, дописать строку в `popup.js` копии `spike-popup` в `%LOCALAPPDATA%\Shadepane\extensions`, запустить | расширение отозвано: «файлы расширения изменены после одобрения» |
 | Release, обычный пользователь: `C:\ProgramData\Shadepane\policy.json`, созданный без прав администратора | отказ запуска «политику может изменить не только администратор» |
 | Release: `C:\ProgramData\Shadepane` — junction на папку пользователя | отказ запуска «ссылка (symlink/junction)»; удалить ссылку `cmd /c rmdir C:\ProgramData\Shadepane` (не `Remove-Item`) |
-| Политика в `HKLM\Software\Policies\Shadepane` (README, «Политика») | запуск; в журнале `app-start` — `policySource` = ключ реестра |
+| Политика в `HKLM\Software\Policies\Shadepane` (README, раздел «Policy») | запуск; в журнале `app-start` — `policySource` = ключ реестра |
 | Мусор в `policy.json` с правильными правами | отказ запуска, а не политика по умолчанию |
 | Своё расширение без браузера: `dotnet run tools/check-extension.cs -- <папка> samples\policies\default.json` | принято или причины отказа |
 
