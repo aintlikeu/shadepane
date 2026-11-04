@@ -254,3 +254,23 @@ public class ByteSizeTests
     public void CtrlJ_OpensDownloads() =>
         Assert.Equal(Shadepane.Core.Browsing.BrowserCommand.Downloads, Shadepane.Core.Browsing.BrowserShortcuts.Resolve("J", true, false, false)?.Command);
 }
+
+public class ProtectedUrlTests
+{
+    private static readonly BrowserPolicy Policy = new BrowserPolicy { ProtectedHosts = ["*.corp.example", "crm.partner.example"] }.EnsureValid();
+
+    [Theory]
+    [InlineData("https://wiki.corp.example/doc.pdf", true)]
+    [InlineData("https://corp.example/", true)]
+    [InlineData("http://CRM.partner.example:8443/export", true)]
+    [InlineData("https://partner.example/", false)]
+    [InlineData("https://evilcorp.example/", false)]
+    [InlineData("about:blank", false)]
+    [InlineData("data:text/plain,x", false)]
+    [InlineData(null, false)]
+    public void IsProtectedUrl(string? url, bool expected) => Assert.Equal(expected, Policy.IsProtectedUrl(url));
+
+    [Fact]
+    public void NoProtectedHosts_NothingIsProtected() =>
+        Assert.False(BrowserPolicy.Default.IsProtectedUrl("https://corp.example/"));
+}

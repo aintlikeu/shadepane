@@ -58,6 +58,9 @@ Shadepane uses the first source that exists:
    Administrators/SYSTEM only; otherwise the browser refuses to start.
 3. Debug builds only: `policy.json` next to the executable.
 
+Downloads and clipboard access for extensions are allowed by default and can be switched off by the user;
+set `allowDownloads: false` / `allowExtensionClipboardRead: false` in the policy to enforce a block.
+
 If no source exists, built-in defaults are used. An invalid or insecure source stops the browser instead
 of falling back to defaults.
 
@@ -75,7 +78,7 @@ Main options:
 |---|---|---|
 | `homeUrl` | not set | Home page; when set, users cannot change it (default: the search engine home page) |
 | `searchUrl` | not set | Search template with `{query}` (https); when set, users cannot change the search engine (default: DuckDuckGo) |
-| `protectedHosts` | `[]` | Hosts extensions may not access, e.g. `"*.corp.example"` |
+| `protectedHosts` | `[]` | Hosts extensions may not access and downloads from which are blocked unless `allowDownloads` is `true`, e.g. `"*.corp.example"` |
 | `blockedPermissions` | capture, `activeTab`, `tabs`, `history`, `downloads`, … | Extension permissions that are refused |
 | `allowedPermissions` | not set | Allowlist mode: only these extension permissions are accepted |
 | `allowExtensionClipboardRead` | not set | Allow extensions with `clipboardRead`; when set, users cannot change it (default: allowed) |

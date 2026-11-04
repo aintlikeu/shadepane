@@ -64,10 +64,11 @@ internal static class WebViewHardening
         // и показываем загрузку в своём окне загрузок (Ctrl+J).
         core.DownloadStarting += (_, e) =>
         {
-            if (!AppServices.Config.AllowDownloads)
+            var reason = DownloadBlockReason(role, core.Source, e.DownloadOperation.Uri);
+            if (reason is not null)
             {
                 e.Cancel = true;
-                audit.Write("download-blocked", new { role, uri = e.DownloadOperation.Uri, locked = AppServices.Config.DownloadsLocked });
+                audit.Write("download-blocked", new { role, uri = e.DownloadOperation.Uri, source = core.Source, reason });
                 return;
             }
             e.Handled = true;
@@ -99,6 +100,20 @@ internal static class WebViewHardening
         };
 
         await core.AddScriptToExecuteOnDocumentCreatedAsync(BlockPrintScript);
+    }
+
+    /// <summary>null — загрузку можно начать; иначе причина отказа для журнала.</summary>
+    private static string? DownloadBlockReason(string role, string? pageUrl, string? fileUrl)
+    {
+        if (!AppServices.Config.AllowDownloads)
+            return AppServices.Config.DownloadsLocked ? "policy" : "user-setting";
+        if (role.StartsWith("popup:", StringComparison.Ordinal))
+            return "extension-popup"; // окну расширения скачивать файлы незачем
+        // С защищённых доменов — только если администратор явно разрешил загрузки (allowDownloads: true).
+        var policy = AppServices.Policy;
+        if (policy.AllowDownloads != true && (policy.IsProtectedUrl(pageUrl) || policy.IsProtectedUrl(fileUrl)))
+            return "protected-host";
+        return null;
     }
 
     /// <summary>Оставляет разрешённые пункты и разделители между ними (без висячих и двойных разделителей).</summary>

@@ -91,6 +91,17 @@ public sealed class BrowserPolicy
     public IReadOnlySet<string>? AllowedPermissionSet =>
         AllowedPermissions is null ? null : _allowedSet ??= new HashSet<string>(AllowedPermissions, StringComparer.OrdinalIgnoreCase);
 
+    /// <summary>Адрес http(s) на защищённом домене (protectedHosts). Некорректный или иной адрес — false.</summary>
+    public bool IsProtectedUrl(string? url)
+    {
+        if (!Uri.TryCreate(url, UriKind.Absolute, out var uri) || !UrlPolicy.IsWebScheme(uri))
+            return false;
+        if (!HostPattern.TryNormalizeHost(uri.IdnHost, out var host, out _))
+            return false;
+        var page = new HostPattern(HostPatternKind.Exact, host!);
+        return ProtectedHostPatterns.Any(p => p.Overlaps(page));
+    }
+
     /// <summary>
     /// Политика для проверки расширений с учётом настройки пользователя: если администратор не задал
     /// allowExtensionClipboardRead, подставляется выбор пользователя. Копируются ВСЕ свойства — тест
