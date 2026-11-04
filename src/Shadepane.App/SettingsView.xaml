@@ -1,0 +1,139 @@
+<!-- Настройки во вкладке браузера (⋯ → Настройки). Изменения применяются сразу; адреса — по Enter или при выходе из поля.
+     Поля, заданные политикой администратора, показаны неактивными с пометкой «Задано администратором». -->
+<UserControl x:Class="Shadepane.App.SettingsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:l="clr-namespace:Shadepane.App.Localization"
+             Background="{DynamicResource Brush.Surface}" Focusable="False">
+    <UserControl.Resources>
+        <Style x:Key="Card" TargetType="Border">
+            <Setter Property="Background" Value="{DynamicResource Brush.Control}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource Brush.Hairline}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="8"/>
+            <Setter Property="Padding" Value="20,16"/>
+        </Style>
+        <Style x:Key="SectionHeader" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="15"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Margin" Value="2,24,0,8"/>
+        </Style>
+        <Style x:Key="Note" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="{DynamicResource Brush.Muted}"/>
+            <Setter Property="TextWrapping" Value="Wrap"/>
+            <Setter Property="Margin" Value="0,6,0,0"/>
+        </Style>
+        <Style x:Key="Locked" TargetType="TextBlock" BasedOn="{StaticResource Note}">
+            <Setter Property="Visibility" Value="Collapsed"/>
+            <Setter Property="Text" Value="{l:Tr Ru='Задано администратором', En='Set by the administrator'}"/>
+        </Style>
+        <Style x:Key="Error" TargetType="TextBlock" BasedOn="{StaticResource Note}">
+            <Setter Property="Foreground" Value="{DynamicResource Brush.Danger}"/>
+            <Setter Property="Visibility" Value="Collapsed"/>
+        </Style>
+        <Style TargetType="RadioButton" BasedOn="{StaticResource {x:Type RadioButton}}">
+            <Setter Property="Margin" Value="0,4,0,4"/>
+        </Style>
+        <Style TargetType="CheckBox" BasedOn="{StaticResource {x:Type CheckBox}}">
+            <Setter Property="Margin" Value="0,4,0,4"/>
+        </Style>
+    </UserControl.Resources>
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Focusable="False">
+        <StackPanel MaxWidth="760" Margin="32,28,32,48" HorizontalAlignment="Stretch">
+            <TextBlock Text="{l:Tr Ru='Настройки', En='Settings'}" FontSize="28" FontWeight="SemiBold"/>
+            <TextBlock x:Name="SaveError" Style="{StaticResource Error}"/>
+
+            <TextBlock Style="{StaticResource SectionHeader}" Text="{l:Tr Ru='При запуске', En='On startup'}"/>
+            <Border Style="{StaticResource Card}">
+                <StackPanel>
+                    <RadioButton x:Name="StartupHome" GroupName="Startup" Click="Apply_Click" Content="{l:Tr Ru='Открывать домашнюю страницу', En='Open the home page'}"/>
+                    <RadioButton x:Name="StartupRestore" GroupName="Startup" Click="Apply_Click" Content="{l:Tr Ru='Открывать вкладки, которые были открыты перед закрытием', En='Open the tabs that were open before closing'}"/>
+                    <TextBlock Style="{StaticResource Note}" Text="{l:Tr Ru='Для этого адреса открытых вкладок хранятся на этом компьютере.', En='For this, the addresses of open tabs are kept on this computer.'}"/>
+                    <TextBlock x:Name="StartupLockedNote" Style="{StaticResource Locked}"/>
+                </StackPanel>
+            </Border>
+
+            <TextBlock Style="{StaticResource SectionHeader}" Text="{l:Tr Ru='Домашняя страница', En='Home page'}"/>
+            <Border Style="{StaticResource Card}">
+                <StackPanel>
+                    <RadioButton x:Name="HomeSearchEngine" GroupName="Home" Click="HomeKind_Click" Content="{l:Tr Ru='Страница поисковика', En='Search engine page'}"/>
+                    <RadioButton x:Name="HomeBlank" GroupName="Home" Click="HomeKind_Click" Content="{l:Tr Ru='Пустая страница', En='Blank page'}"/>
+                    <DockPanel Margin="0,4,0,0">
+                        <RadioButton x:Name="HomeCustom" GroupName="Home" Click="HomeKind_Click" VerticalAlignment="Center" Margin="0" Content="{l:Tr Ru='Адрес:', En='Address:'}"/>
+                        <TextBox x:Name="HomeUrlBox" Margin="10,0,0,0" LostKeyboardFocus="TextField_LostFocus" KeyDown="TextField_KeyDown"/>
+                    </DockPanel>
+                    <TextBlock x:Name="HomeError" Style="{StaticResource Error}"/>
+                    <TextBlock x:Name="HomeLockedNote" Style="{StaticResource Locked}"/>
+                </StackPanel>
+            </Border>
+
+            <TextBlock Style="{StaticResource SectionHeader}" Text="{l:Tr Ru='Поиск из адресной строки', En='Search from the address bar'}"/>
+            <Border Style="{StaticResource Card}">
+                <StackPanel>
+                    <ComboBox x:Name="SearchEngineBox" HorizontalAlignment="Left" MinWidth="260" SelectionChanged="SearchEngine_Changed"/>
+                    <!-- Подсказки с {query} задаются в коде: фигурные скобки в XAML — разметка. -->
+                    <TextBox x:Name="CustomSearchBox" Margin="0,8,0,0" LostKeyboardFocus="TextField_LostFocus" KeyDown="TextField_KeyDown"/>
+                    <TextBlock x:Name="CustomSearchHint" Style="{StaticResource Note}"/>
+                    <TextBlock x:Name="SearchError" Style="{StaticResource Error}"/>
+                    <TextBlock x:Name="SearchLockedNote" Style="{StaticResource Locked}"/>
+                </StackPanel>
+            </Border>
+
+            <TextBlock Style="{StaticResource SectionHeader}" Text="{l:Tr Ru='Оформление и язык', En='Appearance and language'}"/>
+            <Border Style="{StaticResource Card}">
+                <StackPanel>
+                    <TextBlock Text="{l:Tr Ru='Тема', En='Theme'}" Foreground="{DynamicResource Brush.Muted}"/>
+                    <WrapPanel Margin="0,4,0,0">
+                        <RadioButton x:Name="ThemeSystem" GroupName="Theme" Click="Apply_Click" Margin="0,4,24,4" Content="{l:Tr Ru='Как в Windows', En='Same as Windows'}"/>
+                        <RadioButton x:Name="ThemeLight" GroupName="Theme" Click="Apply_Click" Margin="0,4,24,4" Content="{l:Tr Ru='Светлая', En='Light'}"/>
+                        <RadioButton x:Name="ThemeDark" GroupName="Theme" Click="Apply_Click" Margin="0,4,24,4" Content="{l:Tr Ru='Тёмная', En='Dark'}"/>
+                    </WrapPanel>
+                    <!-- Названия языков — каждое на своём языке, чтобы его нашёл тот, кто не читает текущий. -->
+                    <TextBlock Text="{l:Tr Ru='Язык / Language', En='Language / Язык'}" Foreground="{DynamicResource Brush.Muted}" Margin="0,14,0,0"/>
+                    <WrapPanel Margin="0,4,0,0">
+                        <RadioButton x:Name="LanguageSystem" GroupName="Language" Click="Apply_Click" Margin="0,4,24,4" Content="{l:Tr Ru='Как в Windows', En='Same as Windows'}"/>
+                        <RadioButton x:Name="LanguageRussian" GroupName="Language" Click="Apply_Click" Margin="0,4,24,4" Content="Русский"/>
+                        <RadioButton x:Name="LanguageEnglish" GroupName="Language" Click="Apply_Click" Margin="0,4,24,4" Content="English"/>
+                    </WrapPanel>
+                    <TextBlock Style="{StaticResource Note}" Text="{l:Tr Ru='Язык меняется после перезапуска браузера.', En='The language changes after the browser restarts.'}"/>
+                </StackPanel>
+            </Border>
+
+            <TextBlock Style="{StaticResource SectionHeader}" Text="{l:Tr Ru='История и закладки', En='History and bookmarks'}"/>
+            <Border Style="{StaticResource Card}">
+                <StackPanel>
+                    <DockPanel>
+                        <Button DockPanel.Dock="Right" Click="ClearHistory_Click" Content="{l:Tr Ru='Очистить историю…', En='Clear history…'}"/>
+                        <CheckBox x:Name="SaveHistoryBox" Click="Apply_Click" VerticalAlignment="Center" Content="{l:Tr Ru='Сохранять историю посещений', En='Save browsing history'}"/>
+                    </DockPanel>
+                    <CheckBox x:Name="ShowBookmarksBarBox" Click="Apply_Click" Margin="0,10,0,4" Content="{l:Tr Ru='Показывать панель закладок (Ctrl+Shift+B)', En='Show the bookmarks bar (Ctrl+Shift+B)'}"/>
+                </StackPanel>
+            </Border>
+
+            <TextBlock Style="{StaticResource SectionHeader}" Text="{l:Tr Ru='Загрузки и расширения', En='Downloads and extensions'}"/>
+            <Border Style="{StaticResource Card}">
+                <StackPanel>
+                    <CheckBox x:Name="AllowDownloadsBox" Click="Apply_Click" Content="{l:Tr Ru='Разрешить загрузку файлов', En='Allow file downloads'}"/>
+                    <TextBlock x:Name="DownloadsLockedNote" Style="{StaticResource Locked}"/>
+                    <CheckBox x:Name="ClipboardBox" Click="Apply_Click" Margin="0,12,0,4" Content="{l:Tr Ru='Разрешить расширениям читать буфер обмена', En='Allow extensions to read the clipboard'}"/>
+                    <TextBlock Style="{StaticResource Note}" Text="{l:Tr Ru='Вступает в силу после перезапуска браузера.', En='Takes effect after the browser restarts.'}"/>
+                    <TextBlock x:Name="ClipboardLockedNote" Style="{StaticResource Locked}"/>
+                </StackPanel>
+            </Border>
+
+            <TextBlock Style="{StaticResource SectionHeader}" Text="{l:Tr Ru='О Shadepane', En='About Shadepane'}"/>
+            <Border Style="{StaticResource Card}">
+                <StackPanel>
+                    <DockPanel>
+                        <Button x:Name="CheckNowButton" DockPanel.Dock="Right" Click="CheckUpdates_Click" Content="{l:Tr Ru='Проверить обновления', En='Check for updates'}"/>
+                        <TextBlock x:Name="VersionText" VerticalAlignment="Center" TextWrapping="Wrap"/>
+                    </DockPanel>
+                    <CheckBox x:Name="CheckUpdatesBox" Click="Apply_Click" Margin="0,10,0,4" Content="{l:Tr Ru='Проверять обновления автоматически (GitHub Releases)', En='Check for updates automatically (GitHub Releases)'}"/>
+                    <TextBlock x:Name="UpdatesLockedNote" Style="{StaticResource Locked}"/>
+                    <TextBlock Style="{StaticResource Note}" Text="{l:Tr Ru='Лицензия MIT. Исходный код: github.com/aintlikeu/shadepane', En='MIT license. Source code: github.com/aintlikeu/shadepane'}"/>
+                </StackPanel>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

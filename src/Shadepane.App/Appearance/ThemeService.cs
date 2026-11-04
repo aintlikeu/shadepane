@@ -19,7 +19,7 @@ internal static class ThemeService
 
     public static bool IsDark { get; private set; }
 
-    /// <summary>Действующий выбор: сохранённый в настройках или предпросмотр из окна настроек (Preview).</summary>
+    /// <summary>Действующий выбор темы (из настроек).</summary>
     public static AppTheme Choice { get; private set; } = AppTheme.System;
 
     /// <summary>Тема сменилась (настройка пользователя или системная тема Windows).</summary>
@@ -29,16 +29,12 @@ internal static class ThemeService
     {
         Refresh();
         // Смена «Режима приложения» в Windows приходит как WM_SETTINGCHANGE → UserPreferenceChanged.
-        // Предпросмотр при этом сохраняется: пересчитываем текущий выбор, а не сохранённый.
         SystemEvents.UserPreferenceChanged += (_, _) => Application.Current?.Dispatcher.BeginInvoke(() => Apply(Choice));
         AppServices.ConfigChanged += Refresh; // сохранили настройки — может быть, выбрали другую тему
     }
 
-    /// <summary>Тема из сохранённых настроек (и отмена предпросмотра).</summary>
+    /// <summary>Тема из сохранённых настроек.</summary>
     public static void Refresh() => Apply(AppServices.Settings.Theme);
-
-    /// <summary>Показать тему сразу, до сохранения настроек. Отмена — Refresh().</summary>
-    public static void Preview(AppTheme theme) => Apply(theme);
 
     private static void Apply(AppTheme theme)
     {

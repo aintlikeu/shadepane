@@ -38,7 +38,7 @@
    ```
 3. Запустить «Shadepane» из меню «Пуск». Проверить:
    - иконка в «Пуске», на панели задач и в заголовке окна;
-   - ⚙ → «Обновления приходят через Microsoft Store», флажка и «Проверить сейчас» нет;
+   - ⋯ → Настройки → «Обновления приходят через Microsoft Store», флажка и «Проверить сейчас» нет;
    - защита от снимков экрана, расширения, тёмная тема, язык — как в обычной версии (docs/TESTING.md).
 4. Удалить: `Get-AppxPackage Quietglass.Shadepane | Remove-AppxPackage`, затем выключить режим разработчика.
 
@@ -82,7 +82,7 @@ python -m http.server 8000 --directory samples\test-pages
 | 5 | Тёмная тема, открытое меню «⋯» | Светлая и тёмная тема, как в Windows | Light and dark theme that follows Windows |
 | 6 | «Расширение отклонено политикой» (`samples\extensions\evil-capture`) или настройки с полями «Задано администратором» | Расширения и настройки под контролем администратора | Extensions and settings under administrator control |
 
-Для английской карточки — те же кадры с английским интерфейсом (⚙ → «Язык / Language» → English, перезапуск).
+Для английской карточки — те же кадры с английским интерфейсом (⋯ → Настройки → «Язык / Language» → English, перезапуск).
 
 ## Отправка (Partner Center → Shadepane → Start submission)
 

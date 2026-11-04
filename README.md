@@ -101,7 +101,7 @@ Main options:
 
 User preferences (home page, search engine, downloads, clipboard access for extensions, history,
 bookmarks bar) are set in the settings
-window (⚙) and stored in `%LOCALAPPDATA%\Shadepane\settings.json`. A value set by the policy wins and is
+tab (⋯ → Settings) and stored in `%LOCALAPPDATA%\Shadepane\settings.json`. A value set by the policy wins and is
 shown as locked. Browser data and the audit log (`audit.log`) live in the same folder.
 
 ## Updates

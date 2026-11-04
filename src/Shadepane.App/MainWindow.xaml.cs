@@ -263,7 +263,8 @@ public partial class MainWindow : ProtectedWindow, IContentShield
             return;
         try
         {
-            var active = _active is null ? 0 : _tabs.IndexOf(_active);
+            var activeTab = _active ?? _lastWebTab; // открыты настройки — активной считаем вкладку до них
+            var active = activeTab is null ? 0 : Math.Max(0, _tabs.IndexOf(activeTab));
             _session.Save(Shadepane.Core.Browsing.SessionState.FromTabs([.. _tabs.Select(t => t.SessionUrl)], active));
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
@@ -830,6 +831,12 @@ public partial class MainWindow : ProtectedWindow, IContentShield
             HideNotice();
         }
         _active = tab;
+        _lastWebTab = tab;
+        _settingsActive = false;
+        if (_settingsView is not null)
+            _settingsView.Visibility = Visibility.Collapsed;
+        if (_settingsHeader is not null)
+            StyleTabHeader(_settingsHeader, false);
         foreach (var t in _tabs)
             t.View.Visibility = t == tab ? Visibility.Visible : Visibility.Hidden;
         foreach (var (t, header) in _tabHeaders)
@@ -873,19 +880,28 @@ public partial class MainWindow : ProtectedWindow, IContentShield
 
         if (_tabs.Count == 0)
         {
-            Close(); // как в Chrome: закрыли последнюю вкладку — закрыли окно
+            if (_settingsView is not null)
+                ActivateSettings(); // осталась вкладка настроек
+            else
+                Close(); // как в Chrome: закрыли последнюю вкладку — закрыли окно
             return;
         }
         if (wasActive)
             ActivateTab(_tabs[Math.Clamp(index, 0, _tabs.Count - 1)]);
     }
 
+    /// <summary>Ctrl+Tab / Ctrl+Shift+Tab по кругу; вкладка настроек — последняя в строке.</summary>
     private void SelectRelativeTab(int delta)
     {
-        if (_active is null || _tabs.Count < 2)
+        var count = _tabs.Count + (_settingsView is null ? 0 : 1);
+        if (count < 2)
             return;
-        var index = (_tabs.IndexOf(_active) + delta + _tabs.Count) % _tabs.Count;
-        ActivateTab(_tabs[index]);
+        var current = _settingsActive ? _tabs.Count : _active is null ? 0 : _tabs.IndexOf(_active);
+        var next = (current + delta + count) % count;
+        if (next == _tabs.Count)
+            ActivateSettings();
+        else
+            ActivateTab(_tabs[next]);
     }
 
     private void SelectTabByNumber(int number)
@@ -992,7 +1008,8 @@ public partial class MainWindow : ProtectedWindow, IContentShield
         UpdateAddressView();
         UpdateLoadingIndicator();
         UpdateProtectionIndicator();
-        Title = tab is null ? ProductName : $"{tab.Title} — {ProductName}";
+        Title = _settingsActive ? $"{Loc.T("Настройки", "Settings")} — {ProductName}"
+            : tab is null ? ProductName : $"{tab.Title} — {ProductName}";
 
         var bookmarked = AppServices.Bookmarks.FindByUrl(tab?.Url) is not null;
         BookmarkButton.IsEnabled = tab is not null && Shadepane.Core.Bookmarks.BookmarkCollection.IsBookmarkable(tab.Url);
@@ -1088,9 +1105,14 @@ public partial class MainWindow : ProtectedWindow, IContentShield
     /// <summary>Адрес — открыть; слова — искать в выбранном поисковике; опасные схемы — отказ.</summary>
     private void NavigateFromInput(string input)
     {
+        var result = AddressInput.Resolve(input, AppServices.SearchUrl);
+        if (result.IsSuccess && _active is null)
+        {
+            _ = OpenNewTabAsync(result.Uri!.AbsoluteUri); // открыта вкладка настроек — адрес открывается в новой вкладке
+            return;
+        }
         if (_active is null)
             return;
-        var result = AddressInput.Resolve(input, AppServices.SearchUrl);
         if (result.IsSuccess)
         {
             _active.Navigate(result.Uri!.AbsoluteUri);
@@ -1167,7 +1189,12 @@ public partial class MainWindow : ProtectedWindow, IContentShield
                 return true;
             case BrowserCommand.CloseTab:
                 if (tab is null)
-                    return false;
+                {
+                    if (!_settingsActive)
+                        return false;
+                    CloseSettingsTab();
+                    return true;
+                }
                 CloseTab(tab);
                 return true;
             case BrowserCommand.NextTab:
@@ -1425,19 +1452,114 @@ public partial class MainWindow : ProtectedWindow, IContentShield
     }
 
 
-    private SettingsWindow? _settingsWindow;
+    // ---------- Вкладка настроек ----------
+    // Настройки открываются вкладкой (как в Edge и Chrome), но это интерфейс WPF, а не веб-страница: у сайтов нет
+    // способа до неё дотянуться. Она одна; её заголовок — последний в строке вкладок, вне списка _tabs (в нём только
+    // веб-вкладки), поэтому в сеанс она не сохраняется. Пока она активна, _active == null.
+
+    private SettingsView? _settingsView;
+    private Border? _settingsHeader;
+    private bool _settingsActive;
+    /// <summary>Последняя активная веб-вкладка: к ней возвращаемся из настроек, она активна в сохранённом сеансе.</summary>
+    private BrowserTab? _lastWebTab;
 
     private void ShowSettings()
     {
-        if (_settingsWindow is not null)
+        if (_settingsView is null)
         {
-            _settingsWindow.Activate(); // одно окно настроек
-            return;
+            _settingsView = new SettingsView(() => CheckForUpdatesAsync(manual: true)) { Visibility = Visibility.Collapsed };
+            ContentHost.Children.Add(_settingsView);
+            _settingsHeader = CreatePageTabHeader(Loc.T("Настройки", "Settings"), "Icon.Settings", ShowSettings, CloseSettingsTab);
+            TabStrip.Children.Add(_settingsHeader);
+            UpdateTabWidths();
         }
-        _settingsWindow = new SettingsWindow { Owner = this };
-        _settingsWindow.Closed += (_, _) => _settingsWindow = null;
-        if (_settingsWindow.ShowDialog() == true)
-            SetStatus(Loc.T($"Настройки сохранены. Поиск: {AppServices.Config.SearchEngine.Name}.", $"Settings saved. Search: {AppServices.Config.SearchEngine.Name}."));
+        ActivateSettings();
+    }
+
+    private void ActivateSettings()
+    {
+        if (_settingsView is null || _settingsHeader is null)
+            return;
+        if (_active is not null)
+        {
+            CloseFind(focusPage: false);
+            HideNotice();
+        }
+        _active = null;
+        _settingsActive = true;
+        foreach (var t in _tabs)
+            t.View.Visibility = Visibility.Hidden;
+        _settingsView.Visibility = Visibility.Visible;
+        foreach (var (_, header) in _tabHeaders)
+            StyleTabHeader(header, false);
+        StyleTabHeader(_settingsHeader, true);
+        RefreshChrome();
+        _settingsHeader.BringIntoView();
+    }
+
+    private void CloseSettingsTab()
+    {
+        if (_settingsView is null)
+            return;
+        var wasActive = _settingsActive;
+        _settingsView.Detach();
+        ContentHost.Children.Remove(_settingsView);
+        if (_settingsHeader is not null)
+            TabStrip.Children.Remove(_settingsHeader);
+        _settingsView = null;
+        _settingsHeader = null;
+        _settingsActive = false;
+        UpdateTabWidths();
+        if (_tabs.Count == 0)
+            Close(); // других вкладок нет — закрыли последнюю, как в Chrome
+        else if (wasActive)
+            ActivateTab(_lastWebTab is { IsClosed: false } last && _tabs.Contains(last) ? last : _tabs[^1]);
+    }
+
+    /// <summary>Заголовок вкладки, которая не веб-страница (настройки): значок, название, крестик.</summary>
+    private Border CreatePageTabHeader(string titleText, string icon, Action activate, Action close)
+    {
+        var glyph = Glyph(icon.Replace("Icon.", ""));
+        glyph.VerticalAlignment = VerticalAlignment.Center;
+        var title = new TextBlock
+        {
+            Text = titleText,
+            Margin = new Thickness(8, 0, 0, 0),
+            TextTrimming = TextTrimming.CharacterEllipsis,
+            VerticalAlignment = VerticalAlignment.Center,
+        };
+        var closeButton = new Button
+        {
+            Style = (Style)FindResource("TabCloseButton"),
+            Content = Glyph("Close", small: true),
+            Margin = new Thickness(6, 0, 0, 0),
+            ToolTip = Loc.T("Закрыть вкладку (Ctrl+W)", "Close tab (Ctrl+W)"),
+        };
+        closeButton.Click += (_, _) => close();
+        DockPanel.SetDock(closeButton, Dock.Right);
+        DockPanel.SetDock(glyph, Dock.Left);
+        var panel = new DockPanel { LastChildFill = true };
+        panel.Children.Add(closeButton);
+        panel.Children.Add(glyph);
+        panel.Children.Add(title);
+        var header = new Border
+        {
+            Child = panel,
+            Width = 220,
+            Height = 34,
+            Padding = new Thickness(12, 0, 6, 0),
+            Margin = new Thickness(0, 0, 2, 0),
+            CornerRadius = new CornerRadius(8, 8, 0, 0),
+            Tag = title,
+            ToolTip = titleText,
+        };
+        MarkInteractiveInTitleBar(header);
+        header.MouseEnter += (_, _) => StyleTabHeader(header, _settingsActive);
+        header.MouseLeave += (_, _) => StyleTabHeader(header, _settingsActive);
+        header.MouseLeftButtonUp += (_, e) => { if (e.OriginalSource is not Button) activate(); };
+        header.MouseUp += (_, e) => { if (e.ChangedButton == MouseButton.Middle) close(); };
+        StyleTabHeader(header, false);
+        return header;
     }
 
     // ---------- Расширения ----------

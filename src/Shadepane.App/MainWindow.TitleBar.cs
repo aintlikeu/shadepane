@@ -217,9 +217,10 @@ public partial class MainWindow
         }
         var available = Math.Max(0, TitleBar.ActualWidth - reserved - MinDragSpace);
         TabsColumn.MaxWidth = available;
-        var count = Math.Max(1, _tabHeaders.Count);
+        var headers = _tabHeaders.Values.Concat(_settingsHeader is null ? [] : [_settingsHeader]).ToList();
+        var count = Math.Max(1, headers.Count);
         var width = Math.Clamp(Math.Floor(available / count) - 2, MinTabWidth, MaxTabWidth);
-        foreach (var header in _tabHeaders.Values)
+        foreach (var header in headers)
             header.Width = width;
     }
 
