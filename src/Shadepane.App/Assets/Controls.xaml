@@ -150,9 +150,22 @@
         </Setter>
     </Style>
 
+    <!-- Стандартные стили этих элементов жёстко задают системный чёрный цвет текста (SystemColors.ControlText)
+         и не наследуют цвет окна — в тёмной теме подписи были бы чёрными на тёмном. -->
+    <Style TargetType="CheckBox">
+        <Setter Property="Foreground" Value="{DynamicResource Brush.Ink}"/>
+    </Style>
+    <Style TargetType="RadioButton">
+        <Setter Property="Foreground" Value="{DynamicResource Brush.Ink}"/>
+    </Style>
+    <Style TargetType="Label">
+        <Setter Property="Foreground" Value="{DynamicResource Brush.Ink}"/>
+    </Style>
+
     <!-- Группы в настройках: заголовок полужирным, без рамки «как в Windows XP». -->
     <Style TargetType="GroupBox">
         <Setter Property="Padding" Value="0"/>
+        <Setter Property="Foreground" Value="{DynamicResource Brush.Ink}"/>
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="GroupBox">
