@@ -1,4 +1,3 @@
-using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Interop;
@@ -11,8 +10,7 @@ namespace Shadepane.App;
 /// <summary>
 /// Свой заголовок окна: вкладки на месте системного заголовка (WindowChrome в MainWindow.xaml) и свои кнопки
 /// «Свернуть / Развернуть / Закрыть». То, что системный заголовок делал сам, здесь сделано явно:
-/// раскладки Snap на кнопке «Развернуть» (Windows 11), развёрнутое окно в границах рабочей области монитора,
-/// скруглённые углы.
+/// раскладки Snap на кнопке «Развернуть» (Windows 11), отступ сверху у развёрнутого окна, скруглённые углы.
 /// </summary>
 public partial class MainWindow
 {
@@ -35,9 +33,10 @@ public partial class MainWindow
         var round = NativeMethods.DWMWCP_ROUND;
         _ = NativeMethods.DwmSetWindowAttribute(source.Handle, NativeMethods.DWMWA_WINDOW_CORNER_PREFERENCE, ref round, sizeof(int));
 
-        StateChanged += (_, _) => UpdateMaximizeButton();
+        StateChanged += (_, _) => { UpdateMaximizeButton(); UpdateMaximizedInset(); };
         TitleBar.SizeChanged += (_, _) => UpdateTabWidths();
         UpdateMaximizeButton();
+        UpdateMaximizedInset();
         UpdateTitleIcon();
     }
 
@@ -45,6 +44,28 @@ public partial class MainWindow
     {
         base.OnDpiChanged(oldDpi, newDpi);
         UpdateTitleIcon(); // окно перенесли на монитор с другим масштабом
+        UpdateMaximizedInset();
+    }
+
+    /// <summary>
+    /// Развёрнутое окно Windows сдвигает за края экрана на толщину рамки: слева, справа и снизу за экраном оказывается
+    /// системная рамка, а сверху — начало нашего заголовка (рамки там нет, он рисуется до самого края окна).
+    /// Опускаем содержимое на эту толщину, иначе верх вкладок и кнопок обрезан.
+    /// </summary>
+    private void UpdateMaximizedInset()
+    {
+        var hwnd = new WindowInteropHelper(this).Handle;
+        if (hwnd == IntPtr.Zero)
+            return;
+        var top = 0.0;
+        if (WindowState == WindowState.Maximized)
+        {
+            var dpi = NativeMethods.GetDpiForWindow(hwnd);
+            var pixels = NativeMethods.GetSystemMetricsForDpi(NativeMethods.SM_CYSIZEFRAME, dpi)
+                       + NativeMethods.GetSystemMetricsForDpi(NativeMethods.SM_CXPADDEDBORDER, dpi);
+            top = dpi == 0 ? 8 : pixels * 96.0 / dpi;
+        }
+        RootPanel.Margin = new Thickness(0, top, 0, 0);
     }
 
     /// <summary>Иконка в заголовке — кадр .ico под текущий масштаб (16 px при 100%, 24 при 150%…), а не растянутый 16 px.</summary>
@@ -60,10 +81,6 @@ public partial class MainWindow
     {
         switch (msg)
         {
-            case NativeMethods.WM_GETMINMAXINFO:
-                FitMaximizedToWorkArea(hwnd, lParam);
-                break; // не handled: WPF дальше применит MinWidth/MinHeight к той же структуре
-
             case NativeMethods.WM_NCHITTEST:
                 if (IsOverMaximizeButton(lParam))
                 {
@@ -98,26 +115,6 @@ public partial class MainWindow
                 break;
         }
         return IntPtr.Zero;
-    }
-
-    /// <summary>
-    /// У окна со своим заголовком развёрнутое окно по умолчанию выходит за края экрана на толщину рамки
-    /// и закрывает панель задач. Ограничиваем его рабочей областью монитора, на котором оно находится.
-    /// </summary>
-    private static void FitMaximizedToWorkArea(IntPtr hwnd, IntPtr lParam)
-    {
-        var monitor = NativeMethods.MonitorFromWindow(hwnd, NativeMethods.MONITOR_DEFAULTTONEAREST);
-        if (monitor == IntPtr.Zero)
-            return;
-        var info = new NativeMethods.MONITORINFO { cbSize = Marshal.SizeOf<NativeMethods.MONITORINFO>() };
-        if (!NativeMethods.GetMonitorInfo(monitor, ref info))
-            return;
-        var mmi = Marshal.PtrToStructure<NativeMethods.MINMAXINFO>(lParam);
-        var work = info.rcWork;
-        var whole = info.rcMonitor;
-        mmi.ptMaxPosition = new NativeMethods.POINT { X = work.Left - whole.Left, Y = work.Top - whole.Top };
-        mmi.ptMaxSize = new NativeMethods.POINT { X = work.Right - work.Left, Y = work.Bottom - work.Top };
-        Marshal.StructureToPtr(mmi, lParam, fDeleteOld: false);
     }
 
     private bool IsOverMaximizeButton(IntPtr lParam)

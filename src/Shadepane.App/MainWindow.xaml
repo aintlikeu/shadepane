@@ -9,10 +9,13 @@
          Системные кнопки заменены своими; «Развернуть» отвечает системе как HTMAXBUTTON, чтобы на Windows 11 при наведении
          показывались раскладки Snap (MainWindow.TitleBar.cs). -->
     <WindowChrome.WindowChrome>
-        <WindowChrome CaptionHeight="40" ResizeBorderThickness="6" GlassFrameThickness="0,0,0,1" CornerRadius="0"
-                      UseAeroCaptionButtons="False"/>
+        <!-- Слева, справа и снизу рамка остаётся системной (NonClientFrameEdges): её невидимая полоса для изменения
+             размера лежит снаружи окна и работает и над страницей. Внутри окна её не сделать — там окно WebView2,
+             и движения мыши над ним до заголовка не доходят. Своя только верхняя часть: ResizeBorderThickness — верхний край. -->
+        <WindowChrome CaptionHeight="40" ResizeBorderThickness="6" GlassFrameThickness="0" CornerRadius="0"
+                      NonClientFrameEdges="Left,Right,Bottom" UseAeroCaptionButtons="False"/>
     </WindowChrome.WindowChrome>
-    <DockPanel>
+    <DockPanel x:Name="RootPanel">
         <!-- Строка вкладок = заголовок окна -->
         <Grid x:Name="TitleBar" DockPanel.Dock="Top" Height="40">
             <Grid.ColumnDefinitions>
