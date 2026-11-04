@@ -1,0 +1,49 @@
+<protection:ProtectedWindow x:Class="Shadepane.App.BookmarksWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:protection="clr-namespace:Shadepane.App.Protection"
+        Title="Закладки — Shadepane" Width="860" Height="600" WindowStartupLocation="CenterOwner">
+    <DockPanel Margin="10">
+        <DockPanel DockPanel.Dock="Top" Margin="0,0,0,8">
+            <TextBlock Text="Поиск:" VerticalAlignment="Center"/>
+            <TextBox x:Name="SearchBox" Margin="6,0,0,0" VerticalContentAlignment="Center" TextChanged="SearchBox_TextChanged"/>
+        </DockPanel>
+
+        <!-- Правка выбранной закладки -->
+        <Grid DockPanel.Dock="Bottom" Margin="0,8,0,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+            <TextBlock Text="Название:" VerticalAlignment="Center"/>
+            <TextBox x:Name="TitleBox" Grid.Column="1" Margin="8,0,0,4" VerticalContentAlignment="Center"/>
+            <TextBlock Grid.Row="1" Text="Адрес:" VerticalAlignment="Center"/>
+            <TextBox x:Name="UrlBox" Grid.Row="1" Grid.Column="1" Margin="8,0,0,0" VerticalContentAlignment="Center"/>
+            <TextBlock x:Name="ErrorText" Grid.Row="2" Grid.ColumnSpan="2" Foreground="Firebrick" Margin="0,4,0,0" Visibility="Collapsed"/>
+            <StackPanel Grid.Row="3" Grid.ColumnSpan="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,8,0,0">
+                <Button Content="▲" Width="32" Click="MoveUp_Click" ToolTip="Выше (раньше на панели закладок)"/>
+                <Button Content="▼" Width="32" Margin="4,0,0,0" Click="MoveDown_Click" ToolTip="Ниже"/>
+                <Button Content="Сохранить изменения" Margin="12,0,0,0" Padding="8,2" Click="SaveEdit_Click"/>
+                <Button Content="Открыть" Width="100" Margin="8,0,0,0" Click="Open_Click"/>
+                <Button Content="В новой вкладке" Width="130" Margin="8,0,0,0" Click="OpenInNewTab_Click"/>
+                <Button Content="Удалить" Width="100" Margin="8,0,0,0" Click="Delete_Click"/>
+            </StackPanel>
+        </Grid>
+
+        <ListView x:Name="List" SelectionMode="Single" SelectionChanged="List_SelectionChanged"
+                  MouseDoubleClick="List_MouseDoubleClick" KeyDown="List_KeyDown">
+            <ListView.View>
+                <GridView>
+                    <GridViewColumn Header="Название" Width="360" DisplayMemberBinding="{Binding Title}"/>
+                    <GridViewColumn Header="Адрес" Width="440" DisplayMemberBinding="{Binding Url}"/>
+                </GridView>
+            </ListView.View>
+        </ListView>
+    </DockPanel>
+</protection:ProtectedWindow>

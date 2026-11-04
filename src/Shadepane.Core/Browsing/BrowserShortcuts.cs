@@ -20,6 +20,8 @@ public enum BrowserCommand
     ZoomOut,
     ZoomReset,
     History,
+    ToggleBookmark,
+    BookmarksManager,
 }
 
 /// <param name="TabNumber">Для SelectTab: 1–8 — вкладка по номеру, 9 — последняя.</param>
@@ -50,14 +52,19 @@ public static class BrowserShortcuts
                     case "F": return new(BrowserCommand.Find);
                     case "D0" or "NumPad0": return new(BrowserCommand.ZoomReset);
                     case "H": return new(BrowserCommand.History);
+                    case "D": return new(BrowserCommand.ToggleBookmark);
                 }
                 var number = TabNumber(key);
                 if (number > 0)
                     return new(BrowserCommand.SelectTab, number);
             }
-            else if (key == "Tab")
+            else
             {
-                return new(BrowserCommand.PreviousTab);
+                switch (key)
+                {
+                    case "Tab": return new(BrowserCommand.PreviousTab);
+                    case "O": return new(BrowserCommand.BookmarksManager);
+                }
             }
 
             // Ctrl+= на большинстве раскладок — это OemPlus без Shift; Ctrl+Shift+= тоже приближает.

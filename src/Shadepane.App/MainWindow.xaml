@@ -26,6 +26,8 @@
             <Button x:Name="AddExtensionButton" DockPanel.Dock="Right" Content="+ Расширение…" Margin="6,0,0,0" Padding="8,2"
                     IsEnabled="False" Click="AddExtension_Click" ToolTip="Добавить распакованное расширение (папку с manifest.json)"/>
             <StackPanel x:Name="ExtensionBar" DockPanel.Dock="Right" Orientation="Horizontal" Margin="6,0,0,0"/>
+            <Button x:Name="BookmarkButton" DockPanel.Dock="Right" Content="☆" Width="32" Margin="4,0,0,0" IsEnabled="False"
+                    Click="Bookmark_Click" ToolTip="Добавить в закладки (Ctrl+D)"/>
             <TextBox x:Name="AddressBox" Margin="6,0,0,0" VerticalContentAlignment="Center" IsEnabled="False"
                      KeyDown="AddressBox_KeyDown" GotKeyboardFocus="AddressBox_GotKeyboardFocus"/>
         </DockPanel>

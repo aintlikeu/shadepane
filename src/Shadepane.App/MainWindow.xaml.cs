@@ -33,7 +33,18 @@ public partial class MainWindow : ProtectedWindow, IContentShield
     {
         InitializeComponent();
         Loaded += async (_, _) => await InitializeAsync();
-        Closed += (_, _) => _closed = true;
+        AppServices.Bookmarks.Changed += OnBookmarksChanged;
+        Closed += (_, _) =>
+        {
+            _closed = true;
+            AppServices.Bookmarks.Changed -= OnBookmarksChanged;
+        };
+    }
+
+    private void OnBookmarksChanged()
+    {
+        if (!_closed)
+            RefreshChrome();
     }
 
     public void HideContent()
@@ -328,6 +339,50 @@ public partial class MainWindow : ProtectedWindow, IContentShield
         if (!AddressBox.IsKeyboardFocusWithin)
             AddressBox.Text = tab?.Url == UrlPolicy.AboutBlank ? "" : tab?.Url ?? "";
         Title = tab is null ? ProductName : $"{tab.Title} — {ProductName}";
+
+        var bookmarked = AppServices.Bookmarks.FindByUrl(tab?.Url) is not null;
+        BookmarkButton.IsEnabled = tab is not null && Shadepane.Core.Bookmarks.BookmarkCollection.IsBookmarkable(tab.Url);
+        BookmarkButton.Content = bookmarked ? "★" : "☆";
+        BookmarkButton.ToolTip = bookmarked ? "Удалить из закладок (Ctrl+D)" : "Добавить в закладки (Ctrl+D)";
+    }
+
+    /// <summary>Звёздочка / Ctrl+D: добавить текущую страницу в закладки или убрать её оттуда.</summary>
+    private bool ToggleBookmark()
+    {
+        var tab = _active;
+        if (tab is null || !Shadepane.Core.Bookmarks.BookmarkCollection.IsBookmarkable(tab.Url))
+            return false;
+        var existing = AppServices.Bookmarks.FindByUrl(tab.Url);
+        if (existing is not null)
+        {
+            AppServices.Bookmarks.Remove(existing.Id);
+            SetStatus("Удалено из закладок");
+        }
+        else if (AppServices.Bookmarks.TryAdd(tab.Url, tab.Core?.DocumentTitle, out var error))
+        {
+            SetStatus("Добавлено в закладки");
+        }
+        else
+        {
+            SetStatus($"Не добавлено в закладки: {error}");
+        }
+        return true;
+    }
+
+    private void Bookmark_Click(object sender, RoutedEventArgs e) => ToggleBookmark();
+
+    private BookmarksWindow? _bookmarksWindow;
+
+    private void ShowBookmarksManager()
+    {
+        if (_bookmarksWindow is not null)
+        {
+            _bookmarksWindow.Activate();
+            return;
+        }
+        _bookmarksWindow = new BookmarksWindow(url => { _active?.Navigate(url); Activate(); }, url => _ = OpenNewTabAsync(url)) { Owner = this };
+        _bookmarksWindow.Closed += (_, _) => _bookmarksWindow = null;
+        _bookmarksWindow.Show();
     }
 
     // ---------- Навигация ----------
@@ -469,6 +524,11 @@ public partial class MainWindow : ProtectedWindow, IContentShield
                 return SetZoom(_ => ZoomLevels.Default);
             case BrowserCommand.History:
                 ShowHistory();
+                return true;
+            case BrowserCommand.ToggleBookmark:
+                return ToggleBookmark();
+            case BrowserCommand.BookmarksManager:
+                ShowBookmarksManager();
                 return true;
             case BrowserCommand.Stop:
                 // Esc в адресной строке обрабатывает сама строка (отмена ввода).
