@@ -145,9 +145,9 @@
     "risks": "Риски: задержка сертификации платёжного модуля; перенос анонса возможен не позже 1 декабря.",
     "share": "Показать экран на встрече",
     "refused": "Браузер отклонил запрос на демонстрацию экрана.",
-    "unavailable": "Демонстрация экрана на этой странице недоступна."
+    "unavailable": "Демонстрация экрана доступна только на https или localhost. Для сборки скриншотов — параметр --treat-as-secure (docs/STORE.md)."
   };
-  const en = { "refused": "The browser refused the screen sharing request.", "unavailable": "Screen sharing is not available on this page." };
+  const en = { "refused": "The browser refused the screen sharing request.", "unavailable": "Screen sharing works only on https or localhost. For the screenshot build, use --treat-as-secure (docs/STORE.md)." };
   // По умолчанию английский; русская версия — ?lang=ru.
   const lang = new URLSearchParams(location.search).get("lang") === "ru" ? "ru" : "en";
   const t = lang === "ru" ? ru : en;
