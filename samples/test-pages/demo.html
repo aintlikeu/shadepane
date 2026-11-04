@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>План релиза 2.4 — Wiki</title>
+<!--
+  Демо-страница для скриншотов карточки Microsoft Store (docs/STORE.md). Все данные вымышленные.
+  Язык — по языку браузера (у Shadepane — язык интерфейса) или ?lang=en / ?lang=ru.
+  Тема — prefers-color-scheme, то есть как у Shadepane. Внешних ресурсов нет.
+-->
+<style>
+  :root {
+    --bg: #ffffff; --side: #f4f6f8; --fg: #17212b; --muted: #5d6b78; --line: #dde3e8;
+    --head: #f3f6f8; --accent: #0a6a98; --tag-bg: #fdecea; --tag-fg: #8c1d18; --ok: #1f7a4d; --warn: #8a5a00;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #151a1f; --side: #1b2128; --fg: #e4e9ee; --muted: #9aa6b2; --line: #2f3943;
+      --head: #1e252c; --accent: #6cc4ec; --tag-bg: #3a1c1a; --tag-fg: #f2b8b5; --ok: #6fd3a0; --warn: #f2c66d;
+      color-scheme: dark;
+    }
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  /* Полоса боковой панели нарисована фоном страницы: доходит до низа окна при любой высоте содержимого. */
+  html { background: var(--bg) linear-gradient(to right, var(--side) 240px, var(--line) 240px, var(--line) 241px, transparent 241px) repeat-y; }
+  body { margin: 0; color: var(--fg); font: 15px/1.6 "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif; }
+  .layout { display: grid; grid-template-columns: 240px minmax(0, 1fr); min-height: 100%; }
+  nav { padding: 24px 16px; font-size: 14px; }
+  .brand { display: flex; align-items: center; gap: 10px; font-weight: 600; margin-bottom: 24px; }
+  .brand span:first-child { width: 28px; height: 28px; border-radius: 7px; background: #2e7a58; color: #fff; display: grid; place-items: center; font-weight: 700; }
+  nav h3 { margin: 20px 0 6px; font-size: 12px; color: var(--muted); font-weight: 600; }
+  nav a { display: block; padding: 5px 10px; border-radius: 6px; color: var(--fg); text-decoration: none; }
+  nav a.active { background: var(--line); font-weight: 600; }
+  main { padding: 36px 56px 56px; max-width: 980px; }
+  .crumbs { font-size: 13px; color: var(--muted); }
+  h1 { margin: 6px 0 4px; font-size: 32px; font-weight: 600; letter-spacing: -0.01em; }
+  .meta { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; font-size: 13px; color: var(--muted); }
+  .tag { background: var(--tag-bg); color: var(--tag-fg); border-radius: 999px; padding: 2px 10px; font-weight: 600; }
+  p { max-width: 70ch; }
+  table { width: 100%; border-collapse: collapse; margin: 18px 0 28px; font-size: 14px; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+  th, td { text-align: left; padding: 10px 14px; border-top: 1px solid var(--line); }
+  th { background: var(--head); color: var(--muted); font-weight: 600; border-top: 0; }
+  .status-ok { color: var(--ok); font-weight: 600; }
+  .status-warn { color: var(--warn); font-weight: 600; }
+  .cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin: 8px 0 28px; }
+  .card { border: 1px solid var(--line); border-radius: 10px; padding: 16px; }
+  .card .label { font-size: 13px; color: var(--muted); }
+  .card .value { font-size: 24px; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .share { margin-top: 8px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; font-size: 14px; }
+  button { font: inherit; padding: 7px 14px; border-radius: 6px; border: 1px solid var(--line); background: var(--head); color: var(--fg); cursor: pointer; }
+  #share-result { color: var(--muted); }
+  @media (max-width: 800px) { html { background: var(--bg); } .layout { grid-template-columns: 1fr; } nav { display: none; } main { padding: 24px; } .cards { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<div class="layout">
+  <nav>
+    <div class="brand"><span>W</span><span data-t="wiki">Внутренняя wiki</span></div>
+    <h3 data-t="nav-product">Продукт</h3>
+    <a href="#" data-t="nav-roadmap">Дорожная карта</a>
+    <a href="#" class="active" data-t="nav-releases">Релизы</a>
+    <a href="#" data-t="nav-pricing">Цены и тарифы</a>
+    <h3 data-t="nav-teams">Команды</h3>
+    <a href="#" data-t="nav-platform">Платформа</a>
+    <a href="#" data-t="nav-sales">Продажи</a>
+    <a href="#" data-t="nav-support">Поддержка</a>
+  </nav>
+  <main>
+    <div class="crumbs" data-t="crumbs">Wiki / Продукт / Релизы</div>
+    <h1 data-t="title">План релиза 2.4</h1>
+    <div class="meta">
+      <span data-t="updated">Обновлено 2 ноября, команда платформы</span>
+      <span class="tag" data-t="confidential">Конфиденциально — только для сотрудников</span>
+    </div>
+
+    <p data-t="intro">Релиз выходит двумя волнами. Первая волна получает новый биллинг и отчёты для партнёров,
+      вторая — миграцию старых аккаунтов. Цены и названия партнёров до публикации не выносим за пределы этой страницы.</p>
+
+    <div class="cards">
+      <div class="card"><div class="label" data-t="budget">Бюджет релиза</div><div class="value" data-t="budget-v">48,6 млн ₽</div></div>
+      <div class="card"><div class="label" data-t="partners">Партнёры первой волны</div><div class="value">12</div></div>
+      <div class="card"><div class="label" data-t="price">Новый тариф «Бизнес»</div><div class="value" data-t="price-v">2 490 ₽/мес</div></div>
+    </div>
+
+    <table>
+      <thead><tr><th data-t="th-stage">Этап</th><th data-t="th-date">Срок</th><th data-t="th-owner">Ответственный</th><th data-t="th-status">Статус</th></tr></thead>
+      <tbody>
+        <tr><td data-t="s1">Заморозка кода</td><td data-t="d1">14 ноября</td><td data-t="o1">А. Ветрова</td><td class="status-ok" data-t="st-done">Готово</td></tr>
+        <tr><td data-t="s2">Первая волна: биллинг и отчёты</td><td data-t="d2">21 ноября</td><td data-t="o2">М. Орлов</td><td class="status-warn" data-t="st-progress">В работе</td></tr>
+        <tr><td data-t="s3">Вторая волна: миграция аккаунтов</td><td data-t="d3">5 декабря</td><td data-t="o3">Е. Лисицына</td><td data-t="st-planned">Запланировано</td></tr>
+        <tr><td data-t="s4">Публичный анонс</td><td data-t="d4">12 декабря</td><td data-t="o4">Д. Карпов</td><td data-t="st-planned">Запланировано</td></tr>
+      </tbody>
+    </table>
+
+    <p data-t="risks">Риски: задержка сертификации платёжного модуля; перенос анонса возможен не позже 1 декабря.</p>
+
+    <div class="share">
+      <button id="share" type="button" data-t="share">Показать экран на встрече</button>
+      <span id="share-result" aria-live="polite"></span>
+    </div>
+  </main>
+</div>
+<script>
+  const en = {
+    "wiki": "Internal wiki", "nav-product": "Product", "nav-roadmap": "Roadmap", "nav-releases": "Releases",
+    "nav-pricing": "Pricing and plans", "nav-teams": "Teams", "nav-platform": "Platform", "nav-sales": "Sales",
+    "nav-support": "Support", "crumbs": "Wiki / Product / Releases", "title": "Release 2.4 plan",
+    "updated": "Updated November 2 by the platform team", "confidential": "Confidential — employees only",
+    "intro": "The release ships in two waves. The first wave gets the new billing and partner reports, the second migrates legacy accounts. Prices and partner names stay on this page until the announcement.",
+    "budget": "Release budget", "budget-v": "$620,000", "partners": "First-wave partners", "price": "New Business plan",
+    "price-v": "$29/month", "th-stage": "Stage", "th-date": "Date", "th-owner": "Owner", "th-status": "Status",
+    "s1": "Code freeze", "d1": "November 14", "o1": "A. Vetrova", "s2": "Wave 1: billing and reports", "d2": "November 21",
+    "o2": "M. Orlov", "s3": "Wave 2: account migration", "d3": "December 5", "o3": "E. Lisitsyna", "s4": "Public announcement",
+    "d4": "December 12", "o4": "D. Karpov", "st-done": "Done", "st-progress": "In progress", "st-planned": "Planned",
+    "risks": "Risks: payment module certification may slip; the announcement can move no later than December 1.",
+    "share": "Share screen in a meeting", "refused": "The browser refused the screen sharing request.",
+    "unavailable": "Screen sharing is not available on this page."
+  };
+  const ru = { "refused": "Браузер отклонил запрос на демонстрацию экрана.", "unavailable": "Демонстрация экрана на этой странице недоступна." };
+  const param = new URLSearchParams(location.search).get("lang");
+  const lang = param || (navigator.language || "ru").slice(0, 2);
+  const t = lang === "en" ? en : ru;
+  if (lang === "en") {
+    document.documentElement.lang = "en";
+    document.title = "Release 2.4 plan — Wiki";
+    document.querySelectorAll("[data-t]").forEach(el => { const v = en[el.dataset.t]; if (v) el.textContent = v; });
+  }
+  // Для кадра «Захват экрана отклонён»: Shadepane отклоняет запрос и на 4 секунды показывает это в адресной строке.
+  document.getElementById("share").addEventListener("click", async () => {
+    const out = document.getElementById("share-result");
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) { out.textContent = t.unavailable; return; }
+    try {
+      const stream = await navigator.mediaDevices.getDisplayMedia({ video: true });
+      stream.getTracks().forEach(track => track.stop());
+    } catch (e) {
+      out.textContent = t.refused;
+    }
+  });
+</script>
+</body>
+</html>
