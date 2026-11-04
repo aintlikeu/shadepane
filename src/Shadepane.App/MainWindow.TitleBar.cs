@@ -1,3 +1,4 @@
+using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Interop;
@@ -39,7 +40,38 @@ public partial class MainWindow
         UpdateMaximizeButton();
         UpdateMaximizedInset();
         UpdateTitleIcon();
+#if SCREENSHOTS
+        ContentRendered += (_, _) => ApplyScreenshotWindowSize();
+#endif
     }
+
+#if SCREENSHOTS
+    /// <summary>
+    /// Сборка для скриншотов Store: --window-size=1920x1080 ставит окно в левый верхний угол так, что ВИДИМАЯ часть
+    /// окна ровно такого размера в физических пикселях. Само окно больше на невидимые полосы рамки (слева, справа,
+    /// снизу), поэтому размер считается по видимым границам от DWM (DWMWA_EXTENDED_FRAME_BOUNDS).
+    /// </summary>
+    private void ApplyScreenshotWindowSize()
+    {
+        var arg = Environment.GetCommandLineArgs().FirstOrDefault(a => a.StartsWith("--window-size=", StringComparison.OrdinalIgnoreCase));
+        var parts = arg?["--window-size=".Length..].Split('x', 'X');
+        if (parts is not [var w, var h] || !int.TryParse(w, out var width) || !int.TryParse(h, out var height) || width < 400 || height < 300)
+            return;
+        var hwnd = new WindowInteropHelper(this).Handle;
+        if (WindowState != WindowState.Normal)
+            WindowState = WindowState.Normal;
+        if (!NativeMethods.GetWindowRect(hwnd, out var outer) ||
+            NativeMethods.DwmGetWindowAttribute(hwnd, NativeMethods.DWMWA_EXTENDED_FRAME_BOUNDS, out var visible, Marshal.SizeOf<NativeMethods.RECT>()) != 0)
+            return;
+        var left = visible.Left - outer.Left;     // невидимые полосы рамки
+        var right = outer.Right - visible.Right;
+        var top = visible.Top - outer.Top;
+        var bottom = outer.Bottom - visible.Bottom;
+        NativeMethods.SetWindowPos(hwnd, IntPtr.Zero, -left, -top, width + left + right, height + top + bottom,
+            NativeMethods.SWP_NOZORDER | NativeMethods.SWP_NOACTIVATE);
+        AppServices.Audit.Write("screenshot-window-size", new { width, height });
+    }
+#endif
 
     protected override void OnDpiChanged(DpiScale oldDpi, DpiScale newDpi)
     {

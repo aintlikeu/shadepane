@@ -61,6 +61,28 @@ internal static partial class NativeMethods
     [LibraryImport("user32.dll")]
     public static partial uint GetDpiForWindow(IntPtr hwnd);
 
+    // ---------- Точный размер окна для скриншотов (сборка ScreenshotBuild) ----------
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct RECT { public int Left; public int Top; public int Right; public int Bottom; }
+
+    /// <summary>Видимые границы окна, без невидимых полос рамки для изменения размера.</summary>
+    public const int DWMWA_EXTENDED_FRAME_BOUNDS = 9;
+
+    [LibraryImport("dwmapi.dll")]
+    public static partial int DwmGetWindowAttribute(IntPtr hwnd, int dwAttribute, out RECT pvAttribute, int cbAttribute);
+
+    [LibraryImport("user32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static partial bool GetWindowRect(IntPtr hWnd, out RECT lpRect);
+
+    [LibraryImport("user32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static partial bool SetWindowPos(IntPtr hWnd, IntPtr hWndInsertAfter, int x, int y, int cx, int cy, uint uFlags);
+
+    public const uint SWP_NOZORDER = 0x0004;
+    public const uint SWP_NOACTIVATE = 0x0010;
+
     [LibraryImport("user32.dll")]
     public static partial int GetSystemMetricsForDpi(int nIndex, uint dpi);
 
