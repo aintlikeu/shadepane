@@ -23,7 +23,13 @@
 
 1. «Параметры → Система → Для разработчиков» (Windows 10: «Обновление и безопасность → Для разработчиков») →
    **Режим разработчика** — включить.
-2. Скачать артефакт **Shadepane-msix**, распаковать из него `.msix`, затем в PowerShell (обычный пользователь):
+2. Скачать артефакт — он не в репозитории, `git pull` его не приносит. Actions → нужный запуск CI → внизу
+   **Artifacts** → **Shadepane-msix** (нужно войти в GitHub), или через GitHub CLI:
+   ```powershell
+   gh run download <номер запуска> -R aintlikeu/shadepane -n Shadepane-msix -D $env:USERPROFILE\Downloads\Shadepane-msix
+   ```
+   Распаковать скачанный zip, перейти в папку с `.msix` (`cd $env:USERPROFILE\Downloads\Shadepane-msix`)
+   и в PowerShell (обычный пользователь):
    ```powershell
    $msix = (Get-ChildItem Shadepane-*-win-x64.msix | Select-Object -First 1).FullName
    Copy-Item $msix "$env:TEMP\shadepane-msix.zip" -Force
