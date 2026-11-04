@@ -7,14 +7,14 @@ namespace Shadepane.Core.Settings;
 /// Итоговые значения, с которыми работает браузер. Правило приоритета: значение из политики администратора
 /// действует и блокирует настройку (…Locked = true); иначе — настройка пользователя; иначе — по умолчанию.
 /// </summary>
-public sealed record EffectiveConfig(string HomeUrl, bool HomeLocked, SearchEngine SearchEngine)
+public sealed record EffectiveConfig(string HomeUrl, bool HomeLocked, SearchEngine SearchEngine, bool SearchLocked)
 {
     public static EffectiveConfig Resolve(BrowserPolicy policy, UserSettings user)
     {
-        var engine = SearchEngines.Default;
+        var (engine, searchLocked) = ResolveSearch(policy, user);
 
         if (policy.HomeUrl is not null)
-            return new(NormalizeHome(policy.HomeUrl) ?? engine.HomeUrl, true, engine);
+            return new(NormalizeHome(policy.HomeUrl) ?? engine.HomeUrl, true, engine, searchLocked);
 
         var home = user.HomePage switch
         {
@@ -22,7 +22,32 @@ public sealed record EffectiveConfig(string HomeUrl, bool HomeLocked, SearchEngi
             HomePageKind.Custom => NormalizeHome(user.CustomHomeUrl) ?? engine.HomeUrl, // битый адрес — не ломаем запуск
             _ => engine.HomeUrl,
         };
-        return new(home, false, engine);
+        return new(home, false, engine, searchLocked);
+    }
+
+    private static (SearchEngine Engine, bool Locked) ResolveSearch(BrowserPolicy policy, UserSettings user)
+    {
+        // Политика уже проверена (EnsureValid), поэтому её шаблон корректен.
+        if (policy.SearchUrl is not null)
+            return (FromTemplate(policy.SearchUrl), true);
+
+        if (string.Equals(user.SearchEngineId, SearchEngines.CustomId, StringComparison.OrdinalIgnoreCase))
+        {
+            return SearchEngines.TryValidateTemplate(user.CustomSearchUrl, out _)
+                ? (FromTemplate(user.CustomSearchUrl!), false)
+                : (SearchEngines.Default, false); // битый свой шаблон — поисковик по умолчанию
+        }
+        return (SearchEngines.Find(user.SearchEngineId) ?? SearchEngines.Default, false);
+    }
+
+    /// <summary>Готовый поисковик с таким же шаблоном или «свой» с домашней страницей = корнем сайта поиска.</summary>
+    public static SearchEngine FromTemplate(string template)
+    {
+        var preset = SearchEngines.All.FirstOrDefault(e => string.Equals(e.SearchUrl, template, StringComparison.Ordinal));
+        if (preset is not null)
+            return preset;
+        var sample = new Uri(template.Replace(SearchEngines.QueryPlaceholder, "x", StringComparison.Ordinal));
+        return new SearchEngine(SearchEngines.CustomId, sample.Host, template, $"{sample.Scheme}://{sample.Authority}/");
     }
 
     /// <summary>Домашняя страница: about:blank или проверенный http(s)-адрес; иначе null.</summary>

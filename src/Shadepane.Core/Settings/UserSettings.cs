@@ -21,6 +21,10 @@ public sealed record UserSettings
 
     public HomePageKind HomePage { get; init; } = HomePageKind.SearchEngine;
     public string? CustomHomeUrl { get; init; }
+
+    /// <summary>Id готового поисковика (SearchEngines.All) или "custom" — тогда CustomSearchUrl.</summary>
+    public string SearchEngineId { get; init; } = Navigation.SearchEngines.Default.Id;
+    public string? CustomSearchUrl { get; init; }
 }
 
 /// <summary>Файл настроек. Повреждённый или неполный файл не мешает запуску: берутся значения по умолчанию.</summary>

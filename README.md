@@ -68,6 +68,7 @@ Main options:
 | Option | Default | Meaning |
 |---|---|---|
 | `homeUrl` | not set | Home page; when set, users cannot change it (default: the search engine home page) |
+| `searchUrl` | not set | Search template with `{query}` (https); when set, users cannot change the search engine (default: DuckDuckGo) |
 | `protectedHosts` | `[]` | Hosts extensions may not access, e.g. `"*.corp.example"` |
 | `blockedPermissions` | capture, `activeTab`, `tabs`, `history`, `downloads`, … | Extension permissions that are refused |
 | `allowedPermissions` | not set | Allowlist mode: only these extension permissions are accepted |

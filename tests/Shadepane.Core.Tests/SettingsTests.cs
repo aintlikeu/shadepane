@@ -47,6 +47,62 @@ public class EffectiveConfigTests
         Assert.False(EffectiveConfig.Resolve(BrowserPolicy.Parse("{}"), UserSettings.Default).HomeLocked);
 }
 
+public class SearchEngineChoiceTests
+{
+    [Fact]
+    public void Default_IsDuckDuckGo_Unlocked()
+    {
+        var c = EffectiveConfig.Resolve(BrowserPolicy.Default, UserSettings.Default);
+        Assert.Equal("duckduckgo", c.SearchEngine.Id);
+        Assert.False(c.SearchLocked);
+    }
+
+    [Fact]
+    public void User_Preset_AlsoDrivesSearchEngineHome()
+    {
+        var c = EffectiveConfig.Resolve(BrowserPolicy.Default, new UserSettings { SearchEngineId = "startpage" });
+        Assert.Equal("startpage", c.SearchEngine.Id);
+        Assert.Equal("https://www.startpage.com/", c.HomeUrl);
+    }
+
+    [Fact]
+    public void User_UnknownPreset_FallsBackToDefault() =>
+        Assert.Equal("duckduckgo", EffectiveConfig.Resolve(BrowserPolicy.Default, new UserSettings { SearchEngineId = "nope" }).SearchEngine.Id);
+
+    [Fact]
+    public void User_CustomTemplate()
+    {
+        var c = EffectiveConfig.Resolve(BrowserPolicy.Default,
+            new UserSettings { SearchEngineId = "custom", CustomSearchUrl = "https://search.example/s?q={query}" });
+        Assert.Equal("custom", c.SearchEngine.Id);
+        Assert.Equal("https://search.example/s?q={query}", c.SearchEngine.SearchUrl);
+        Assert.Equal("https://search.example/", c.HomeUrl);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("http://search.example/?q={query}")]
+    [InlineData("https://{query}/")]
+    public void User_BadCustomTemplate_FallsBackToDefault(string? template) =>
+        Assert.Equal("duckduckgo", EffectiveConfig.Resolve(BrowserPolicy.Default,
+            new UserSettings { SearchEngineId = "custom", CustomSearchUrl = template }).SearchEngine.Id);
+
+    [Fact]
+    public void Policy_SearchUrl_WinsAndLocks_PresetIsRecognized()
+    {
+        var policy = BrowserPolicy.Parse("""{ "searchUrl": "https://www.bing.com/search?q={query}" }""");
+        var c = EffectiveConfig.Resolve(policy, new UserSettings { SearchEngineId = "google" });
+        Assert.Equal("bing", c.SearchEngine.Id);
+        Assert.True(c.SearchLocked);
+    }
+
+    [Theory]
+    [InlineData("""{ "searchUrl": "http://search.example/?q={query}" }""")]
+    [InlineData("""{ "searchUrl": "https://search.example/" }""")]
+    public void Policy_BadSearchUrl_IsRejected(string json) =>
+        Assert.Throws<PolicyException>(() => BrowserPolicy.Parse(json));
+}
+
 public class UserSettingsStoreTests
 {
     [Fact]

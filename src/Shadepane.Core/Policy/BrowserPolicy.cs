@@ -42,6 +42,9 @@ public sealed class BrowserPolicy
     /// <summary>Домашняя страница. Задана — действует и блокирует настройку пользователя; null — решает пользователь.</summary>
     public string? HomeUrl { get; init; }
 
+    /// <summary>Шаблон поиска с {query} (https). Задан — действует и блокирует выбор поисковика пользователем.</summary>
+    public string? SearchUrl { get; init; }
+
     /// <summary>Домены, к которым расширениям запрещён любой доступ: "crm.corp.example", "*.corp.example".</summary>
     public IReadOnlyList<string> ProtectedHosts { get; init; } = [];
 
@@ -106,6 +109,8 @@ public sealed class BrowserPolicy
         _ = ProtectedHostPatterns;
         if (HomeUrl is not null && HomeUrl != UrlPolicy.AboutBlank && !UrlPolicy.TryNormalizeUserInput(HomeUrl, out _, out var error))
             throw new PolicyException($"homeUrl: {error}");
+        if (SearchUrl is not null && !SearchEngines.TryValidateTemplate(SearchUrl, out var searchError))
+            throw new PolicyException($"searchUrl: {searchError}");
         return this;
     }
 
