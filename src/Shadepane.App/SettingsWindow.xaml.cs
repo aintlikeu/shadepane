@@ -29,6 +29,22 @@ public partial class SettingsWindow : ProtectedWindow
         SearchEngineBox.Items.Add(new EngineItem(SearchEngines.CustomId, Loc.T("Свой шаблон…", "Custom template…")));
 
         Load(AppServices.Settings, AppServices.Config);
+
+        // Тему показываем сразу при выборе; закрыли без «Сохранить» (Отмена, крестик, Esc) — возвращаем сохранённую.
+        Closed += (_, _) =>
+        {
+            if (DialogResult != true)
+                Appearance.ThemeService.Refresh();
+        };
+    }
+
+    private AppTheme SelectedTheme =>
+        ThemeLight.IsChecked == true ? AppTheme.Light : ThemeDark.IsChecked == true ? AppTheme.Dark : AppTheme.System;
+
+    private void Theme_Checked(object sender, RoutedEventArgs e)
+    {
+        if (IsLoaded)
+            Appearance.ThemeService.Preview(SelectedTheme);
     }
 
     private void Load(UserSettings settings, EffectiveConfig config)
@@ -80,6 +96,8 @@ public partial class SettingsWindow : ProtectedWindow
         HomeUrlBox.IsEnabled = !config.HomeLocked && HomeCustom.IsChecked == true;
         var custom = (SearchEngineBox.SelectedItem as EngineItem)?.Id == SearchEngines.CustomId;
         CustomSearchBox.IsEnabled = !config.SearchLocked && custom;
+        // Поле своего шаблона и подсказка — только когда выбран «Свой шаблон…».
+        CustomSearchBox.Visibility = custom ? Visibility.Visible : Visibility.Collapsed;
         CustomSearchHint.Visibility = custom ? Visibility.Visible : Visibility.Collapsed;
     }
 
@@ -143,7 +161,7 @@ public partial class SettingsWindow : ProtectedWindow
                 ShowBookmarksBar = ShowBookmarksBarBox.IsChecked == true,
                 AllowDownloads = AppServices.Config.DownloadsLocked ? current.AllowDownloads : AllowDownloadsBox.IsChecked == true,
                 CheckForUpdates = AppServices.Config.UpdatesLocked ? current.CheckForUpdates : CheckUpdatesBox.IsChecked == true,
-                Theme = ThemeLight.IsChecked == true ? AppTheme.Light : ThemeDark.IsChecked == true ? AppTheme.Dark : AppTheme.System,
+                Theme = SelectedTheme,
                 Language = LanguageRussian.IsChecked == true ? AppLanguage.Russian : LanguageEnglish.IsChecked == true ? AppLanguage.English : AppLanguage.System,
             };
             AppServices.UpdateSettings(updated);

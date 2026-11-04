@@ -45,9 +45,9 @@
 
         <GroupBox Header="{l:Tr Ru='Оформление', En='Appearance'}" Padding="8" Margin="0,10,0,0">
             <StackPanel Orientation="Horizontal">
-                <RadioButton x:Name="ThemeSystem" Content="{l:Tr Ru='Как в Windows', En='Same as Windows'}" GroupName="Theme"/>
-                <RadioButton x:Name="ThemeLight" Content="{l:Tr Ru='Светлое', En='Light'}" GroupName="Theme" Margin="16,0,0,0"/>
-                <RadioButton x:Name="ThemeDark" Content="{l:Tr Ru='Тёмное', En='Dark'}" GroupName="Theme" Margin="16,0,0,0"/>
+                <RadioButton x:Name="ThemeSystem" Content="{l:Tr Ru='Как в Windows', En='Same as Windows'}" GroupName="Theme" Checked="Theme_Checked"/>
+                <RadioButton x:Name="ThemeLight" Content="{l:Tr Ru='Светлое', En='Light'}" GroupName="Theme" Margin="16,0,0,0" Checked="Theme_Checked"/>
+                <RadioButton x:Name="ThemeDark" Content="{l:Tr Ru='Тёмное', En='Dark'}" GroupName="Theme" Margin="16,0,0,0" Checked="Theme_Checked"/>
             </StackPanel>
         </GroupBox>
 

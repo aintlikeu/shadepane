@@ -276,7 +276,7 @@ public partial class MainWindow : ProtectedWindow, IContentShield
             return;
         try
         {
-            _profile.PreferredColorScheme = AppServices.Settings.Theme switch
+            _profile.PreferredColorScheme = Appearance.ThemeService.Choice switch
             {
                 Shadepane.Core.Settings.AppTheme.Light => CoreWebView2PreferredColorScheme.Light,
                 Shadepane.Core.Settings.AppTheme.Dark => CoreWebView2PreferredColorScheme.Dark,
