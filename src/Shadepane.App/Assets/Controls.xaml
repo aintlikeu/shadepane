@@ -152,11 +152,78 @@
 
     <!-- Стандартные стили этих элементов жёстко задают системный чёрный цвет текста (SystemColors.ControlText)
          и не наследуют цвет окна — в тёмной теме подписи были бы чёрными на тёмном. -->
+    <!-- Флажок в стиле Windows 11: скруглённый квадрат; отмеченный — акцентный с белой галочкой. Свой шаблон, потому что
+         стандартный рисует белый квадрат и в тёмной теме выглядит чужим. -->
     <Style TargetType="CheckBox">
         <Setter Property="Foreground" Value="{DynamicResource Brush.Ink}"/>
+        <Setter Property="FocusVisualStyle" Value="{StaticResource FocusRing}"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="CheckBox">
+                    <Grid Background="Transparent">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Border x:Name="Box" Width="18" Height="18" CornerRadius="4" BorderThickness="1.5" VerticalAlignment="Center"
+                                Background="{DynamicResource Brush.Control}" BorderBrush="{DynamicResource Brush.ControlBorder}" SnapsToDevicePixels="True">
+                            <Path x:Name="Mark" Data="M3.6 8.6 6.6 11.6 12.4 5.6" Stroke="{DynamicResource Brush.OnAccent}" StrokeThickness="2"
+                                  StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Visibility="Collapsed"/>
+                        </Border>
+                        <ContentPresenter Grid.Column="1" Margin="8,0,0,0" VerticalAlignment="Center" RecognizesAccessKey="True"/>
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Box" Property="BorderBrush" Value="{DynamicResource Brush.Muted}"/>
+                        </Trigger>
+                        <Trigger Property="IsChecked" Value="True">
+                            <Setter TargetName="Box" Property="Background" Value="{DynamicResource Brush.AccentStrong}"/>
+                            <Setter TargetName="Box" Property="BorderBrush" Value="{DynamicResource Brush.AccentStrong}"/>
+                            <Setter TargetName="Mark" Property="Visibility" Value="Visible"/>
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Opacity" Value="0.5"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
     </Style>
+
+    <!-- Переключатель в стиле Windows 11: пустое кольцо; выбранный — акцентный круг с белой точкой. -->
     <Style TargetType="RadioButton">
         <Setter Property="Foreground" Value="{DynamicResource Brush.Ink}"/>
+        <Setter Property="FocusVisualStyle" Value="{StaticResource FocusRing}"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="RadioButton">
+                    <Grid Background="Transparent">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Grid Width="18" Height="18" VerticalAlignment="Center">
+                            <Ellipse x:Name="Ring" StrokeThickness="1.5" Fill="{DynamicResource Brush.Control}" Stroke="{DynamicResource Brush.ControlBorder}"/>
+                            <Ellipse x:Name="Dot" Width="8" Height="8" Fill="{DynamicResource Brush.OnAccent}" Visibility="Collapsed"/>
+                        </Grid>
+                        <ContentPresenter Grid.Column="1" Margin="8,0,0,0" VerticalAlignment="Center" RecognizesAccessKey="True"/>
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Ring" Property="Stroke" Value="{DynamicResource Brush.Muted}"/>
+                        </Trigger>
+                        <Trigger Property="IsChecked" Value="True">
+                            <Setter TargetName="Ring" Property="Fill" Value="{DynamicResource Brush.AccentStrong}"/>
+                            <Setter TargetName="Ring" Property="Stroke" Value="{DynamicResource Brush.AccentStrong}"/>
+                            <Setter TargetName="Dot" Property="Visibility" Value="Visible"/>
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Opacity" Value="0.5"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
     </Style>
     <Style TargetType="Label">
         <Setter Property="Foreground" Value="{DynamicResource Brush.Ink}"/>
