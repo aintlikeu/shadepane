@@ -39,7 +39,8 @@ public sealed class BrowserPolicy
 
     public static BrowserPolicy Default { get; } = new();
 
-    public string HomeUrl { get; init; } = "about:blank";
+    /// <summary>Домашняя страница. Задана — действует и блокирует настройку пользователя; null — решает пользователь.</summary>
+    public string? HomeUrl { get; init; }
 
     /// <summary>Домены, к которым расширениям запрещён любой доступ: "crm.corp.example", "*.corp.example".</summary>
     public IReadOnlyList<string> ProtectedHosts { get; init; } = [];
@@ -103,7 +104,7 @@ public sealed class BrowserPolicy
                 throw new PolicyException($"право '{conflict}' одновременно в allowedPermissions и blockedPermissions");
         }
         _ = ProtectedHostPatterns;
-        if (HomeUrl != "about:blank" && !UrlPolicy.TryNormalizeUserInput(HomeUrl, out _, out var error))
+        if (HomeUrl is not null && HomeUrl != UrlPolicy.AboutBlank && !UrlPolicy.TryNormalizeUserInput(HomeUrl, out _, out var error))
             throw new PolicyException($"homeUrl: {error}");
         return this;
     }

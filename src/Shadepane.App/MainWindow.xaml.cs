@@ -67,7 +67,7 @@ public partial class MainWindow : ProtectedWindow, IContentShield
             RebuildExtensionBar();
 
             stage = "navigate-home";
-            AddressBox.IsEnabled = ReloadButton.IsEnabled = AddExtensionButton.IsEnabled = NewTabButton.IsEnabled = true;
+            AddressBox.IsEnabled = ReloadButton.IsEnabled = HomeButton.IsEnabled = AddExtensionButton.IsEnabled = NewTabButton.IsEnabled = true;
             NavigateHome(first);
         }
         catch (WebView2RuntimeNotFoundException)
@@ -330,14 +330,8 @@ public partial class MainWindow : ProtectedWindow, IContentShield
 
     // ---------- Навигация ----------
 
-    private void NavigateHome(BrowserTab tab)
-    {
-        var home = AppServices.Policy.HomeUrl;
-        if (home == UrlPolicy.AboutBlank)
-            tab.Navigate(UrlPolicy.AboutBlank);
-        else if (UrlPolicy.TryNormalizeUserInput(home, out var uri, out _))
-            tab.Navigate(uri!.AbsoluteUri);
-    }
+    /// <summary>Домашняя страница: из политики (если задана), иначе из настроек; уже проверена в EffectiveConfig.</summary>
+    private static void NavigateHome(BrowserTab tab) => tab.Navigate(AppServices.Config.HomeUrl);
 
     /// <summary>Адрес — открыть; слова — искать в выбранном поисковике; опасные схемы — отказ.</summary>
     private void NavigateFromInput(string input)
@@ -631,6 +625,7 @@ public partial class MainWindow : ProtectedWindow, IContentShield
     private void Back_Click(object sender, RoutedEventArgs e) => _active?.Core?.GoBack();
     private void Forward_Click(object sender, RoutedEventArgs e) => _active?.Core?.GoForward();
     private void Reload_Click(object sender, RoutedEventArgs e) => _active?.Core?.Reload();
+    private void Home_Click(object sender, RoutedEventArgs e) { if (_active is not null) NavigateHome(_active); }
 
     // ---------- Расширения ----------
 

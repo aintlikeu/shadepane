@@ -1,7 +1,8 @@
 {
   // Пример корпоративной политики. Как установить её так, чтобы сотрудник не мог её изменить,
   // см. README.md, раздел «Политика».
-  "homeUrl": "https://example.com",
+  // Домашняя страница. Если задана — действует и БЛОКИРУЕТ настройку пользователя.
+  // "homeUrl": "https://intranet.corp.example",
   "protectedHosts": ["*.corp.example", "crm.partner.example"],
   "blockedPermissions": [
     "tabCapture", "desktopCapture", "pageCapture", "debugger", "activeTab", "downloads",

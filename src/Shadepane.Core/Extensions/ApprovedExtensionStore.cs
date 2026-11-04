@@ -39,12 +39,6 @@ public sealed class ApprovedExtensionStore(string filePath)
         }
     }
 
-    /// <summary>Атомарная запись: временный файл + переименование, чтобы сбой не оставил полфайла.</summary>
-    public void Save(IEnumerable<ApprovedExtension> items)
-    {
-        Directory.CreateDirectory(Path.GetDirectoryName(FilePath)!);
-        var tmp = FilePath + ".tmp";
-        File.WriteAllText(tmp, JsonSerializer.Serialize(items.ToList(), JsonOptions));
-        File.Move(tmp, FilePath, overwrite: true);
-    }
+    public void Save(IEnumerable<ApprovedExtension> items) =>
+        IO.AtomicFile.WriteAllText(FilePath, JsonSerializer.Serialize(items.ToList(), JsonOptions));
 }
