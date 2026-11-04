@@ -11,6 +11,8 @@ Shadepane keeps the following only on your computer, in `%LOCALAPPDATA%\Shadepan
 version, inside the app's package folder):
 
 - settings, bookmarks and browsing history (history can be turned off and cleared in settings);
+- icons of bookmarked sites, taken from the pages you open (Shadepane never downloads them separately) and deleted
+  together with the last bookmark of a site;
 - cookies, cache and site data of the browser engine;
 - installed extensions;
 - a security log (`audit.log`) with protection events, such as blocked navigations, blocked screen capture
@@ -48,6 +50,8 @@ Shadepane — браузер для Windows, издатель Quietglass. В н�
 В папке `%LOCALAPPDATA%\Shadepane` (у версии из Microsoft Store — в папке пакета приложения):
 
 - настройки, закладки и история посещений (историю можно отключить и очистить в настройках);
+- значки сайтов из закладок: берутся у открытых вами страниц (отдельно Shadepane их не скачивает) и удаляются
+  вместе с последней закладкой сайта;
 - cookie, кэш и данные сайтов движка браузера;
 - установленные расширения;
 - журнал защиты (`audit.log`): заблокированные переходы, отклонённые запросы захвата экрана, проверки расширений.

@@ -29,6 +29,9 @@ internal static class AppServices
 
     public static Browser.BookmarkService Bookmarks { get; private set; } = null!;
 
+    /// <summary>Значки сайтов из закладок (панель закладок).</summary>
+    public static Browser.FaviconService Favicons { get; private set; } = null!;
+
     public static Browser.DownloadService Downloads { get; } = new();
 
     public static Updates.UpdateService Updates { get; } = new();
@@ -54,6 +57,7 @@ internal static class AppServices
         Config = EffectiveConfig.Resolve(policy, Settings);
         History = new Browser.HistoryService(AppPaths.History);
         Bookmarks = new Browser.BookmarkService(AppPaths.Bookmarks);
+        Favicons = new Browser.FaviconService(AppPaths.Favicons);
     }
 
     /// <summary>Сохраняет настройки пользователя и пересчитывает итоговые значения.</summary>
@@ -78,4 +82,5 @@ internal static class AppPaths
     public static string UserSettings => Path.Combine(DataRoot, "settings.json");
     public static string History => Path.Combine(DataRoot, "history.json");
     public static string Bookmarks => Path.Combine(DataRoot, "bookmarks.json");
+    public static string Favicons => Path.Combine(DataRoot, "favicons");
 }

@@ -51,6 +51,9 @@ internal sealed class BrowserTab
     /// <summary>Сообщение для строки состояния (например, переход заблокирован политикой).</summary>
     public event Action<BrowserTab, string>? Status;
 
+    /// <summary>У страницы появился или сменился значок (для значков на панели закладок).</summary>
+    public event Action<BrowserTab>? FaviconChanged;
+
     /// <summary>Завершилась навигация верхнего уровня; bool — успешно ли (для истории).</summary>
     public event Action<BrowserTab, bool>? NavigationCompleted;
 
@@ -88,6 +91,7 @@ internal sealed class BrowserTab
         core.DocumentTitleChanged += (_, _) => Changed?.Invoke(this);
         core.HistoryChanged += (_, _) => Changed?.Invoke(this);
         core.WindowCloseRequested += (_, _) => CloseRequested?.Invoke(this);
+        core.FaviconChanged += (_, _) => FaviconChanged?.Invoke(this);
 
         Core = core;
     }

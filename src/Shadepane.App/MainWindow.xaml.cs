@@ -37,6 +37,7 @@ public partial class MainWindow : ProtectedWindow, IContentShield
         InitializeComponent();
         Loaded += async (_, _) => await InitializeAsync();
         AppServices.Bookmarks.Changed += OnBookmarksChanged;
+        AppServices.Favicons.Changed += OnFaviconsChanged;
         AppServices.ConfigChanged += OnConfigChanged;
         AppServices.Downloads.Started += OnDownloadStarted;
         AppServices.Downloads.Finished += OnDownloadFinished;
@@ -52,6 +53,7 @@ public partial class MainWindow : ProtectedWindow, IContentShield
             WebViewHardening.ProtectedContentChanged -= OnProtectedContentChanged;
             _captureFlashTimer?.Stop();
             AppServices.Bookmarks.Changed -= OnBookmarksChanged;
+            AppServices.Favicons.Changed -= OnFaviconsChanged;
             AppServices.ConfigChanged -= OnConfigChanged;
             AppServices.Downloads.Started -= OnDownloadStarted;
             AppServices.Downloads.Finished -= OnDownloadFinished;
@@ -65,6 +67,12 @@ public partial class MainWindow : ProtectedWindow, IContentShield
             return;
         RefreshChrome();
         RebuildBookmarksBar();
+    }
+
+    private void OnFaviconsChanged()
+    {
+        if (!_closed)
+            RebuildBookmarksBar();
     }
 
     private void OnDownloadStarted(DownloadItem item)
@@ -205,7 +213,7 @@ public partial class MainWindow : ProtectedWindow, IContentShield
             var button = new Button
             {
                 Style = (Style)FindResource("ToolbarTextButton"),
-                Content = new TextBlock { Text = bookmark.Title, MaxWidth = 160, TextTrimming = TextTrimming.CharacterEllipsis },
+                Content = BookmarkLabel(bookmark),
                 ToolTip = $"{bookmark.Title}\n{bookmark.Url}",
                 Margin = new Thickness(0, 0, 2, 0),
                 Focusable = false,
@@ -296,6 +304,62 @@ public partial class MainWindow : ProtectedWindow, IContentShield
             return; // закладку удалили, пока её тащили
         var (slot, _) = BookmarkDropSlot(e.GetPosition(BookmarksBarItems));
         AppServices.Bookmarks.Move(id, Shadepane.Core.Bookmarks.BookmarkCollection.DropIndex(from, slot)); // Changed перестроит панель
+    }
+
+    /// <summary>Значок сайта (или его первая буква, пока значка нет) и название закладки.</summary>
+    private static StackPanel BookmarkLabel(Shadepane.Core.Bookmarks.Bookmark bookmark)
+    {
+        var label = new StackPanel { Orientation = Orientation.Horizontal };
+        label.Children.Add(FaviconImage(bookmark.Url));
+        label.Children.Add(new TextBlock
+        {
+            Text = bookmark.Title,
+            MaxWidth = 160,
+            Margin = new Thickness(6, 0, 0, 0),
+            TextTrimming = TextTrimming.CharacterEllipsis,
+            VerticalAlignment = VerticalAlignment.Center,
+        });
+        return label;
+    }
+
+    private static FrameworkElement FaviconImage(string url)
+    {
+        if (AppServices.Favicons.PathFor(url) is { } path)
+        {
+            try
+            {
+                var bitmap = new BitmapImage();
+                bitmap.BeginInit();
+                bitmap.CacheOption = BitmapCacheOption.OnLoad; // не держать файл открытым: его перезаписывают
+                bitmap.CreateOptions = BitmapCreateOptions.IgnoreImageCache;
+                bitmap.DecodePixelWidth = 32; // чётко и при масштабе 200%
+                bitmap.UriSource = new Uri(path);
+                bitmap.EndInit();
+                bitmap.Freeze();
+                var image = new Image { Source = bitmap, Width = 16, Height = 16, VerticalAlignment = VerticalAlignment.Center };
+                RenderOptions.SetBitmapScalingMode(image, BitmapScalingMode.HighQuality);
+                return image;
+            }
+            catch (Exception ex) when (ex is IOException or NotSupportedException or InvalidOperationException or ArgumentException)
+            {
+                // битый файл — показываем букву
+            }
+        }
+        var host = Uri.TryCreate(url, UriKind.Absolute, out var uri) ? uri.Host : "";
+        if (host.StartsWith("www.", StringComparison.OrdinalIgnoreCase))
+            host = host[4..];
+        var letter = new TextBlock
+        {
+            Text = host.Length > 0 ? host[..1].ToUpperInvariant() : "•",
+            FontSize = 10,
+            FontWeight = FontWeights.Bold,
+            HorizontalAlignment = HorizontalAlignment.Center,
+            VerticalAlignment = VerticalAlignment.Center,
+        };
+        letter.SetResourceReference(TextBlock.ForegroundProperty, "Brush.AccentText");
+        var tile = new Border { Width = 16, Height = 16, CornerRadius = new CornerRadius(4), Child = letter, VerticalAlignment = VerticalAlignment.Center };
+        tile.SetResourceReference(Border.BackgroundProperty, "Brush.AccentSoft");
+        return tile;
     }
 
     private ContextMenu BookmarkContextMenu(string url, string id)
@@ -570,6 +634,7 @@ public partial class MainWindow : ProtectedWindow, IContentShield
         var tab = new BrowserTab();
         tab.Changed += OnTabChanged;
         tab.CloseRequested += t => Dispatcher.BeginInvoke(() => CloseTab(t)); // не уничтожаем WebView2 внутри его события
+        tab.FaviconChanged += t => { if (t.Core is { } core) _ = AppServices.Favicons.SaveFromAsync(core); };
         tab.Status += (t, message) => { if (t == _active) Warn(message); };
         tab.NavigationCompleted += (t, success) =>
         {
@@ -897,6 +962,8 @@ public partial class MainWindow : ProtectedWindow, IContentShield
         }
         else if (AppServices.Bookmarks.TryAdd(tab.Url, tab.Core?.DocumentTitle, out var error))
         {
+            if (tab.Core is { } core)
+                _ = AppServices.Favicons.SaveFromAsync(core); // значок страницы уже загружен — сохраняем сразу
             SetStatus(Loc.T("Добавлено в закладки", "Added to bookmarks"));
         }
         else
