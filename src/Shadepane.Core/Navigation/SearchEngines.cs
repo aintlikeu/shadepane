@@ -12,19 +12,20 @@ public static class SearchEngines
 
     // Адреса проверены запросом 03.11.2026 (Brave ответил 429 на автоматический запрос — защита от ботов,
     // путь существует). Startpage: шаблон из их OpenSearch-описания (sp/search?query=).
+    public static SearchEngine Startpage { get; } = new("startpage", "Startpage", "https://www.startpage.com/sp/search?query={query}", "https://www.startpage.com/");
     public static SearchEngine DuckDuckGo { get; } = new("duckduckgo", "DuckDuckGo", "https://duckduckgo.com/?q={query}", "https://duckduckgo.com/");
 
     public static IReadOnlyList<SearchEngine> All { get; } =
     [
+        Startpage,
         DuckDuckGo,
-        new("startpage", "Startpage", "https://www.startpage.com/sp/search?query={query}", "https://www.startpage.com/"),
         new("brave", "Brave Search", "https://search.brave.com/search?q={query}", "https://search.brave.com/"),
         new("google", "Google", "https://www.google.com/search?q={query}", "https://www.google.com/"),
         new("bing", "Bing", "https://www.bing.com/search?q={query}", "https://www.bing.com/"),
     ];
 
-    /// <summary>По умолчанию — приватный поисковик.</summary>
-    public static SearchEngine Default => DuckDuckGo;
+    /// <summary>По умолчанию — приватный поисковик: Startpage (выдача Google без слежки).</summary>
+    public static SearchEngine Default => Startpage;
 
     public static SearchEngine? Find(string? id) =>
         All.FirstOrDefault(e => string.Equals(e.Id, id, StringComparison.OrdinalIgnoreCase));

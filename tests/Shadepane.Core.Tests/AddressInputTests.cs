@@ -86,7 +86,7 @@ public class AddressInputTests
 public class SearchEnginesTests
 {
     [Fact]
-    public void Default_IsDuckDuckGo() => Assert.Equal("duckduckgo", SearchEngines.Default.Id);
+    public void Default_IsStartpage() => Assert.Equal("startpage", SearchEngines.Default.Id);
 
     [Fact]
     public void AllPresets_AreValidTemplates_WithDistinctIds()

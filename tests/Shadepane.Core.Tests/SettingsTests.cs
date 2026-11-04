@@ -51,24 +51,25 @@ public class EffectiveConfigTests
 public class SearchEngineChoiceTests
 {
     [Fact]
-    public void Default_IsDuckDuckGo_Unlocked()
+    public void Default_IsStartpage_Unlocked()
     {
         var c = EffectiveConfig.Resolve(BrowserPolicy.Default, UserSettings.Default);
-        Assert.Equal("duckduckgo", c.SearchEngine.Id);
+        Assert.Equal("startpage", c.SearchEngine.Id);
+        Assert.Equal("https://www.startpage.com/", c.HomeUrl);
         Assert.False(c.SearchLocked);
     }
 
     [Fact]
     public void User_Preset_AlsoDrivesSearchEngineHome()
     {
-        var c = EffectiveConfig.Resolve(BrowserPolicy.Default, new UserSettings { SearchEngineId = "startpage" });
-        Assert.Equal("startpage", c.SearchEngine.Id);
-        Assert.Equal("https://www.startpage.com/", c.HomeUrl);
+        var c = EffectiveConfig.Resolve(BrowserPolicy.Default, new UserSettings { SearchEngineId = "duckduckgo" });
+        Assert.Equal("duckduckgo", c.SearchEngine.Id);
+        Assert.Equal("https://duckduckgo.com/", c.HomeUrl);
     }
 
     [Fact]
     public void User_UnknownPreset_FallsBackToDefault() =>
-        Assert.Equal("duckduckgo", EffectiveConfig.Resolve(BrowserPolicy.Default, new UserSettings { SearchEngineId = "nope" }).SearchEngine.Id);
+        Assert.Equal("startpage", EffectiveConfig.Resolve(BrowserPolicy.Default, new UserSettings { SearchEngineId = "nope" }).SearchEngine.Id);
 
     [Fact]
     public void User_CustomTemplate()
@@ -85,7 +86,7 @@ public class SearchEngineChoiceTests
     [InlineData("http://search.example/?q={query}")]
     [InlineData("https://{query}/")]
     public void User_BadCustomTemplate_FallsBackToDefault(string? template) =>
-        Assert.Equal("duckduckgo", EffectiveConfig.Resolve(BrowserPolicy.Default,
+        Assert.Equal("startpage", EffectiveConfig.Resolve(BrowserPolicy.Default,
             new UserSettings { SearchEngineId = "custom", CustomSearchUrl = template }).SearchEngine.Id);
 
     [Fact]

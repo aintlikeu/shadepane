@@ -10,7 +10,7 @@ dialogs — from screen capture (`WDA_EXCLUDEFROMCAPTURE`). It also closes the i
 Unpacked Chrome extensions are supported. Every extension is checked against the policy before it is
 loaded: capture permissions, access to all sites and access to protected hosts are refused.
 
-Everyday browsing: tabs, search from the address bar (DuckDuckGo by default; Startpage, Brave Search,
+Everyday browsing: tabs, search from the address bar (Startpage by default; DuckDuckGo, Brave Search,
 Google, Bing or a custom template), home page, bookmarks and a bookmarks bar, history, downloads, find in
 page, zoom and the usual keyboard shortcuts.
 
@@ -87,7 +87,7 @@ Main options:
 | Option | Default | Meaning |
 |---|---|---|
 | `homeUrl` | not set | Home page; when set, users cannot change it (default: the search engine home page) |
-| `searchUrl` | not set | Search template with `{query}` (https); when set, users cannot change the search engine (default: DuckDuckGo) |
+| `searchUrl` | not set | Search template with `{query}` (https); when set, users cannot change the search engine (default: Startpage) |
 | `protectedHosts` | `[]` | Hosts extensions may not access and downloads from which are blocked unless `allowDownloads` is `true`, e.g. `"*.corp.example"` |
 | `blockedPermissions` | capture, `activeTab`, `tabs`, `history`, `downloads`, … | Extension permissions that are refused |
 | `allowedPermissions` | not set | Allowlist mode: only these extension permissions are accepted |
