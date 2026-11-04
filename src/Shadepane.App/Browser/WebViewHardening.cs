@@ -90,8 +90,10 @@ internal static class WebViewHardening
         var state = States.GetOrCreateValue(core);
         core.NavigationStarting += (_, e) =>
         {
-            // about:blank (window.open() без адреса, затем запись из открывшей страницы) состояние не сбрасывает.
-            var isProtected = e.Uri == UrlPolicy.AboutBlank ? state.Committed : AppServices.Policy.IsProtectedUrl(e.Uri);
+            // Навигация не по http(s) (about:blank с любым #/?, about:srcdoc, data: …) отметку не сбрасывает:
+            // такой документ получает содержимое от открывшей/родительской страницы.
+            var isWeb = Uri.TryCreate(e.Uri, UriKind.Absolute, out var navUri) && UrlPolicy.IsWebScheme(navUri);
+            var isProtected = isWeb ? AppServices.Policy.IsProtectedUrl(e.Uri) : state.Committed;
             state.Pending = e.IsRedirected ? state.Pending || isProtected : isProtected;
         };
         core.NavigationCompleted += (_, e) =>
