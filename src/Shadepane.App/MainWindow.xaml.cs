@@ -339,18 +339,20 @@ public partial class MainWindow : ProtectedWindow, IContentShield
             tab.Navigate(uri!.AbsoluteUri);
     }
 
+    /// <summary>Адрес — открыть; слова — искать в выбранном поисковике; опасные схемы — отказ.</summary>
     private void NavigateFromInput(string input)
     {
         if (_active is null)
             return;
-        if (UrlPolicy.TryNormalizeUserInput(input, out var uri, out var error))
+        var result = AddressInput.Resolve(input, AppServices.SearchUrl);
+        if (result.IsSuccess)
         {
-            _active.Navigate(uri!.AbsoluteUri);
+            _active.Navigate(result.Uri!.AbsoluteUri);
             _active.View.Focus();
         }
         else
         {
-            SetStatus($"Адрес не открыт: {error}");
+            SetStatus($"Не открыто: {result.Error}");
         }
     }
 

@@ -12,6 +12,9 @@ internal static class AppServices
     public static AuditLog Audit { get; private set; } = null!;
     public static CaptureGuard Guard { get; private set; } = null!;
 
+    /// <summary>Шаблон поиска из адресной строки ({query}). Пока — поисковик по умолчанию.</summary>
+    public static string SearchUrl => Shadepane.Core.Navigation.SearchEngines.Default.SearchUrl;
+
     public static void Initialize(BrowserPolicy policy, AuditLog audit, CaptureGuard guard)
     {
         Policy = policy;
