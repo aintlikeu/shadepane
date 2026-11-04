@@ -16,6 +16,9 @@ permissions:
 jobs:
   build:
     runs-on: windows-latest
+    env:
+      # Подпись кода включается, когда в репозитории заданы переменные/секреты Azure Artifact Signing (см. README).
+      SIGNING_CONFIGURED: ${{ vars.ARTIFACT_SIGNING_ACCOUNT != '' }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -48,6 +51,25 @@ jobs:
           dotnet publish src/Shadepane.App/Shadepane.App.csproj -c Release -r win-x64 --self-contained true `
             -p:Version=$env:VERSION -o publish/Shadepane
 
+      # Подписываем только свои файлы (библиотеки .NET уже подписаны Microsoft) и только релизные сборки (теги).
+      - name: Sign app binaries (Azure Artifact Signing)
+        if: env.SIGNING_CONFIGURED == 'true' && github.ref_type == 'tag'
+        uses: Azure/artifact-signing-action@c7ab2a863ab5f9a846ddb8265964877ef296ee82 # v2.0.0
+        with:
+          azure-tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          azure-client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          azure-client-secret: ${{ secrets.AZURE_CLIENT_SECRET }}
+          endpoint: ${{ vars.ARTIFACT_SIGNING_ENDPOINT }}
+          signing-account-name: ${{ vars.ARTIFACT_SIGNING_ACCOUNT }}
+          certificate-profile-name: ${{ vars.ARTIFACT_SIGNING_PROFILE }}
+          files: |
+            ${{ github.workspace }}\publish\Shadepane\Shadepane.exe
+            ${{ github.workspace }}\publish\Shadepane\Shadepane.dll
+            ${{ github.workspace }}\publish\Shadepane\Shadepane.Core.dll
+          file-digest: SHA256
+          timestamp-rfc3161: http://timestamp.acs.microsoft.com
+          timestamp-digest: SHA256
+
       - name: Package (zip + installer)
         shell: pwsh
         env:
@@ -62,6 +84,22 @@ jobs:
           & $iscc "/DAppVersion=$env:VERSION" "/DSourceDir=$PWD\publish\Shadepane" installer/Shadepane.iss
           if ($LASTEXITCODE -ne 0) { throw "ISCC failed with exit code $LASTEXITCODE" }
 
+      - name: Sign installer (Azure Artifact Signing)
+        if: env.SIGNING_CONFIGURED == 'true' && github.ref_type == 'tag'
+        uses: Azure/artifact-signing-action@c7ab2a863ab5f9a846ddb8265964877ef296ee82 # v2.0.0
+        with:
+          azure-tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          azure-client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          azure-client-secret: ${{ secrets.AZURE_CLIENT_SECRET }}
+          endpoint: ${{ vars.ARTIFACT_SIGNING_ENDPOINT }}
+          signing-account-name: ${{ vars.ARTIFACT_SIGNING_ACCOUNT }}
+          certificate-profile-name: ${{ vars.ARTIFACT_SIGNING_PROFILE }}
+          files: ${{ github.workspace }}\dist\Shadepane-${{ steps.version.outputs.value }}-win-x64-setup.exe
+          file-digest: SHA256
+          timestamp-rfc3161: http://timestamp.acs.microsoft.com
+          timestamp-digest: SHA256
+
+      # Контрольные суммы — после подписи: подпись меняет файл.
       - name: Checksums
         shell: pwsh
         run: |

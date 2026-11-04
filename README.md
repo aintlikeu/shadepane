@@ -28,8 +28,8 @@ From [Releases](https://github.com/aintlikeu/shadepane/releases):
 
 Requirements: Windows 10 2004+ or Windows 11, and the
 [WebView2 Runtime](https://developer.microsoft.com/microsoft-edge/webview2/) (preinstalled on Windows 11).
-.NET is bundled. Builds are not code-signed yet, so SmartScreen may warn on first run
-(*More info* → *Run anyway*).
+.NET is bundled. Builds are not code-signed yet (see [Code signing](#code-signing)), so SmartScreen may warn
+on first run (*More info* → *Run anyway*).
 
 ## Build
 
@@ -107,6 +107,22 @@ repository's release assets, verified against the release's `SHA256SUMS.txt` and
 is code-signed, required to carry a valid signature from the same publisher; then it is installed silently
 and the browser restarts. The portable zip build opens the release page instead. The check sends a request
 to `api.github.com`; it can be switched off in settings or enforced with `checkForUpdates`.
+
+## Code signing
+
+Release builds are signed in CI with [Azure Artifact Signing](https://azure.microsoft.com/pricing/details/artifact-signing/)
+once it is configured; until then they are unsigned. Since 2023 code-signing keys must live in hardware or a
+cloud HSM, so a `.pfx` in a GitHub secret is no longer an option for new certificates. To enable signing:
+
+1. Create an Artifact Signing account and a certificate profile (identity validation is done by Microsoft).
+2. Create an app registration / service principal and give it the certificate-profile signer role on the profile.
+3. In the repository settings add variables `ARTIFACT_SIGNING_ENDPOINT`, `ARTIFACT_SIGNING_ACCOUNT`,
+   `ARTIFACT_SIGNING_PROFILE` and secrets `AZURE_TENANT_ID`, `AZURE_CLIENT_ID`, `AZURE_CLIENT_SECRET`.
+
+The next `vX.Y.Z` tag then signs `Shadepane.exe`, `Shadepane.dll`, `Shadepane.Core.dll` and the installer
+before checksums are computed. A signed browser accepts only updates signed by the same publisher.
+A free alternative for open-source projects is [SignPath Foundation](https://signpath.org/) (the publisher
+shown is SignPath Foundation; its GitHub Actions integration has to be set up with SignPath).
 
 ## Releasing
 
