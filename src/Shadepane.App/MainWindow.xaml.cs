@@ -94,7 +94,10 @@ public partial class MainWindow : ProtectedWindow, IContentShield
             UpdateButton.Visibility = update is null ? Visibility.Collapsed : Visibility.Visible;
             if (update is not null)
             {
-                UpdateButton.Content = $"⬆ Обновить до {update.Version}";
+                var label = new StackPanel { Orientation = Orientation.Horizontal };
+                label.Children.Add(Glyph("Update"));
+                label.Children.Add(new TextBlock { Text = $"Обновить до {update.Version}", Margin = new Thickness(6, 0, 0, 0), VerticalAlignment = VerticalAlignment.Center });
+                UpdateButton.Content = label;
                 UpdateButton.ToolTip = $"Доступна версия {update.Version} (у вас {AppServices.Updates.Current})";
                 AppServices.Audit.Write("update-available", new { current = AppServices.Updates.Current.ToString(), available = update.Version.ToString() });
             }
@@ -468,6 +471,13 @@ public partial class MainWindow : ProtectedWindow, IContentShield
             ActivateTab(_tabs[index]);
     }
 
+    /// <summary>Значок из Assets/Icons.xaml для кнопки, созданной в коде.</summary>
+    private System.Windows.Shapes.Path Glyph(string name, bool small = false) => new()
+    {
+        Style = (Style)FindResource(small ? "SmallGlyph" : "Glyph"),
+        Data = (Geometry)FindResource("Icon." + name),
+    };
+
     private Border CreateTabHeader(BrowserTab tab)
     {
         var title = new TextBlock
@@ -479,7 +489,7 @@ public partial class MainWindow : ProtectedWindow, IContentShield
         };
         var close = new Button
         {
-            Content = "✕",
+            Content = Glyph("Close", small: true),
             Width = 20,
             Height = 20,
             Margin = new Thickness(6, 0, 0, 0),
@@ -547,7 +557,7 @@ public partial class MainWindow : ProtectedWindow, IContentShield
 
         var bookmarked = AppServices.Bookmarks.FindByUrl(tab?.Url) is not null;
         BookmarkButton.IsEnabled = tab is not null && Shadepane.Core.Bookmarks.BookmarkCollection.IsBookmarkable(tab.Url);
-        BookmarkButton.Content = bookmarked ? "★" : "☆";
+        BookmarkGlyph.Data = (Geometry)FindResource(bookmarked ? "Icon.StarFilled" : "Icon.Star");
         BookmarkButton.ToolTip = bookmarked ? "Удалить из закладок (Ctrl+D)" : "Добавить в закладки (Ctrl+D)";
     }
 

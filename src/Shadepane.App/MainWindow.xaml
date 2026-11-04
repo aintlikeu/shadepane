@@ -6,8 +6,8 @@
     <DockPanel>
         <!-- Строка вкладок -->
         <DockPanel DockPanel.Dock="Top" Margin="4,4,4,0" LastChildFill="True">
-            <Button x:Name="NewTabButton" DockPanel.Dock="Right" Content="+" Width="28" Margin="4,0,0,0"
-                    IsEnabled="False" Click="NewTab_Click" ToolTip="Новая вкладка (Ctrl+T)"/>
+            <Button x:Name="NewTabButton" DockPanel.Dock="Right" Width="28" Margin="4,0,0,0"
+                    IsEnabled="False" Click="NewTab_Click" ToolTip="Новая вкладка (Ctrl+T)"><Path Style="{StaticResource Glyph}" Data="{StaticResource Icon.Add}"/></Button>
             <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
                 <StackPanel x:Name="TabStrip" Orientation="Horizontal"/>
             </ScrollViewer>
@@ -15,31 +15,31 @@
 
         <!-- Панель навигации -->
         <DockPanel DockPanel.Dock="Top" Margin="6" LastChildFill="True">
-            <Button x:Name="BackButton" Content="←" Width="32" IsEnabled="False" Click="Back_Click" ToolTip="Назад (Alt+←)"/>
-            <Button x:Name="ForwardButton" Content="→" Width="32" Margin="4,0,0,0" IsEnabled="False" Click="Forward_Click" ToolTip="Вперёд (Alt+→)"/>
-            <Button x:Name="ReloadButton" Content="⟳" Width="32" Margin="4,0,0,0" IsEnabled="False" Click="Reload_Click" ToolTip="Обновить (F5)"/>
-            <Button x:Name="HomeButton" Content="⌂" Width="32" Margin="4,0,0,0" IsEnabled="False" Click="Home_Click" ToolTip="Домашняя страница (Alt+Home)"/>
-            <Button x:Name="SettingsButton" DockPanel.Dock="Right" Content="⚙" Width="32" Margin="6,0,0,0" IsEnabled="False"
-                    Click="Settings_Click" ToolTip="Настройки"/>
+            <Button x:Name="BackButton" Width="32" IsEnabled="False" Click="Back_Click" ToolTip="Назад (Alt+←)"><Path Style="{StaticResource Glyph}" Data="{StaticResource Icon.Back}"/></Button>
+            <Button x:Name="ForwardButton" Width="32" Margin="4,0,0,0" IsEnabled="False" Click="Forward_Click" ToolTip="Вперёд (Alt+→)"><Path Style="{StaticResource Glyph}" Data="{StaticResource Icon.Forward}"/></Button>
+            <Button x:Name="ReloadButton" Width="32" Margin="4,0,0,0" IsEnabled="False" Click="Reload_Click" ToolTip="Обновить (F5)"><Path Style="{StaticResource Glyph}" Data="{StaticResource Icon.Reload}"/></Button>
+            <Button x:Name="HomeButton" Width="32" Margin="4,0,0,0" IsEnabled="False" Click="Home_Click" ToolTip="Домашняя страница (Alt+Home)"><Path Style="{StaticResource Glyph}" Data="{StaticResource Icon.Home}"/></Button>
+            <Button x:Name="SettingsButton" DockPanel.Dock="Right" Width="32" Margin="6,0,0,0" IsEnabled="False"
+                    Click="Settings_Click" ToolTip="Настройки"><Path Style="{StaticResource Glyph}" Data="{StaticResource Icon.Settings}"/></Button>
             <Button x:Name="UpdateButton" DockPanel.Dock="Right" Margin="6,0,0,0" Padding="8,2" Visibility="Collapsed"
                     Click="Update_Click" FontWeight="SemiBold"/>
-            <Button x:Name="HistoryButton" DockPanel.Dock="Right" Content="🕘" Width="32" Margin="6,0,0,0"
-                    Click="History_Click" ToolTip="История (Ctrl+H)"/>
-            <Button x:Name="DownloadsButton" DockPanel.Dock="Right" Content="⬇" Width="32" Margin="6,0,0,0"
-                    Click="Downloads_Click" ToolTip="Загрузки (Ctrl+J)"/>
-            <Button x:Name="AddExtensionButton" DockPanel.Dock="Right" Content="+ Расширение…" Margin="6,0,0,0" Padding="8,2"
-                    IsEnabled="False" Click="AddExtension_Click" ToolTip="Добавить распакованное расширение (папку с manifest.json)"/>
+            <Button x:Name="HistoryButton" DockPanel.Dock="Right" Width="32" Margin="6,0,0,0"
+                    Click="History_Click" ToolTip="История (Ctrl+H)"><Path Style="{StaticResource Glyph}" Data="{StaticResource Icon.History}"/></Button>
+            <Button x:Name="DownloadsButton" DockPanel.Dock="Right" Width="32" Margin="6,0,0,0"
+                    Click="Downloads_Click" ToolTip="Загрузки (Ctrl+J)"><Path Style="{StaticResource Glyph}" Data="{StaticResource Icon.Downloads}"/></Button>
+            <Button x:Name="AddExtensionButton" DockPanel.Dock="Right" Width="32" Margin="6,0,0,0"
+                    IsEnabled="False" Click="AddExtension_Click" ToolTip="Добавить распакованное расширение (папку с manifest.json)"><Path Style="{StaticResource Glyph}" Data="{StaticResource Icon.Extension}"/></Button>
             <StackPanel x:Name="ExtensionBar" DockPanel.Dock="Right" Orientation="Horizontal" Margin="6,0,0,0"/>
-            <Button x:Name="BookmarkButton" DockPanel.Dock="Right" Content="☆" Width="32" Margin="4,0,0,0" IsEnabled="False"
-                    Click="Bookmark_Click" ToolTip="Добавить в закладки (Ctrl+D)"/>
+            <Button x:Name="BookmarkButton" DockPanel.Dock="Right" Width="32" Margin="4,0,0,0" IsEnabled="False"
+                    Click="Bookmark_Click" ToolTip="Добавить в закладки (Ctrl+D)"><Path x:Name="BookmarkGlyph" Style="{StaticResource Glyph}" Data="{StaticResource Icon.Star}"/></Button>
             <TextBox x:Name="AddressBox" Margin="6,0,0,0" VerticalContentAlignment="Center" IsEnabled="False"
                      KeyDown="AddressBox_KeyDown" GotKeyboardFocus="AddressBox_GotKeyboardFocus"/>
         </DockPanel>
 
         <!-- Панель закладок (Ctrl+Shift+B). Кнопки, не поместившиеся по ширине, доступны через «»». -->
         <DockPanel x:Name="BookmarksBar" DockPanel.Dock="Top" Margin="6,0,6,4" LastChildFill="True">
-            <Button x:Name="BookmarksOverflowButton" DockPanel.Dock="Right" Content="»" Width="28" Margin="4,0,0,0"
-                    Click="BookmarksOverflow_Click" ToolTip="Все закладки"/>
+            <Button x:Name="BookmarksOverflowButton" DockPanel.Dock="Right" Width="28" Margin="4,0,0,0"
+                    Click="BookmarksOverflow_Click" ToolTip="Все закладки"><Path Style="{StaticResource Glyph}" Data="{StaticResource Icon.More}"/></Button>
             <Grid ClipToBounds="True">
                 <StackPanel x:Name="BookmarksBarItems" Orientation="Horizontal"/>
                 <TextBlock x:Name="BookmarksBarEmpty" Text="Закладок пока нет — нажмите ☆ или Ctrl+D на нужной странице"
@@ -53,9 +53,9 @@
             <TextBox x:Name="FindBox" Width="280" Margin="6,0,0,0" VerticalContentAlignment="Center"
                      TextChanged="FindBox_TextChanged" KeyDown="FindBox_KeyDown"/>
             <TextBlock x:Name="FindCount" Margin="8,0,0,0" MinWidth="60" VerticalAlignment="Center" Foreground="Gray"/>
-            <Button Content="↑" Width="28" Margin="4,0,0,0" Click="FindPrevious_Click" ToolTip="Предыдущее (Shift+F3, Shift+Enter)"/>
-            <Button Content="↓" Width="28" Margin="4,0,0,0" Click="FindNext_Click" ToolTip="Следующее (F3, Enter)"/>
-            <Button Content="✕" Width="28" Margin="4,0,0,0" Click="FindClose_Click" ToolTip="Закрыть (Esc)"/>
+            <Button Width="28" Margin="4,0,0,0" Click="FindPrevious_Click" ToolTip="Предыдущее (Shift+F3, Shift+Enter)"><Path Style="{StaticResource Glyph}" Data="{StaticResource Icon.Up}"/></Button>
+            <Button Width="28" Margin="4,0,0,0" Click="FindNext_Click" ToolTip="Следующее (F3, Enter)"><Path Style="{StaticResource Glyph}" Data="{StaticResource Icon.Down}"/></Button>
+            <Button Width="28" Margin="4,0,0,0" Click="FindClose_Click" ToolTip="Закрыть (Esc)"><Path Style="{StaticResource Glyph}" Data="{StaticResource Icon.Close}"/></Button>
         </DockPanel>
 
         <TextBlock x:Name="StatusText" DockPanel.Dock="Bottom" Margin="8,2" Foreground="Gray" TextTrimming="CharacterEllipsis"/>

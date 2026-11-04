@@ -141,4 +141,5 @@ git push origin main v0.1.0
 
 ## License
 
-[MIT](LICENSE)
+[MIT](LICENSE). Toolbar icons: [Fluent UI System Icons](https://github.com/microsoft/fluentui-system-icons) (MIT), see
+[THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).

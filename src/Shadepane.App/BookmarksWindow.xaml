@@ -27,8 +27,8 @@
             <TextBox x:Name="UrlBox" Grid.Row="1" Grid.Column="1" Margin="8,0,0,0" VerticalContentAlignment="Center"/>
             <TextBlock x:Name="ErrorText" Grid.Row="2" Grid.ColumnSpan="2" Foreground="Firebrick" Margin="0,4,0,0" Visibility="Collapsed"/>
             <StackPanel Grid.Row="3" Grid.ColumnSpan="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,8,0,0">
-                <Button Content="▲" Width="32" Click="MoveUp_Click" ToolTip="Выше (раньше на панели закладок)"/>
-                <Button Content="▼" Width="32" Margin="4,0,0,0" Click="MoveDown_Click" ToolTip="Ниже"/>
+                <Button Width="32" Click="MoveUp_Click" ToolTip="Выше (раньше на панели закладок)"><Path Style="{StaticResource Glyph}" Data="{StaticResource Icon.Up}"/></Button>
+                <Button Width="32" Margin="4,0,0,0" Click="MoveDown_Click" ToolTip="Ниже"><Path Style="{StaticResource Glyph}" Data="{StaticResource Icon.Down}"/></Button>
                 <Button Content="Сохранить изменения" Margin="12,0,0,0" Padding="8,2" Click="SaveEdit_Click"/>
                 <Button Content="Открыть" Width="100" Margin="8,0,0,0" Click="Open_Click"/>
                 <Button Content="В новой вкладке" Width="130" Margin="8,0,0,0" Click="OpenInNewTab_Click"/>
