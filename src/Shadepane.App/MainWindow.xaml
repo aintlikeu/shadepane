@@ -20,17 +20,15 @@
                 <Button x:Name="BackButton" Style="{StaticResource ToolbarButton}" IsEnabled="False" Click="Back_Click" ToolTip="Назад (Alt+←)"><Path Style="{StaticResource Glyph}" Data="{StaticResource Icon.Back}"/></Button>
                 <Button x:Name="ForwardButton" Style="{StaticResource ToolbarButton}" Margin="2,0,0,0" IsEnabled="False" Click="Forward_Click" ToolTip="Вперёд (Alt+→)"><Path Style="{StaticResource Glyph}" Data="{StaticResource Icon.Forward}"/></Button>
                 <Button x:Name="ReloadButton" Style="{StaticResource ToolbarButton}" Margin="2,0,0,0" IsEnabled="False" Click="Reload_Click" ToolTip="Обновить (F5)"><Path x:Name="ReloadGlyph" Style="{StaticResource Glyph}" Data="{StaticResource Icon.Reload}"/></Button>
-                <Button x:Name="HomeButton" Style="{StaticResource ToolbarButton}" Margin="2,0,0,0" IsEnabled="False" Click="Home_Click" ToolTip="Домашняя страница (Alt+Home)"><Path Style="{StaticResource Glyph}" Data="{StaticResource Icon.Home}"/></Button>
-                <Button x:Name="SettingsButton" DockPanel.Dock="Right" Style="{StaticResource ToolbarButton}" Margin="2,0,0,0" IsEnabled="False"
-                        Click="Settings_Click" ToolTip="Настройки"><Path Style="{StaticResource Glyph}" Data="{StaticResource Icon.Settings}"/></Button>
+                <!-- Меню браузера: история, закладки, масштаб, поиск, настройки и т. д. (BuildMainMenu). -->
+                <Button x:Name="MenuButton" DockPanel.Dock="Right" Style="{StaticResource ToolbarButton}" Margin="2,0,0,0" IsEnabled="False"
+                        Click="Menu_Click" ToolTip="Меню" AutomationProperties.Name="Меню"><Path Style="{StaticResource Glyph}" Data="{StaticResource Icon.Menu}"/></Button>
                 <Button x:Name="UpdateButton" DockPanel.Dock="Right" Style="{StaticResource ToolbarTextButton}" Height="34" Margin="2,0,0,0" Visibility="Collapsed"
                         Foreground="{DynamicResource Brush.AccentText}" FontWeight="SemiBold" Click="Update_Click"/>
-                <Button x:Name="HistoryButton" DockPanel.Dock="Right" Style="{StaticResource ToolbarButton}" Margin="2,0,0,0"
-                        Click="History_Click" ToolTip="История (Ctrl+H)"><Path Style="{StaticResource Glyph}" Data="{StaticResource Icon.History}"/></Button>
                 <Button x:Name="DownloadsButton" DockPanel.Dock="Right" Style="{StaticResource ToolbarButton}" Margin="2,0,0,0"
                         Click="Downloads_Click" ToolTip="Загрузки (Ctrl+J)"><Path Style="{StaticResource Glyph}" Data="{StaticResource Icon.Downloads}"/></Button>
-                <Button x:Name="AddExtensionButton" DockPanel.Dock="Right" Style="{StaticResource ToolbarButton}" Margin="2,0,0,0"
-                        IsEnabled="False" Click="AddExtension_Click" ToolTip="Добавить распакованное расширение (папку с manifest.json)"><Path Style="{StaticResource Glyph}" Data="{StaticResource Icon.Extension}"/></Button>
+                <Button x:Name="ExtensionsButton" DockPanel.Dock="Right" Style="{StaticResource ToolbarButton}" Margin="2,0,0,0"
+                        IsEnabled="False" Click="Extensions_Click" ToolTip="Расширения" AutomationProperties.Name="Расширения"><Path Style="{StaticResource Glyph}" Data="{StaticResource Icon.Extension}"/></Button>
                 <StackPanel x:Name="ExtensionBar" DockPanel.Dock="Right" Orientation="Horizontal" Margin="4,0,0,0"/>
                 <!-- Адресная строка. Без фокуса поверх поля показан адрес с выделенным доменом (AddressDisplay),
                      в фокусе — обычное поле ввода с полным адресом. -->

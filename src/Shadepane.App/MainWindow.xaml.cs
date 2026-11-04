@@ -433,7 +433,7 @@ public partial class MainWindow : ProtectedWindow, IContentShield
 
             stage = "navigate-home";
             _ = CheckForUpdatesInBackgroundAsync();
-            AddressBox.IsEnabled = ReloadButton.IsEnabled = HomeButton.IsEnabled = AddExtensionButton.IsEnabled = NewTabButton.IsEnabled = SettingsButton.IsEnabled = true;
+            AddressBox.IsEnabled = ReloadButton.IsEnabled = NewTabButton.IsEnabled = MenuButton.IsEnabled = ExtensionsButton.IsEnabled = true;
             NavigateHome(first);
         }
         catch (WebView2RuntimeNotFoundException)
@@ -1139,7 +1139,6 @@ public partial class MainWindow : ProtectedWindow, IContentShield
         else
             _active?.Core?.Reload();
     }
-    private void Home_Click(object sender, RoutedEventArgs e) { if (_active is not null) NavigateHome(_active); }
 
     private HistoryWindow? _historyWindow;
 
@@ -1155,11 +1154,10 @@ public partial class MainWindow : ProtectedWindow, IContentShield
         _historyWindow.Show();
     }
 
-    private void History_Click(object sender, RoutedEventArgs e) => ShowHistory();
 
     private SettingsWindow? _settingsWindow;
 
-    private void Settings_Click(object sender, RoutedEventArgs e)
+    private void ShowSettings()
     {
         if (_settingsWindow is not null)
         {
@@ -1174,12 +1172,12 @@ public partial class MainWindow : ProtectedWindow, IContentShield
 
     // ---------- Расширения ----------
 
-    private async void AddExtension_Click(object sender, RoutedEventArgs e)
+    private async Task AddExtensionAsync()
     {
         if (_busy || _profile is null)
             return; // защита от двойного нажатия
         _busy = true;
-        AddExtensionButton.IsEnabled = false;
+        ExtensionsButton.IsEnabled = false;
         try
         {
             var dialog = new OpenFolderDialog { Title = "Папка распакованного расширения (с manifest.json)" };
@@ -1212,7 +1210,7 @@ public partial class MainWindow : ProtectedWindow, IContentShield
         {
             _busy = false;
             if (!_closed)
-                AddExtensionButton.IsEnabled = true;
+                ExtensionsButton.IsEnabled = true;
         }
     }
 
@@ -1335,6 +1333,111 @@ public partial class MainWindow : ProtectedWindow, IContentShield
         popup.WindowStartupLocation = WindowStartupLocation.Manual;
         popup.Left = Math.Max(SystemParameters.VirtualScreenLeft, dip.X - popup.Width);
         popup.Top = dip.Y + 2;
+    }
+
+    // ---------- Меню «⋯» и меню расширений ----------
+
+    private void Menu_Click(object sender, RoutedEventArgs e) => OpenMenu(BuildMainMenu(), MenuButton);
+
+    private void Extensions_Click(object sender, RoutedEventArgs e) => OpenMenu(BuildExtensionsMenu(), ExtensionsButton);
+
+    private static void OpenMenu(ContextMenu menu, FrameworkElement anchor)
+    {
+        // Защиту от захвата ставит общий обработчик ContextMenu.Opened (App.ProtectTransientWindows).
+        menu.PlacementTarget = anchor;
+        menu.Placement = System.Windows.Controls.Primitives.PlacementMode.Bottom;
+        menu.HorizontalOffset = anchor.ActualWidth - 240; // правый край меню — у правого края кнопки (MinWidth меню 240)
+        menu.IsOpen = true;
+    }
+
+    private static MenuItem Item(string header, string? gesture, Action action, bool enabled = true)
+    {
+        var item = new MenuItem { Header = header, InputGestureText = gesture ?? "", IsEnabled = enabled };
+        item.Click += (_, _) => action();
+        return item;
+    }
+
+    private ContextMenu BuildMainMenu()
+    {
+        var hasTab = _active is not null;
+        var menu = new ContextMenu();
+        menu.Items.Add(Item("Новая вкладка", "Ctrl+T", () => _ = OpenNewTabAsync(), NewTabButton.IsEnabled));
+        menu.Items.Add(Item("История", "Ctrl+H", ShowHistory));
+        menu.Items.Add(Item("Закладки", "Ctrl+Shift+O", ShowBookmarksManager));
+        menu.Items.Add(Item("Загрузки", "Ctrl+J", ShowDownloads));
+        menu.Items.Add(new Separator());
+        menu.Items.Add(BuildZoomItem(hasTab));
+        menu.Items.Add(Item("Найти на странице", "Ctrl+F", OpenFind, _active?.Core is not null));
+        menu.Items.Add(Item("Домашняя страница", "Alt+Home", () => { if (_active is not null) NavigateHome(_active); }, hasTab));
+        menu.Items.Add(new Separator());
+        var bar = new MenuItem { Header = "Панель закладок", InputGestureText = "Ctrl+Shift+B", IsCheckable = true, IsChecked = AppServices.Settings.ShowBookmarksBar };
+        bar.Click += (_, _) => ToggleBookmarksBar();
+        menu.Items.Add(bar);
+        menu.Items.Add(Item("Добавить расширение…", null, () => _ = AddExtensionAsync(), _profile is not null && !_busy));
+        menu.Items.Add(Item("Настройки", null, ShowSettings));
+        menu.Items.Add(Item("О Shadepane", null, ShowAbout));
+        return menu;
+    }
+
+    /// <summary>Строка «Масштаб  −  100%  +»: меню не закрывается, пока нажимают − и +.</summary>
+    private MenuItem BuildZoomItem(bool enabled)
+    {
+        var percent = new TextBlock
+        {
+            Width = 52,
+            TextAlignment = TextAlignment.Center,
+            VerticalAlignment = VerticalAlignment.Center,
+            Text = _active is null ? "" : ZoomLevels.Format(_active.View.ZoomFactor),
+        };
+        Button ZoomButton(string text, string name, Func<double, double> next)
+        {
+            var button = new Button { Style = (Style)FindResource("ToolbarButton"), Width = 30, Height = 26, Content = text, ToolTip = name };
+            System.Windows.Automation.AutomationProperties.SetName(button, name);
+            button.Click += (_, e) =>
+            {
+                e.Handled = true; // клик по кнопке — не клик по пункту меню
+                SetZoom(next);
+                if (_active is not null)
+                    percent.Text = ZoomLevels.Format(_active.View.ZoomFactor);
+            };
+            return button;
+        }
+        var controls = new StackPanel { Orientation = Orientation.Horizontal };
+        controls.Children.Add(ZoomButton("−", "Уменьшить (Ctrl+−)", z => ZoomLevels.ZoomOut(z)));
+        controls.Children.Add(percent);
+        controls.Children.Add(ZoomButton("+", "Увеличить (Ctrl+=)", z => ZoomLevels.ZoomIn(z)));
+        var row = new DockPanel { LastChildFill = true, MinWidth = 220 };
+        DockPanel.SetDock(controls, Dock.Right);
+        row.Children.Add(controls);
+        row.Children.Add(new TextBlock { Text = "Масштаб", VerticalAlignment = VerticalAlignment.Center });
+        return new MenuItem { Header = row, StaysOpenOnClick = true, IsEnabled = enabled };
+    }
+
+    private ContextMenu BuildExtensionsMenu()
+    {
+        var menu = new ContextMenu();
+        menu.Items.Add(Item("Добавить расширение…", null, () => _ = AddExtensionAsync(), _profile is not null && !_busy));
+        var approved = _extensions.Approved.ToList();
+        menu.Items.Add(new Separator());
+        if (approved.Count == 0)
+            menu.Items.Add(new MenuItem { Header = "Расширений пока нет", IsEnabled = false });
+        foreach (var extension in approved)
+        {
+            var anchor = ExtensionsButton;
+            menu.Items.Add(Item(extension.Name, null, () => OpenPopup(extension, anchor)));
+        }
+        if (approved.Count > 0)
+            menu.Items.Add(new MenuItem { Header = "Чтобы удалить расширение, нажмите на его значок правой кнопкой", IsEnabled = false });
+        return menu;
+    }
+
+    private void ShowAbout()
+    {
+        MessageBox.Show(this,
+            $"Shadepane {AppServices.Updates.Current}\n\nБраузер, который не попадает на снимки и запись экрана.\n" +
+            "Движок: Microsoft Edge WebView2 " + (_environment?.BrowserVersionString ?? "") + "\n\n" +
+            "Лицензия MIT. Исходный код и релизы: https://github.com/aintlikeu/shadepane",
+            "О Shadepane", MessageBoxButton.OK, MessageBoxImage.Information);
     }
 
     // ---------- Уведомления и полоска загрузки ----------
