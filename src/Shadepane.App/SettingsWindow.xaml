@@ -42,6 +42,14 @@
             </StackPanel>
         </GroupBox>
 
+        <GroupBox Header="Оформление" Padding="8" Margin="0,10,0,0">
+            <StackPanel Orientation="Horizontal">
+                <RadioButton x:Name="ThemeSystem" Content="Как в Windows" GroupName="Theme"/>
+                <RadioButton x:Name="ThemeLight" Content="Светлое" GroupName="Theme" Margin="16,0,0,0"/>
+                <RadioButton x:Name="ThemeDark" Content="Тёмное" GroupName="Theme" Margin="16,0,0,0"/>
+            </StackPanel>
+        </GroupBox>
+
         <GroupBox Header="Закладки" Padding="8" Margin="0,10,0,0">
             <CheckBox x:Name="ShowBookmarksBarBox" Content="Показывать панель закладок (Ctrl+Shift+B)"/>
         </GroupBox>

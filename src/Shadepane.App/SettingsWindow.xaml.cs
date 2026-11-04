@@ -44,6 +44,9 @@ public partial class SettingsWindow : ProtectedWindow
         if (config.SearchLocked)
             SearchLockedNote.Text = $"Задано администратором: {config.SearchEngine.Name}";
 
+        ThemeSystem.IsChecked = settings.Theme == AppTheme.System;
+        ThemeLight.IsChecked = settings.Theme == AppTheme.Light;
+        ThemeDark.IsChecked = settings.Theme == AppTheme.Dark;
         SaveHistoryBox.IsChecked = settings.SaveHistory;
         ShowBookmarksBarBox.IsChecked = settings.ShowBookmarksBar;
         CheckUpdatesBox.IsChecked = config.CheckForUpdates;
@@ -134,6 +137,7 @@ public partial class SettingsWindow : ProtectedWindow
                 ShowBookmarksBar = ShowBookmarksBarBox.IsChecked == true,
                 AllowDownloads = AppServices.Config.DownloadsLocked ? current.AllowDownloads : AllowDownloadsBox.IsChecked == true,
                 CheckForUpdates = AppServices.Config.UpdatesLocked ? current.CheckForUpdates : CheckUpdatesBox.IsChecked == true,
+                Theme = ThemeLight.IsChecked == true ? AppTheme.Light : ThemeDark.IsChecked == true ? AppTheme.Dark : AppTheme.System,
             };
             AppServices.UpdateSettings(updated);
             AppServices.Audit.Write("settings-saved", new { updated.HomePage, updated.SearchEngineId, updated.AllowExtensionClipboardRead });

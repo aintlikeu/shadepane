@@ -41,5 +41,6 @@ public class ProtectedWindow : Window
     {
         base.OnSourceInitialized(e);
         AppServices.Guard.Protect(this);
+        Appearance.ThemeService.ApplyTitleBar(this);
     }
 }

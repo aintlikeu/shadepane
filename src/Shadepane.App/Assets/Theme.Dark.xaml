@@ -1,0 +1,27 @@
+<!-- Цвета тёмной темы — те же ключи, что в Theme.Light.xaml. Контраст текста не ниже 4.5:1 к своему фону. -->
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <SolidColorBrush x:Key="Brush.Frame" Color="#1A2027"/>
+    <SolidColorBrush x:Key="Brush.Surface" Color="#232B33"/>
+    <SolidColorBrush x:Key="Brush.Control" Color="#2B343D"/>
+    <SolidColorBrush x:Key="Brush.Pill" Color="#1A2027"/>
+    <SolidColorBrush x:Key="Brush.Ink" Color="#E4E9EE"/>
+    <SolidColorBrush x:Key="Brush.Muted" Color="#9AA6B2"/>
+    <SolidColorBrush x:Key="Brush.Disabled" Color="#5C6874"/>
+    <SolidColorBrush x:Key="Brush.Hairline" Color="#34404B"/>
+    <SolidColorBrush x:Key="Brush.ControlBorder" Color="#46525E"/>
+    <SolidColorBrush x:Key="Brush.Hover" Color="#313B45"/>
+    <SolidColorBrush x:Key="Brush.Pressed" Color="#3A4550"/>
+    <SolidColorBrush x:Key="Brush.Accent" Color="#3DB0E3"/>
+    <SolidColorBrush x:Key="Brush.AccentText" Color="#6CC4EC"/>
+    <SolidColorBrush x:Key="Brush.AccentSoft" Color="#1E3A4A"/>
+    <SolidColorBrush x:Key="Brush.AccentStrong" Color="#0E6E9E"/>
+    <SolidColorBrush x:Key="Brush.OnAccent" Color="#FFFFFF"/>
+    <SolidColorBrush x:Key="Brush.Danger" Color="#C23A32"/>
+    <SolidColorBrush x:Key="Brush.WarningBack" Color="#3A2E12"/>
+    <SolidColorBrush x:Key="Brush.WarningBorder" Color="#6B5520"/>
+    <SolidColorBrush x:Key="Brush.WarningText" Color="#F2D9A0"/>
+    <SolidColorBrush x:Key="Brush.InfoBack" Color="#15303D"/>
+    <SolidColorBrush x:Key="Brush.InfoBorder" Color="#24506A"/>
+    <SolidColorBrush x:Key="Brush.InfoText" Color="#A8D8F0"/>
+</ResourceDictionary>

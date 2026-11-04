@@ -345,3 +345,27 @@ public class UpdatesSettingTests
         Assert.True(c.UpdatesLocked);
     }
 }
+
+public class ThemeSettingTests
+{
+    [Theory]
+    [InlineData(AppTheme.System, true, false)]
+    [InlineData(AppTheme.System, false, true)]
+    [InlineData(AppTheme.Light, false, false)]
+    [InlineData(AppTheme.Dark, true, true)]
+    public void UseDark_FollowsChoiceOrSystem(AppTheme theme, bool systemLight, bool expectedDark) =>
+        Assert.Equal(expectedDark, ThemeChoice.UseDark(theme, systemLight));
+
+    [Fact]
+    public void Theme_DefaultsToSystem_AndRoundTripsAsString()
+    {
+        using var tmp = new TempDir();
+        var store = new UserSettingsStore(Path.Combine(tmp.Path, "settings.json"));
+        File.WriteAllText(store.FilePath, """{ "homePage": "blank" }"""); // файл старой версии, без темы
+        Assert.Equal(AppTheme.System, store.Load(out _).Theme);
+
+        store.Save(UserSettings.Default with { Theme = AppTheme.Dark });
+        Assert.Contains("\"dark\"", File.ReadAllText(store.FilePath));
+        Assert.Equal(AppTheme.Dark, store.Load(out _).Theme);
+    }
+}

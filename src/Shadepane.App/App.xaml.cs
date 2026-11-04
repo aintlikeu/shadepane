@@ -47,6 +47,7 @@ public partial class App : Application
         guard.Tripped += OnGuardTripped;
         AppServices.Initialize(policy, policySource, audit, guard);
         ProtectTransientWindows(guard);
+        Appearance.ThemeService.Initialize(); // до первого окна: оно сразу открывается в нужной теме
 
         audit.Write("app-start", new
         {

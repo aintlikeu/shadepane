@@ -42,9 +42,11 @@ public partial class MainWindow : ProtectedWindow, IContentShield
         WebViewHardening.ScreenCaptureBlocked += OnScreenCaptureBlocked;
         WebViewHardening.ProtectedContentChanged += OnProtectedContentChanged;
         ProtectionPopup.Closed += (_, _) => _protectionPopupClosedAt = DateTime.UtcNow;
+        Appearance.ThemeService.Changed += ApplyPageTheme;
         Closed += (_, _) =>
         {
             _closed = true;
+            Appearance.ThemeService.Changed -= ApplyPageTheme;
             WebViewHardening.ScreenCaptureBlocked -= OnScreenCaptureBlocked;
             WebViewHardening.ProtectedContentChanged -= OnProtectedContentChanged;
             _captureFlashTimer?.Stop();
@@ -263,6 +265,29 @@ public partial class MainWindow : ProtectedWindow, IContentShield
         return true;
     }
 
+    /// <summary>
+    /// Тема страниц (CSS prefers-color-scheme) — та же, что у окна: «как в Windows» — Auto, иначе явно.
+    /// Профиль общий для всех вкладок и окон расширений.
+    /// </summary>
+    private void ApplyPageTheme()
+    {
+        if (_closed || _profile is null)
+            return;
+        try
+        {
+            _profile.PreferredColorScheme = AppServices.Settings.Theme switch
+            {
+                Shadepane.Core.Settings.AppTheme.Light => CoreWebView2PreferredColorScheme.Light,
+                Shadepane.Core.Settings.AppTheme.Dark => CoreWebView2PreferredColorScheme.Dark,
+                _ => CoreWebView2PreferredColorScheme.Auto,
+            };
+        }
+        catch (Exception ex) when (ex is System.Runtime.InteropServices.COMException or InvalidOperationException)
+        {
+            AppServices.Audit.Write("page-theme-failed", Diagnostics.Details(ex));
+        }
+    }
+
     public void HideContent()
     {
         ContentHost.Visibility = Visibility.Collapsed;
@@ -423,6 +448,7 @@ public partial class MainWindow : ProtectedWindow, IContentShield
             if (_closed || first?.Core is null)
                 return;
             _profile = first.Core.Profile;
+            ApplyPageTheme();
             AppServices.Audit.Write("webview-ready", new { runtime = _environment.BrowserVersionString });
 
             stage = "extensions-sync";

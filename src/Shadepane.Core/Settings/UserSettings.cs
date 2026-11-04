@@ -11,6 +11,26 @@ public enum HomePageKind
     Custom,
 }
 
+/// <summary>Оформление окон браузера.</summary>
+public enum AppTheme
+{
+    /// <summary>Как в Windows («Параметры → Персонализация → Цвета → Режим приложения»).</summary>
+    System,
+    Light,
+    Dark,
+}
+
+public static class ThemeChoice
+{
+    /// <param name="systemUsesLightTheme">Значение AppsUseLightTheme из реестра; нет значения — светлая (так делает Windows).</param>
+    public static bool UseDark(AppTheme theme, bool systemUsesLightTheme) => theme switch
+    {
+        AppTheme.Dark => true,
+        AppTheme.Light => false,
+        _ => !systemUsesLightTheme,
+    };
+}
+
 /// <summary>
 /// Настройки пользователя (окно настроек). Не являются защитой: всё, что важно для безопасности,
 /// задаёт политика администратора, и её значения имеют приоритет (см. EffectiveConfig).
@@ -40,6 +60,9 @@ public sealed record UserSettings
 
     /// <summary>Проверять обновления через GitHub Releases (если не задано политикой).</summary>
     public bool CheckForUpdates { get; init; } = true;
+
+    /// <summary>Светлое, тёмное или как в Windows. Страницы сайтов получают ту же тему (prefers-color-scheme).</summary>
+    public AppTheme Theme { get; init; } = AppTheme.System;
 }
 
 /// <summary>Файл настроек. Повреждённый или неполный файл не мешает запуску: берутся значения по умолчанию.</summary>
