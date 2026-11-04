@@ -18,7 +18,13 @@ page, zoom and the usual keyboard shortcuts.
 
 ## Download
 
-Get `Shadepane-<version>-win-x64.zip` from [Releases](https://github.com/aintlikeu/shadepane/releases), unzip it and run `Shadepane.exe`.
+From [Releases](https://github.com/aintlikeu/shadepane/releases):
+
+- `Shadepane-<version>-win-x64-setup.exe` — installer. Installs for the current user without admin rights
+  (`%LOCALAPPDATA%\Programs\Shadepane`); choose "for all users" (or run with `/ALLUSERS`) to install into
+  Program Files. Start menu shortcut, optional desktop shortcut, uninstaller. Silent install: `/SILENT`.
+- `Shadepane-<version>-win-x64.zip` — portable: unzip and run `Shadepane.exe`.
+- `SHA256SUMS.txt` — checksums of both files.
 
 Requirements: Windows 10 2004+ or Windows 11, and the
 [WebView2 Runtime](https://developer.microsoft.com/microsoft-edge/webview2/) (preinstalled on Windows 11).
@@ -34,10 +40,11 @@ dotnet test                                  # core tests (also run on Linux)
 dotnet run --project src\Shadepane.App       # run the browser (Windows only)
 ```
 
-Self-contained build, as produced by CI:
+Self-contained build and installer, as produced by CI (installer needs [Inno Setup 6](https://jrsoftware.org/isinfo.php)):
 
 ```powershell
-dotnet publish src\Shadepane.App -c Release -r win-x64 --self-contained true -o publish\Shadepane
+dotnet publish src\Shadepane.App -c Release -r win-x64 --self-contained true -p:Version=0.1.0 -o publish\Shadepane
+& "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" /DAppVersion=0.1.0 "/DSourceDir=$PWD\publish\Shadepane" installer\Shadepane.iss
 ```
 
 The UI is checked by hand on Windows: [`docs/TESTING.md`](docs/TESTING.md).
@@ -94,7 +101,7 @@ shown as locked. Browser data and the audit log (`audit.log`) live in the same f
 ## Releasing
 
 Development happens on `develop`; `main` holds released code. CI builds and tests every push to both.
-To release, merge `develop` into `main` and push a `vX.Y.Z` tag — CI publishes a release with the zip:
+To release, merge `develop` into `main` and push a `vX.Y.Z` tag — CI publishes a release with the installer, zip and checksums:
 
 ```powershell
 git checkout main

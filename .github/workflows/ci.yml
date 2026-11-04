@@ -1,4 +1,4 @@
-# Сборка и тесты на каждый push/PR в main и develop; при теге vX.Y.Z — релиз с архивом Shadepane-<версия>-win-x64.zip.
+# Сборка и тесты на каждый push/PR в main и develop; при теге vX.Y.Z — релиз: архив, установщик и SHA256SUMS.txt.
 # Ветки: develop — текущая работа; main — стабильная, в неё сливается develop при выпуске версии.
 # Сторонние actions закреплены по SHA коммита (метку версии можно переписать, SHA — нет).
 name: CI
@@ -47,12 +47,34 @@ jobs:
         run: |
           dotnet publish src/Shadepane.App/Shadepane.App.csproj -c Release -r win-x64 --self-contained true `
             -p:Version=$env:VERSION -o publish/Shadepane
-          Compress-Archive -Path publish/Shadepane -DestinationPath "Shadepane-$env:VERSION-win-x64.zip"
+
+      - name: Package (zip + installer)
+        shell: pwsh
+        env:
+          VERSION: ${{ steps.version.outputs.value }}
+        run: |
+          New-Item -ItemType Directory -Force dist | Out-Null
+          Compress-Archive -Path publish/Shadepane -DestinationPath "dist/Shadepane-$env:VERSION-win-x64.zip"
+          # Inno Setup предустановлен в образах windows-2022/2025 (runner-images)
+          $iscc = @("${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe", "$env:ProgramFiles\Inno Setup 6\ISCC.exe") |
+            Where-Object { Test-Path $_ } | Select-Object -First 1
+          if (-not $iscc) { throw 'Inno Setup (ISCC.exe) not found on the runner' }
+          & $iscc "/DAppVersion=$env:VERSION" "/DSourceDir=$PWD\publish\Shadepane" installer/Shadepane.iss
+          if ($LASTEXITCODE -ne 0) { throw "ISCC failed with exit code $LASTEXITCODE" }
+
+      - name: Checksums
+        shell: pwsh
+        run: |
+          # Формат sha256sum: "<hex>  <имя>". Автообновление сверяет установщик по этому файлу.
+          Get-ChildItem dist -File | Where-Object Name -ne 'SHA256SUMS.txt' | Sort-Object Name | ForEach-Object {
+            '{0}  {1}' -f (Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant(), $_.Name
+          } | Set-Content dist/SHA256SUMS.txt -Encoding ascii
+          Get-Content dist/SHA256SUMS.txt
 
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: Shadepane-win-x64
-          path: Shadepane-*-win-x64.zip
+          path: dist/*
           if-no-files-found: error
 
   release:
@@ -65,10 +87,13 @@ jobs:
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: Shadepane-win-x64
+          path: dist
 
       - name: Create GitHub release
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
           TAG: ${{ github.ref_name }}
-        run: gh release create "$TAG" Shadepane-*-win-x64.zip --title "Shadepane $TAG" --generate-notes
+        run: |
+          ls -l dist
+          gh release create "$TAG" dist/* --title "Shadepane $TAG" --generate-notes
