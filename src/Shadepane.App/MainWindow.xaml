@@ -19,7 +19,7 @@
             <DockPanel Margin="8,6" LastChildFill="True">
                 <Button x:Name="BackButton" Style="{StaticResource ToolbarButton}" IsEnabled="False" Click="Back_Click" ToolTip="Назад (Alt+←)"><Path Style="{StaticResource Glyph}" Data="{StaticResource Icon.Back}"/></Button>
                 <Button x:Name="ForwardButton" Style="{StaticResource ToolbarButton}" Margin="2,0,0,0" IsEnabled="False" Click="Forward_Click" ToolTip="Вперёд (Alt+→)"><Path Style="{StaticResource Glyph}" Data="{StaticResource Icon.Forward}"/></Button>
-                <Button x:Name="ReloadButton" Style="{StaticResource ToolbarButton}" Margin="2,0,0,0" IsEnabled="False" Click="Reload_Click" ToolTip="Обновить (F5)"><Path Style="{StaticResource Glyph}" Data="{StaticResource Icon.Reload}"/></Button>
+                <Button x:Name="ReloadButton" Style="{StaticResource ToolbarButton}" Margin="2,0,0,0" IsEnabled="False" Click="Reload_Click" ToolTip="Обновить (F5)"><Path x:Name="ReloadGlyph" Style="{StaticResource Glyph}" Data="{StaticResource Icon.Reload}"/></Button>
                 <Button x:Name="HomeButton" Style="{StaticResource ToolbarButton}" Margin="2,0,0,0" IsEnabled="False" Click="Home_Click" ToolTip="Домашняя страница (Alt+Home)"><Path Style="{StaticResource Glyph}" Data="{StaticResource Icon.Home}"/></Button>
                 <Button x:Name="SettingsButton" DockPanel.Dock="Right" Style="{StaticResource ToolbarButton}" Margin="2,0,0,0" IsEnabled="False"
                         Click="Settings_Click" ToolTip="Настройки"><Path Style="{StaticResource Glyph}" Data="{StaticResource Icon.Settings}"/></Button>
@@ -65,6 +65,17 @@
             </DockPanel>
         </DockPanel>
 
+        <!-- Полоска загрузки страницы: бегущий отрезок, пока активная вкладка загружается. Высота постоянная,
+             чтобы страница не прыгала. -->
+        <Canvas x:Name="LoadingTrack" DockPanel.Dock="Top" Height="2" Background="{DynamicResource Brush.Surface}" ClipToBounds="True"
+                SizeChanged="LoadingTrack_SizeChanged">
+            <Rectangle x:Name="LoadingBar" Height="2" Width="160" Fill="{DynamicResource Brush.Accent}" RadiusX="1" RadiusY="1" Visibility="Hidden">
+                <Rectangle.RenderTransform>
+                    <TranslateTransform x:Name="LoadingBarShift"/>
+                </Rectangle.RenderTransform>
+            </Rectangle>
+        </Canvas>
+
         <!-- Панель закладок (Ctrl+Shift+B). Кнопки, не поместившиеся по ширине, доступны через «»». -->
         <Border x:Name="BookmarksBar" DockPanel.Dock="Top" Background="{DynamicResource Brush.Surface}"
                 BorderBrush="{DynamicResource Brush.Hairline}" BorderThickness="0,0,0,1">
@@ -93,7 +104,18 @@
             </DockPanel>
         </Border>
 
-        <TextBlock x:Name="StatusText" DockPanel.Dock="Bottom" Margin="8,2" Foreground="{DynamicResource Brush.Muted}" TextTrimming="CharacterEllipsis"/>
+        <!-- Уведомление под панелями (вместо строки состояния внизу): справка исчезает сама через несколько секунд,
+             предупреждение — по «Закрыть», при переходе или смене вкладки. Это строка над страницей, а не всплывающее окно:
+             поверх WebView2 WPF рисовать не может. -->
+        <Border x:Name="NoticeBar" DockPanel.Dock="Top" Visibility="Collapsed" BorderThickness="0,0,0,1">
+            <DockPanel Margin="12,3,6,3" LastChildFill="True">
+                <Path x:Name="NoticeIcon" Style="{StaticResource Glyph}" VerticalAlignment="Center" Data="{StaticResource Icon.Info}"/>
+                <Button DockPanel.Dock="Right" Style="{StaticResource ToolbarTextButton}" Height="28" FontWeight="SemiBold"
+                        Content="Закрыть" Click="NoticeClose_Click"/>
+                <TextBlock x:Name="NoticeText" Margin="8,0,8,0" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"
+                           AutomationProperties.LiveSetting="Polite"/>
+            </DockPanel>
+        </Border>
 
         <Grid Background="{DynamicResource Brush.Control}">
             <!-- Сюда добавляются WebView2 вкладок; видна только активная. -->

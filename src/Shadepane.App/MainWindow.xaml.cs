@@ -4,6 +4,7 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
+using System.Windows.Threading;
 using Microsoft.Web.WebView2.Core;
 using Microsoft.Win32;
 using Shadepane.App.Browser;
@@ -64,8 +65,12 @@ public partial class MainWindow : ProtectedWindow, IContentShield
 
     private void OnDownloadFinished(DownloadItem item)
     {
-        if (!_closed)
-            SetStatus(item.IsCompleted ? $"Загружено: {item.FileName}" : $"Загрузка не завершена: {item.FileName}");
+        if (_closed)
+            return;
+        if (item.IsCompleted)
+            SetStatus($"Загружено: {item.FileName}");
+        else
+            Warn($"Загрузка не завершена: {item.FileName}");
     }
 
     // ---------- Обновления ----------
@@ -108,7 +113,7 @@ public partial class MainWindow : ProtectedWindow, IContentShield
         {
             AppServices.Audit.Write("update-check-failed", new { error = ex.Message });
             if (manual && !_closed)
-                SetStatus($"Не удалось проверить обновления: {ex.Message}");
+                Warn($"Не удалось проверить обновления: {ex.Message}");
         }
     }
 
@@ -246,7 +251,7 @@ public partial class MainWindow : ProtectedWindow, IContentShield
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
-            SetStatus($"Не удалось сохранить настройку: {ex.Message}");
+            Warn($"Не удалось сохранить настройку: {ex.Message}");
         }
         return true;
     }
@@ -312,8 +317,15 @@ public partial class MainWindow : ProtectedWindow, IContentShield
         var tab = new BrowserTab();
         tab.Changed += OnTabChanged;
         tab.CloseRequested += t => Dispatcher.BeginInvoke(() => CloseTab(t)); // не уничтожаем WebView2 внутри его события
-        tab.Status += (t, message) => { if (t == _active) SetStatus(message); };
-        tab.NavigationCompleted += (t, success) => { if (success) AppServices.History.RecordVisit(t.Url, t.Core?.DocumentTitle); };
+        tab.Status += (t, message) => { if (t == _active) Warn(message); };
+        tab.NavigationCompleted += (t, success) =>
+        {
+            if (!success)
+                return;
+            AppServices.History.RecordVisit(t.Url, t.Core?.DocumentTitle);
+            if (t == _active && _noticeKind == NoticeKind.Warning)
+                HideNotice(); // «переход заблокирован» и т. п. относится к прошлой странице
+        };
 
         var index = Math.Clamp(insertAt ?? _tabs.Count, 0, _tabs.Count);
         _tabs.Insert(index, tab);
@@ -391,7 +403,7 @@ public partial class MainWindow : ProtectedWindow, IContentShield
         catch (Exception ex) when (!_closed)
         {
             AppServices.Audit.Write("new-tab-failed", Diagnostics.Details(ex));
-            SetStatus($"Не удалось открыть вкладку: {Diagnostics.Describe(ex)}");
+            Warn($"Не удалось открыть вкладку: {Diagnostics.Describe(ex)}");
         }
     }
 
@@ -406,7 +418,10 @@ public partial class MainWindow : ProtectedWindow, IContentShield
         if (tab.IsClosed)
             return;
         if (_active != tab)
-            CloseFind(focusPage: false); // поиск относится к странице, а не к окну
+        {
+            CloseFind(focusPage: false); // поиск и уведомление относятся к странице, а не к окну
+            HideNotice();
+        }
         _active = tab;
         foreach (var t in _tabs)
             t.View.Visibility = t == tab ? Visibility.Visible : Visibility.Hidden;
@@ -562,6 +577,7 @@ public partial class MainWindow : ProtectedWindow, IContentShield
         if (!AddressBox.IsKeyboardFocusWithin)
             AddressBox.Text = ActiveAddress;
         UpdateAddressView();
+        UpdateLoadingIndicator();
         Title = tab is null ? ProductName : $"{tab.Title} — {ProductName}";
 
         var bookmarked = AppServices.Bookmarks.FindByUrl(tab?.Url) is not null;
@@ -627,7 +643,7 @@ public partial class MainWindow : ProtectedWindow, IContentShield
         }
         else
         {
-            SetStatus($"Не добавлено в закладки: {error}");
+            Warn($"Не добавлено в закладки: {error}");
         }
         return true;
     }
@@ -666,7 +682,7 @@ public partial class MainWindow : ProtectedWindow, IContentShield
         }
         else
         {
-            SetStatus($"Не открыто: {result.Error}");
+            Warn($"Не открыто: {result.Error}");
         }
     }
 
@@ -687,7 +703,7 @@ public partial class MainWindow : ProtectedWindow, IContentShield
         {
             var hwnd = new System.Windows.Interop.WindowInteropHelper(this).Handle;
             Native.NativeMethods.SetWindowDisplayAffinity(hwnd, Native.NativeMethods.WDA_NONE);
-            SetStatus("DEBUG: флаг защиты снят — контрольный цикл должен сработать в течение ~200 мс");
+            Warn("DEBUG: флаг защиты снят — контрольный цикл должен сработать в течение ~200 мс");
             return true;
         }
         return false;
@@ -876,7 +892,7 @@ public partial class MainWindow : ProtectedWindow, IContentShield
         }
         catch (Exception ex) when (ex is System.Runtime.InteropServices.COMException or InvalidOperationException)
         {
-            SetStatus($"Поиск на странице недоступен: {Diagnostics.Describe(ex)}");
+            Warn($"Поиск на странице недоступен: {Diagnostics.Describe(ex)}");
         }
     }
 
@@ -969,7 +985,14 @@ public partial class MainWindow : ProtectedWindow, IContentShield
     private void NewTab_Click(object sender, RoutedEventArgs e) => _ = OpenNewTabAsync();
     private void Back_Click(object sender, RoutedEventArgs e) => _active?.Core?.GoBack();
     private void Forward_Click(object sender, RoutedEventArgs e) => _active?.Core?.GoForward();
-    private void Reload_Click(object sender, RoutedEventArgs e) => _active?.Core?.Reload();
+    private void Reload_Click(object sender, RoutedEventArgs e)
+    {
+        // Во время загрузки кнопка «Обновить» становится «Остановить», как в Edge и Chrome.
+        if (_active?.IsLoading == true)
+            _active.Core?.Stop();
+        else
+            _active?.Core?.Reload();
+    }
     private void Home_Click(object sender, RoutedEventArgs e) { if (_active is not null) NavigateHome(_active); }
 
     private HistoryWindow? _historyWindow;
@@ -1141,7 +1164,7 @@ public partial class MainWindow : ProtectedWindow, IContentShield
         if (extension.PopupPath is null ||
             !ExtensionDirectory.TryResolveInside(extension.StagedPath, extension.PopupPath, out _, out var urlPath))
         {
-            SetStatus($"У «{extension.Name}» нет popup. Клик по иконке (action.onClicked) WebView2 не поддерживает.");
+            Warn($"У «{extension.Name}» нет popup. Клик по иконке (action.onClicked) WebView2 не поддерживает.");
             return;
         }
 
@@ -1168,5 +1191,105 @@ public partial class MainWindow : ProtectedWindow, IContentShield
         popup.Top = dip.Y + 2;
     }
 
-    private void SetStatus(string text) => StatusText.Text = text;
+    // ---------- Уведомления и полоска загрузки ----------
+
+    private enum NoticeKind { Info, Warning }
+
+    private static readonly TimeSpan InfoNoticeDuration = TimeSpan.FromSeconds(5);
+    private DispatcherTimer? _noticeTimer;
+    private NoticeKind? _noticeKind;
+
+    /// <summary>Справка (закладка добавлена, масштаб, загрузка): исчезает сама через несколько секунд.</summary>
+    private void SetStatus(string text) => ShowNotice(text, NoticeKind.Info);
+
+    /// <summary>Предупреждение (переход заблокирован, ошибка): висит до «Закрыть», перехода или смены вкладки.</summary>
+    private void Warn(string text) => ShowNotice(text, NoticeKind.Warning);
+
+    private void ShowNotice(string text, NoticeKind kind)
+    {
+        if (_closed)
+            return;
+        var warning = kind == NoticeKind.Warning;
+        NoticeText.Text = text;
+        NoticeIcon.Data = (Geometry)FindResource(warning ? "Icon.Warning" : "Icon.Info");
+        NoticeBar.SetResourceReference(Border.BackgroundProperty, warning ? "Brush.WarningBack" : "Brush.InfoBack");
+        NoticeBar.SetResourceReference(Border.BorderBrushProperty, warning ? "Brush.WarningBorder" : "Brush.InfoBorder");
+        NoticeBar.SetResourceReference(System.Windows.Documents.TextElement.ForegroundProperty, warning ? "Brush.WarningText" : "Brush.InfoText");
+        NoticeBar.ToolTip = text; // длинный текст обрезается — целиком в подсказке
+        NoticeBar.Visibility = Visibility.Visible;
+        _noticeKind = kind;
+
+        _noticeTimer ??= CreateNoticeTimer();
+        _noticeTimer.Stop();
+        if (!warning)
+            _noticeTimer.Start();
+
+        // Экранному диктору — новое уведомление (LiveSetting="Polite" в разметке).
+        System.Windows.Automation.Peers.UIElementAutomationPeer.CreatePeerForElement(NoticeText)
+            ?.RaiseAutomationEvent(System.Windows.Automation.Peers.AutomationEvents.LiveRegionChanged);
+    }
+
+    private DispatcherTimer CreateNoticeTimer()
+    {
+        var timer = new DispatcherTimer { Interval = InfoNoticeDuration };
+        timer.Tick += (_, _) => { if (_noticeKind == NoticeKind.Info) HideNotice(); };
+        return timer;
+    }
+
+    private void HideNotice()
+    {
+        _noticeTimer?.Stop();
+        _noticeKind = null;
+        NoticeBar.Visibility = Visibility.Collapsed;
+    }
+
+    private void NoticeClose_Click(object sender, RoutedEventArgs e) => HideNotice();
+
+    private bool _loadingShown;
+
+    /// <summary>Полоска под панелью и «Обновить» ↔ «Остановить» — по состоянию активной вкладки.</summary>
+    private void UpdateLoadingIndicator()
+    {
+        var loading = _active?.IsLoading == true;
+        ReloadGlyph.Data = (Geometry)FindResource(loading ? "Icon.Close" : "Icon.Reload");
+        ReloadButton.ToolTip = loading ? "Остановить (Esc)" : "Обновить (F5)";
+        if (loading == _loadingShown)
+            return;
+        _loadingShown = loading;
+        if (loading)
+            StartLoadingAnimation();
+        else
+        {
+            LoadingBarShift.BeginAnimation(System.Windows.Media.TranslateTransform.XProperty, null);
+            LoadingBar.Visibility = Visibility.Hidden;
+        }
+    }
+
+    private void StartLoadingAnimation()
+    {
+        var width = LoadingTrack.ActualWidth;
+        LoadingBar.Visibility = Visibility.Visible;
+        if (!SystemParameters.ClientAreaAnimation || width <= 0)
+        {
+            // Анимации в Windows выключены («Специальные возможности → Визуальные эффекты»): полоска без движения.
+            LoadingBarShift.BeginAnimation(System.Windows.Media.TranslateTransform.XProperty, null);
+            LoadingBar.Width = Math.Max(width, 0);
+            LoadingBar.Opacity = 0.5;
+            return;
+        }
+        LoadingBar.Opacity = 1;
+        LoadingBar.Width = Math.Max(80, width * 0.25);
+        var run = new System.Windows.Media.Animation.DoubleAnimation(-LoadingBar.Width, width, TimeSpan.FromSeconds(1.4))
+        {
+            RepeatBehavior = System.Windows.Media.Animation.RepeatBehavior.Forever,
+            EasingFunction = new System.Windows.Media.Animation.SineEase { EasingMode = System.Windows.Media.Animation.EasingMode.EaseInOut },
+        };
+        LoadingBarShift.BeginAnimation(System.Windows.Media.TranslateTransform.XProperty, run);
+    }
+
+    private void LoadingTrack_SizeChanged(object sender, SizeChangedEventArgs e)
+    {
+        if (_loadingShown)
+            StartLoadingAnimation(); // ширина пробега зависит от ширины окна
+    }
 }
