@@ -39,7 +39,6 @@ internal static class WebViewHardening
     /// <param name="onNewWindow">Куда открыть новое окно, если адрес разрешён политикой.</param>
     public static async Task ApplyAsync(CoreWebView2 core, string role, NewWindowHandler onNewWindow)
     {
-        var policy = AppServices.Policy;
         var audit = AppServices.Audit;
 
         var settings = core.Settings;
@@ -61,12 +60,19 @@ internal static class WebViewHardening
             audit.Write("screen-capture-blocked", new { role, source = core.Source });
         };
 
+        // Загрузки: запрет (политика или настройка) — отмена; иначе встроенное окно WebView2 скрываем
+        // и показываем загрузку в своём окне загрузок (Ctrl+J).
         core.DownloadStarting += (_, e) =>
         {
-            if (policy.AllowDownloads)
+            if (!AppServices.Config.AllowDownloads)
+            {
+                e.Cancel = true;
+                audit.Write("download-blocked", new { role, uri = e.DownloadOperation.Uri, locked = AppServices.Config.DownloadsLocked });
                 return;
-            e.Cancel = true;
-            audit.Write("download-blocked", new { role, uri = e.DownloadOperation.Uri });
+            }
+            e.Handled = true;
+            AppServices.Downloads.Track(e.DownloadOperation);
+            audit.Write("download-started", new { role, uri = e.DownloadOperation.Uri, file = e.ResultFilePath });
         };
 
         // Без этого WebView2 создаст СВОЁ окно, на которое мы не можем поставить флаг защиты.

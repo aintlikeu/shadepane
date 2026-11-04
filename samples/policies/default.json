@@ -14,6 +14,7 @@
   // "allowedPermissions": ["storage", "alarms", "contextMenus", "notifications", "i18n"],
   "allowBroadHostAccess": false,
   "allowManifestV2": false,
-  "allowDownloads": false,
+  // Загрузка файлов. Если задано — БЛОКИРУЕТ настройку пользователя.
+  // "allowDownloads": false,
   "blockInRemoteSession": true
 }

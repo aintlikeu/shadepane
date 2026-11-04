@@ -69,7 +69,8 @@ public sealed class BrowserPolicy
     /// </summary>
     public bool? AllowExtensionClipboardRead { get; init; }
 
-    public bool AllowDownloads { get; init; }
+    /// <summary>Загрузка файлов. null — решает пользователь (по умолчанию разрешено); задано — действует и блокирует настройку.</summary>
+    public bool? AllowDownloads { get; init; }
 
     /// <summary>В RDP-сессии скриншот делается на клиентской машине, и флаг защиты окна там не действует.</summary>
     public bool BlockInRemoteSession { get; init; } = true;

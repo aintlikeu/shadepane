@@ -1,6 +1,7 @@
 using Shadepane.Core.Navigation;
 using Shadepane.Core.Policy;
 using Shadepane.Core.Settings;
+using Shadepane.Core.Browsing;
 
 namespace Shadepane.Core.Tests;
 
@@ -197,7 +198,7 @@ public class BrowserPolicyCopyTests
               "homeUrl": "https://home.example/", "searchUrl": "https://s.example/?q={query}",
               "protectedHosts": ["*.corp.example"], "blockedPermissions": ["tabCapture"],
               "allowedPermissions": ["storage"], "allowBroadHostAccess": true, "allowManifestV2": true,
-              "allowDownloads": true, "blockInRemoteSession": false
+              "allowDownloads": false, "blockInRemoteSession": false
             }
             """);
         var copy = source.ForExtensions(userAllowsClipboardRead: false);
@@ -205,4 +206,51 @@ public class BrowserPolicyCopyTests
             Assert.Equal(p.GetValue(source), p.GetValue(copy));
         Assert.False(copy.AllowExtensionClipboardRead);
     }
+}
+
+public class DownloadsSettingTests
+{
+    [Fact]
+    public void Default_Allowed_Unlocked()
+    {
+        var c = EffectiveConfig.Resolve(BrowserPolicy.Default, UserSettings.Default);
+        Assert.True(c.AllowDownloads);
+        Assert.False(c.DownloadsLocked);
+    }
+
+    [Fact]
+    public void User_CanDisable() =>
+        Assert.False(EffectiveConfig.Resolve(BrowserPolicy.Default, new UserSettings { AllowDownloads = false }).AllowDownloads);
+
+    [Fact]
+    public void Policy_WinsAndLocks()
+    {
+        var c = EffectiveConfig.Resolve(BrowserPolicy.Parse("""{ "allowDownloads": false }"""), new UserSettings { AllowDownloads = true });
+        Assert.False(c.AllowDownloads);
+        Assert.True(c.DownloadsLocked);
+    }
+}
+
+public class ByteSizeTests
+{
+    [Theory]
+    [InlineData(0, "0 Б")]
+    [InlineData(1023, "1023 Б")]
+    [InlineData(1536, "1,5 КБ")]
+    [InlineData(10 * 1024 * 1024, "10 МБ")]
+    [InlineData(150L * 1024 * 1024 * 1024, "150 ГБ")]
+    [InlineData(-1, "?")]
+    public void Format(long bytes, string expected) => Assert.Equal(expected, ByteSize.Format(bytes));
+
+    [Fact]
+    public void Progress()
+    {
+        Assert.Equal("5 МБ из 10 МБ (50%)", ByteSize.Progress(5 * 1024 * 1024, 10 * 1024 * 1024));
+        Assert.Equal("5 МБ", ByteSize.Progress(5 * 1024 * 1024, null));
+        Assert.Equal("5 МБ", ByteSize.Progress(5 * 1024 * 1024, 0));
+    }
+
+    [Fact]
+    public void CtrlJ_OpensDownloads() =>
+        Assert.Equal(Shadepane.Core.Browsing.BrowserCommand.Downloads, Shadepane.Core.Browsing.BrowserShortcuts.Resolve("J", true, false, false)?.Command);
 }

@@ -35,11 +35,15 @@ public partial class MainWindow : ProtectedWindow, IContentShield
         Loaded += async (_, _) => await InitializeAsync();
         AppServices.Bookmarks.Changed += OnBookmarksChanged;
         AppServices.ConfigChanged += OnConfigChanged;
+        AppServices.Downloads.Started += OnDownloadStarted;
+        AppServices.Downloads.Finished += OnDownloadFinished;
         Closed += (_, _) =>
         {
             _closed = true;
             AppServices.Bookmarks.Changed -= OnBookmarksChanged;
             AppServices.ConfigChanged -= OnConfigChanged;
+            AppServices.Downloads.Started -= OnDownloadStarted;
+            AppServices.Downloads.Finished -= OnDownloadFinished;
         };
         RebuildBookmarksBar();
     }
@@ -51,6 +55,34 @@ public partial class MainWindow : ProtectedWindow, IContentShield
         RefreshChrome();
         RebuildBookmarksBar();
     }
+
+    private void OnDownloadStarted(DownloadItem item)
+    {
+        if (!_closed)
+            SetStatus($"Загрузка: {item.FileName} — Ctrl+J, чтобы открыть список загрузок");
+    }
+
+    private void OnDownloadFinished(DownloadItem item)
+    {
+        if (!_closed)
+            SetStatus(item.IsCompleted ? $"Загружено: {item.FileName}" : $"Загрузка не завершена: {item.FileName}");
+    }
+
+    private DownloadsWindow? _downloadsWindow;
+
+    private void ShowDownloads()
+    {
+        if (_downloadsWindow is not null)
+        {
+            _downloadsWindow.Activate();
+            return;
+        }
+        _downloadsWindow = new DownloadsWindow { Owner = this };
+        _downloadsWindow.Closed += (_, _) => _downloadsWindow = null;
+        _downloadsWindow.Show();
+    }
+
+    private void Downloads_Click(object sender, RoutedEventArgs e) => ShowDownloads();
 
     private void OnConfigChanged()
     {
@@ -620,6 +652,9 @@ public partial class MainWindow : ProtectedWindow, IContentShield
                 return true;
             case BrowserCommand.ToggleBookmarksBar:
                 return ToggleBookmarksBar();
+            case BrowserCommand.Downloads:
+                ShowDownloads();
+                return true;
             case BrowserCommand.Stop:
                 // Esc в адресной строке обрабатывает сама строка (отмена ввода).
                 if (AddressBox.IsKeyboardFocusWithin)

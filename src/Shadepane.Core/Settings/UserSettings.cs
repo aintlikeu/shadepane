@@ -34,6 +34,9 @@ public sealed record UserSettings
 
     /// <summary>Показывать панель закладок под адресной строкой (Ctrl+Shift+B).</summary>
     public bool ShowBookmarksBar { get; init; } = true;
+
+    /// <summary>Разрешить загрузку файлов (если не задано политикой).</summary>
+    public bool AllowDownloads { get; init; } = true;
 }
 
 /// <summary>Файл настроек. Повреждённый или неполный файл не мешает запуску: берутся значения по умолчанию.</summary>

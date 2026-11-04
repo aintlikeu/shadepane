@@ -26,6 +26,8 @@ internal static class AppServices
 
     public static Browser.BookmarkService Bookmarks { get; private set; } = null!;
 
+    public static Browser.DownloadService Downloads { get; } = new();
+
     /// <summary>Итоговые значения изменились (сохранены настройки).</summary>
     public static event Action? ConfigChanged;
 

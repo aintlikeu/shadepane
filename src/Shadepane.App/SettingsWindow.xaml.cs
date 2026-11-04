@@ -46,6 +46,8 @@ public partial class SettingsWindow : ProtectedWindow
 
         SaveHistoryBox.IsChecked = settings.SaveHistory;
         ShowBookmarksBarBox.IsChecked = settings.ShowBookmarksBar;
+        AllowDownloadsBox.IsChecked = config.AllowDownloads;
+        SetLocked(config.DownloadsLocked, DownloadsLockedNote, AllowDownloadsBox);
         ClipboardBox.IsChecked = config.AllowExtensionClipboardRead;
         SetLocked(config.ClipboardLocked, ClipboardLockedNote, ClipboardBox);
 
@@ -116,6 +118,7 @@ public partial class SettingsWindow : ProtectedWindow
                 AllowExtensionClipboardRead = AppServices.Config.ClipboardLocked ? current.AllowExtensionClipboardRead : ClipboardBox.IsChecked == true,
                 SaveHistory = SaveHistoryBox.IsChecked == true,
                 ShowBookmarksBar = ShowBookmarksBarBox.IsChecked == true,
+                AllowDownloads = AppServices.Config.DownloadsLocked ? current.AllowDownloads : AllowDownloadsBox.IsChecked == true,
             };
             AppServices.UpdateSettings(updated);
             AppServices.Audit.Write("settings-saved", new { updated.HomePage, updated.SearchEngineId, updated.AllowExtensionClipboardRead });

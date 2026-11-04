@@ -180,7 +180,7 @@ Remove-Item -Recurse -Force C:\ProgramData\Shadepane -ErrorAction SilentlyContin
 | `getDisplayMedia()` | «заблокирован», `screen-capture-blocked` в журнале | |
 | `window.open(https)` | открывается в этом же окне | |
 | `window.open(data:)` | ничего, `new-window-blocked` в журнале | |
-| «Скачать файл» | не скачивается, `download-blocked` в журнале | |
+| «Скачать файл» | по умолчанию скачивается (видно в Ctrl+J); при `allowDownloads: false` или выключенных загрузках в настройках — не скачивается, `download-blocked` в журнале | |
 | В адресной строке `javascript:alert(1)`, `file:///C:/Windows/win.ini` | отказ с сообщением в строке состояния | |
 | «Открыть PDF» | PDF открывается во встроенном просмотрщике | |
 | Панель просмотрщика PDF | нет кнопок «Сохранить», «Сохранить как», «Печать» | |

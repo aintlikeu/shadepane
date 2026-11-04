@@ -74,10 +74,11 @@ Main options:
 | `allowedPermissions` | not set | Allowlist mode: only these extension permissions are accepted |
 | `allowExtensionClipboardRead` | not set | Allow extensions with `clipboardRead`; when set, users cannot change it (default: allowed) |
 | `allowBroadHostAccess` | `false` | Allow `<all_urls>` / `*://*/*` |
-| `allowDownloads` | `false` | Allow file downloads |
+| `allowDownloads` | not set | Allow file downloads; when set, users cannot change it (default: allowed) |
 | `blockInRemoteSession` | `true` | Refuse to run in an RDP session |
 
-User preferences (home page, search engine, clipboard access for extensions) are set in the settings
+User preferences (home page, search engine, downloads, clipboard access for extensions, history,
+bookmarks bar) are set in the settings
 window (⚙) and stored in `%LOCALAPPDATA%\Shadepane\settings.json`. A value set by the policy wins and is
 shown as locked. Browser data and the audit log (`audit.log`) live in the same folder.
 

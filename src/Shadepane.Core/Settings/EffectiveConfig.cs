@@ -13,16 +13,20 @@ public sealed record EffectiveConfig(
     SearchEngine SearchEngine,
     bool SearchLocked,
     bool AllowExtensionClipboardRead,
-    bool ClipboardLocked)
+    bool ClipboardLocked,
+    bool AllowDownloads,
+    bool DownloadsLocked)
 {
     public static EffectiveConfig Resolve(BrowserPolicy policy, UserSettings user)
     {
         var (engine, searchLocked) = ResolveSearch(policy, user);
         var clipboard = policy.AllowExtensionClipboardRead ?? user.AllowExtensionClipboardRead;
         var clipboardLocked = policy.AllowExtensionClipboardRead is not null;
+        var downloads = policy.AllowDownloads ?? user.AllowDownloads;
+        var downloadsLocked = policy.AllowDownloads is not null;
 
         if (policy.HomeUrl is not null)
-            return new(NormalizeHome(policy.HomeUrl) ?? engine.HomeUrl, true, engine, searchLocked, clipboard, clipboardLocked);
+            return new(NormalizeHome(policy.HomeUrl) ?? engine.HomeUrl, true, engine, searchLocked, clipboard, clipboardLocked, downloads, downloadsLocked);
 
         var home = user.HomePage switch
         {
@@ -30,7 +34,7 @@ public sealed record EffectiveConfig(
             HomePageKind.Custom => NormalizeHome(user.CustomHomeUrl) ?? engine.HomeUrl, // битый адрес — не ломаем запуск
             _ => engine.HomeUrl,
         };
-        return new(home, false, engine, searchLocked, clipboard, clipboardLocked);
+        return new(home, false, engine, searchLocked, clipboard, clipboardLocked, downloads, downloadsLocked);
     }
 
     private static (SearchEngine Engine, bool Locked) ResolveSearch(BrowserPolicy policy, UserSettings user)
