@@ -112,6 +112,7 @@ public class BookmarksTests
     [Theory]
     [InlineData("D", false, BrowserCommand.ToggleBookmark)]
     [InlineData("O", true, BrowserCommand.BookmarksManager)]
+    [InlineData("B", true, BrowserCommand.ToggleBookmarksBar)]
     public void Shortcuts(string key, bool shift, BrowserCommand command) =>
         Assert.Equal(command, BrowserShortcuts.Resolve(key, ctrl: true, shift, alt: false)?.Command);
 }

@@ -45,6 +45,7 @@ public partial class SettingsWindow : ProtectedWindow
             SearchLockedNote.Text = $"Задано администратором: {config.SearchEngine.Name}";
 
         SaveHistoryBox.IsChecked = settings.SaveHistory;
+        ShowBookmarksBarBox.IsChecked = settings.ShowBookmarksBar;
         ClipboardBox.IsChecked = config.AllowExtensionClipboardRead;
         SetLocked(config.ClipboardLocked, ClipboardLockedNote, ClipboardBox);
 
@@ -114,6 +115,7 @@ public partial class SettingsWindow : ProtectedWindow
                 CustomSearchUrl = AppServices.Config.SearchLocked ? current.CustomSearchUrl : (template.Length > 0 ? template : null),
                 AllowExtensionClipboardRead = AppServices.Config.ClipboardLocked ? current.AllowExtensionClipboardRead : ClipboardBox.IsChecked == true,
                 SaveHistory = SaveHistoryBox.IsChecked == true,
+                ShowBookmarksBar = ShowBookmarksBarBox.IsChecked == true,
             };
             AppServices.UpdateSettings(updated);
             AppServices.Audit.Write("settings-saved", new { updated.HomePage, updated.SearchEngineId, updated.AllowExtensionClipboardRead });

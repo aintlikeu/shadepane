@@ -32,6 +32,17 @@
                      KeyDown="AddressBox_KeyDown" GotKeyboardFocus="AddressBox_GotKeyboardFocus"/>
         </DockPanel>
 
+        <!-- Панель закладок (Ctrl+Shift+B). Кнопки, не поместившиеся по ширине, доступны через «»». -->
+        <DockPanel x:Name="BookmarksBar" DockPanel.Dock="Top" Margin="6,0,6,4" LastChildFill="True">
+            <Button x:Name="BookmarksOverflowButton" DockPanel.Dock="Right" Content="»" Width="28" Margin="4,0,0,0"
+                    Click="BookmarksOverflow_Click" ToolTip="Все закладки"/>
+            <Grid ClipToBounds="True">
+                <StackPanel x:Name="BookmarksBarItems" Orientation="Horizontal"/>
+                <TextBlock x:Name="BookmarksBarEmpty" Text="Закладок пока нет — нажмите ☆ или Ctrl+D на нужной странице"
+                           Foreground="Gray" VerticalAlignment="Center" Margin="4,0,0,0"/>
+            </Grid>
+        </DockPanel>
+
         <!-- Поиск на странице (Ctrl+F). Встроенная панель WebView2 скрыта, ищем через CoreWebView2.Find. -->
         <DockPanel x:Name="FindBar" DockPanel.Dock="Top" Margin="6,0,6,4" Visibility="Collapsed" LastChildFill="False">
             <TextBlock Text="Найти на странице:" VerticalAlignment="Center"/>

@@ -31,6 +31,9 @@ public sealed record UserSettings
 
     /// <summary>Записывать посещённые страницы в историю.</summary>
     public bool SaveHistory { get; init; } = true;
+
+    /// <summary>Показывать панель закладок под адресной строкой (Ctrl+Shift+B).</summary>
+    public bool ShowBookmarksBar { get; init; } = true;
 }
 
 /// <summary>Файл настроек. Повреждённый или неполный файл не мешает запуску: берутся значения по умолчанию.</summary>

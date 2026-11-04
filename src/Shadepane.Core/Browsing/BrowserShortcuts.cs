@@ -22,6 +22,7 @@ public enum BrowserCommand
     History,
     ToggleBookmark,
     BookmarksManager,
+    ToggleBookmarksBar,
 }
 
 /// <param name="TabNumber">Для SelectTab: 1–8 — вкладка по номеру, 9 — последняя.</param>
@@ -64,6 +65,7 @@ public static class BrowserShortcuts
                 {
                     case "Tab": return new(BrowserCommand.PreviousTab);
                     case "O": return new(BrowserCommand.BookmarksManager);
+                    case "B": return new(BrowserCommand.ToggleBookmarksBar);
                 }
             }
 

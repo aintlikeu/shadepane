@@ -34,17 +34,105 @@ public partial class MainWindow : ProtectedWindow, IContentShield
         InitializeComponent();
         Loaded += async (_, _) => await InitializeAsync();
         AppServices.Bookmarks.Changed += OnBookmarksChanged;
+        AppServices.ConfigChanged += OnConfigChanged;
         Closed += (_, _) =>
         {
             _closed = true;
             AppServices.Bookmarks.Changed -= OnBookmarksChanged;
+            AppServices.ConfigChanged -= OnConfigChanged;
         };
+        RebuildBookmarksBar();
     }
 
     private void OnBookmarksChanged()
     {
+        if (_closed)
+            return;
+        RefreshChrome();
+        RebuildBookmarksBar();
+    }
+
+    private void OnConfigChanged()
+    {
         if (!_closed)
-            RefreshChrome();
+            RebuildBookmarksBar();
+    }
+
+    // ---------- Панель закладок ----------
+
+    private void RebuildBookmarksBar()
+    {
+        BookmarksBar.Visibility = AppServices.Settings.ShowBookmarksBar ? Visibility.Visible : Visibility.Collapsed;
+        BookmarksBarItems.Children.Clear();
+        var items = AppServices.Bookmarks.Items;
+        BookmarksBarEmpty.Visibility = items.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+        BookmarksOverflowButton.IsEnabled = items.Count > 0;
+        foreach (var bookmark in items.Take(200)) // дальше всё равно не видно — остальное через «»»
+        {
+            var button = new Button
+            {
+                Content = new TextBlock { Text = bookmark.Title, MaxWidth = 160, TextTrimming = TextTrimming.CharacterEllipsis },
+                ToolTip = $"{bookmark.Title}\n{bookmark.Url}",
+                Margin = new Thickness(0, 0, 4, 0),
+                Padding = new Thickness(6, 1, 6, 1),
+                Focusable = false,
+            };
+            var url = bookmark.Url;
+            var id = bookmark.Id;
+            button.Click += (_, _) => OpenBookmark(url, newTab: Keyboard.Modifiers.HasFlag(ModifierKeys.Control));
+            button.MouseUp += (_, e) => { if (e.ChangedButton == MouseButton.Middle) OpenBookmark(url, newTab: true); };
+            button.ContextMenu = BookmarkContextMenu(url, id);
+            BookmarksBarItems.Children.Add(button);
+        }
+    }
+
+    private ContextMenu BookmarkContextMenu(string url, string id)
+    {
+        var openNew = new MenuItem { Header = "Открыть в новой вкладке" };
+        openNew.Click += (_, _) => OpenBookmark(url, newTab: true);
+        var manage = new MenuItem { Header = "Изменить…" };
+        manage.Click += (_, _) => ShowBookmarksManager();
+        var remove = new MenuItem { Header = "Удалить" };
+        remove.Click += (_, _) => AppServices.Bookmarks.Remove(id);
+        return new ContextMenu { Items = { openNew, manage, new Separator(), remove } };
+    }
+
+    private void OpenBookmark(string url, bool newTab)
+    {
+        if (newTab || _active is null)
+            _ = OpenNewTabAsync(url);
+        else
+            _active.Navigate(url);
+    }
+
+    private void BookmarksOverflow_Click(object sender, RoutedEventArgs e)
+    {
+        var menu = new ContextMenu { PlacementTarget = BookmarksOverflowButton, Placement = System.Windows.Controls.Primitives.PlacementMode.Bottom };
+        foreach (var bookmark in AppServices.Bookmarks.Items)
+        {
+            var url = bookmark.Url;
+            var item = new MenuItem { Header = bookmark.Title.Length > 80 ? bookmark.Title[..80] + "…" : bookmark.Title, ToolTip = url };
+            item.Click += (_, _) => OpenBookmark(url, newTab: Keyboard.Modifiers.HasFlag(ModifierKeys.Control));
+            menu.Items.Add(item);
+        }
+        menu.Items.Add(new Separator());
+        var manager = new MenuItem { Header = "Управление закладками… (Ctrl+Shift+O)" };
+        manager.Click += (_, _) => ShowBookmarksManager();
+        menu.Items.Add(manager);
+        menu.IsOpen = true;
+    }
+
+    private bool ToggleBookmarksBar()
+    {
+        try
+        {
+            AppServices.UpdateSettings(AppServices.Settings with { ShowBookmarksBar = !AppServices.Settings.ShowBookmarksBar });
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            SetStatus($"Не удалось сохранить настройку: {ex.Message}");
+        }
+        return true;
     }
 
     public void HideContent()
@@ -530,6 +618,8 @@ public partial class MainWindow : ProtectedWindow, IContentShield
             case BrowserCommand.BookmarksManager:
                 ShowBookmarksManager();
                 return true;
+            case BrowserCommand.ToggleBookmarksBar:
+                return ToggleBookmarksBar();
             case BrowserCommand.Stop:
                 // Esc в адресной строке обрабатывает сама строка (отмена ввода).
                 if (AddressBox.IsKeyboardFocusWithin)
