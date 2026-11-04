@@ -40,11 +40,14 @@ dotnet test                                  # core tests (also run on Linux)
 dotnet run --project src\Shadepane.App       # run the browser (Windows only)
 ```
 
-Self-contained build and installer, as produced by CI (installer needs [Inno Setup 6](https://jrsoftware.org/isinfo.php)):
+Self-contained build and installer, as produced by CI (installer needs [Inno Setup 6](https://jrsoftware.org/isinfo.php),
+e.g. `winget install --id JRSoftware.InnoSetup -e`). Run the commands one by one; the installer lands in `dist\`:
 
 ```powershell
 dotnet publish src\Shadepane.App -c Release -r win-x64 --self-contained true -p:Version=0.1.0 -o publish\Shadepane
-& "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" /DAppVersion=0.1.0 "/DSourceDir=$PWD\publish\Shadepane" installer\Shadepane.iss
+# Inno Setup is in Program Files, or in %LOCALAPPDATA%\Programs when installed without admin rights
+$iscc = (Get-ChildItem "$env:ProgramFiles\Inno Setup*", "${env:ProgramFiles(x86)}\Inno Setup*", "$env:LOCALAPPDATA\Programs\Inno Setup*" -Filter ISCC.exe -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1).FullName
+& $iscc /DAppVersion=0.1.0 "/DSourceDir=$PWD\publish\Shadepane" installer\Shadepane.iss
 ```
 
 The UI is checked by hand on Windows: [`docs/TESTING.md`](docs/TESTING.md).
