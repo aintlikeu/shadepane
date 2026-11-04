@@ -16,11 +16,11 @@ internal sealed class DownloadItem : INotifyPropertyChanged
     {
         _operation = operation;
         Url = operation.Uri;
-        FilePath = operation.ResultFilePath;
         operation.BytesReceivedChanged += (_, _) => Notify(nameof(Status));
         operation.StateChanged += (_, _) =>
         {
             Notify(nameof(Status));
+            Notify(nameof(FileName)); // итоговое имя может отличаться от начального (например, «файл (1).zip»)
             Notify(nameof(IsInProgress));
             Notify(nameof(IsCompleted));
             Finished?.Invoke(this);
@@ -28,7 +28,8 @@ internal sealed class DownloadItem : INotifyPropertyChanged
     }
 
     public string Url { get; }
-    public string FilePath { get; }
+    /// <summary>Читаем каждый раз из операции: Chromium может переименовать файл, если такой уже есть.</summary>
+    public string FilePath => _operation.ResultFilePath;
     public string FileName => Path.GetFileName(FilePath);
     public bool IsInProgress => _operation.State == CoreWebView2DownloadState.InProgress;
     public bool IsCompleted => _operation.State == CoreWebView2DownloadState.Completed;
