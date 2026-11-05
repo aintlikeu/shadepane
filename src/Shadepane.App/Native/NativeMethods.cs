@@ -30,6 +30,13 @@ internal static partial class NativeMethods
     [LibraryImport("user32.dll")]
     public static partial int GetSystemMetrics(int nIndex);
 
+    public const int GWL_EXSTYLE = -20;
+    /// <summary>Прозрачное окно (у WPF — Popup с AllowsTransparency: меню и подсказки).</summary>
+    public const long WS_EX_LAYERED = 0x00080000;
+
+    [LibraryImport("user32.dll", EntryPoint = "GetWindowLongPtrW")]
+    public static partial IntPtr GetWindowLongPtr(IntPtr hWnd, int nIndex);
+
     /// <summary>Тёмный заголовок окна (Windows 10 2004+ и Windows 11).</summary>
     public const int DWMWA_USE_IMMERSIVE_DARK_MODE = 20;
 

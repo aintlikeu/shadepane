@@ -603,11 +603,12 @@ public partial class MainWindow : ProtectedWindow, IContentShield
     private void ProtectionPopup_Opened(object? sender, EventArgs e)
     {
         // Панель — отдельное окно; без флага защиты её нельзя показывать.
-        if (ProtectionPopup.Child is not null && !AppServices.Guard.ProtectTransient(ProtectionPopup.Child, "protection-details"))
-        {
-            ProtectionPopup.IsOpen = false;
-            Warn(Loc.T("Сведения о защите не показаны: не удалось защитить их окно от захвата экрана (подробности в audit.log)", "Protection details were not shown: their window could not be protected from screen capture (see audit.log)"));
-        }
+        if (ProtectionPopup.Child is not null)
+            AppServices.Guard.ProtectTransient(ProtectionPopup.Child, "protection-details", () =>
+            {
+                ProtectionPopup.IsOpen = false;
+                Warn(Loc.T("Сведения о защите не показаны: не удалось защитить их окно от захвата экрана (подробности в audit.log)", "Protection details were not shown: their window could not be protected from screen capture (see audit.log)"));
+            });
     }
 
     private void FillProtectionDetails(ProtectionIndicator state)
@@ -1845,7 +1846,7 @@ public partial class MainWindow : ProtectedWindow, IContentShield
     private void SetStatus(string text) => ShowNotice(text, NoticeKind.Info);
 
     /// <summary>Предупреждение (переход заблокирован, ошибка): висит до «Закрыть», перехода или смены вкладки.</summary>
-    private void Warn(string text) => ShowNotice(text, NoticeKind.Warning);
+    internal void Warn(string text) => ShowNotice(text, NoticeKind.Warning);
 
     private void ShowNotice(string text, NoticeKind kind)
     {

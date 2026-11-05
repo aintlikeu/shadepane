@@ -83,21 +83,28 @@ public partial class App : Application
     /// <summary>
     /// Меню и подсказки WPF открываются в собственных окнах верхнего уровня. В них бывают заголовки и адреса страниц
     /// (закладки, вкладки), поэтому каждое такое окно получает тот же флаг защиты от захвата при открытии;
-    /// не получилось — окно закрывается.
+    /// не получилось — окно закрывается; у меню ещё и пояснение в панели уведомлений, иначе меню просто «мигает».
     /// </summary>
     private static void ProtectTransientWindows(CaptureGuard guard)
     {
         EventManager.RegisterClassHandler(typeof(System.Windows.Controls.ContextMenu), System.Windows.Controls.ContextMenu.OpenedEvent,
             new RoutedEventHandler((sender, _) =>
             {
-                if (sender is System.Windows.Controls.ContextMenu menu && !guard.ProtectTransient(menu, "context-menu"))
-                    menu.IsOpen = false;
+                if (sender is System.Windows.Controls.ContextMenu menu)
+                    guard.ProtectTransient(menu, "context-menu", () =>
+                    {
+                        menu.IsOpen = false;
+                        var owner = (menu.PlacementTarget is DependencyObject target ? Window.GetWindow(target) : null) ?? Current.MainWindow;
+                        (owner as MainWindow)?.Warn(Loc.T(
+                            "Меню не открыто: Windows не дала защитить его окно от захвата экрана (подробности в audit.log)",
+                            "The menu was not shown: Windows did not allow protecting its window from screen capture (see audit.log)"));
+                    });
             }));
         EventManager.RegisterClassHandler(typeof(System.Windows.Controls.ToolTip), System.Windows.Controls.ToolTip.OpenedEvent,
             new RoutedEventHandler((sender, _) =>
             {
-                if (sender is System.Windows.Controls.ToolTip tip && !guard.ProtectTransient(tip, "tooltip"))
-                    tip.IsOpen = false;
+                if (sender is System.Windows.Controls.ToolTip tip)
+                    guard.ProtectTransient(tip, "tooltip", () => tip.IsOpen = false);
             }));
     }
 
