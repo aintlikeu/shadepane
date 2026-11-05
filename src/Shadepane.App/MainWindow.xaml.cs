@@ -603,12 +603,11 @@ public partial class MainWindow : ProtectedWindow, IContentShield
     private void ProtectionPopup_Opened(object? sender, EventArgs e)
     {
         // Панель — отдельное окно; без флага защиты её нельзя показывать.
-        if (ProtectionPopup.Child is not null)
-            AppServices.Guard.ProtectTransient(ProtectionPopup.Child, "protection-details", () =>
-            {
-                ProtectionPopup.IsOpen = false;
-                Warn(Loc.T("Сведения о защите не показаны: не удалось защитить их окно от захвата экрана (подробности в audit.log)", "Protection details were not shown: their window could not be protected from screen capture (see audit.log)"));
-            });
+        if (ProtectionPopup.Child is not null && !AppServices.Guard.ProtectTransient(ProtectionPopup.Child, "protection-details").Protected)
+        {
+            ProtectionPopup.IsOpen = false;
+            Warn(Loc.T("Сведения о защите не показаны: не удалось защитить их окно от захвата экрана (подробности в audit.log)", "Protection details were not shown: their window could not be protected from screen capture (see audit.log)"));
+        }
     }
 
     private void FillProtectionDetails(ProtectionIndicator state)

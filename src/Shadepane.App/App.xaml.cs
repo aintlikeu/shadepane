@@ -1,5 +1,7 @@
 using System.IO;
 using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Threading;
 using Shadepane.App.Policy;
 using Shadepane.App.Protection;
@@ -83,29 +85,95 @@ public partial class App : Application
     /// <summary>
     /// Меню и подсказки WPF открываются в собственных окнах верхнего уровня. В них бывают заголовки и адреса страниц
     /// (закладки, вкладки), поэтому каждое такое окно получает тот же флаг защиты от захвата при открытии;
-    /// не получилось — окно закрывается; у меню ещё и пояснение в панели уведомлений, иначе меню просто «мигает».
+    /// не получилось — окно закрывается (fail closed).
     /// </summary>
     private static void ProtectTransientWindows(CaptureGuard guard)
     {
-        EventManager.RegisterClassHandler(typeof(System.Windows.Controls.ContextMenu), System.Windows.Controls.ContextMenu.OpenedEvent,
+        EventManager.RegisterClassHandler(typeof(ContextMenu), ContextMenu.OpenedEvent,
             new RoutedEventHandler((sender, _) =>
             {
-                if (sender is System.Windows.Controls.ContextMenu menu)
-                    guard.ProtectTransient(menu, "context-menu", () =>
-                    {
-                        menu.IsOpen = false;
-                        var owner = (menu.PlacementTarget is DependencyObject target ? Window.GetWindow(target) : null) ?? Current.MainWindow;
-                        (owner as MainWindow)?.Warn(Loc.T(
-                            "Меню не открыто: Windows не дала защитить его окно от захвата экрана (подробности в audit.log)",
-                            "The menu was not shown: Windows did not allow protecting its window from screen capture (see audit.log)"));
-                    });
+                if (sender is ContextMenu menu)
+                    OnContextMenuOpened(guard, menu);
             }));
-        EventManager.RegisterClassHandler(typeof(System.Windows.Controls.ToolTip), System.Windows.Controls.ToolTip.OpenedEvent,
+        // Подсказку без защиты просто не показываем: она дублирует подпись или значок.
+        EventManager.RegisterClassHandler(typeof(ToolTip), ToolTip.OpenedEvent,
             new RoutedEventHandler((sender, _) =>
             {
-                if (sender is System.Windows.Controls.ToolTip tip)
-                    guard.ProtectTransient(tip, "tooltip", () => tip.IsOpen = false);
+                if (sender is ToolTip tip && !guard.ProtectTransient(tip, "tooltip").Protected)
+                    tip.IsOpen = false;
             }));
+    }
+
+    private static readonly TimeSpan ReopenPollInterval = TimeSpan.FromMilliseconds(15);
+    private const int ReopenPollLimit = 40; // ~600 мс: закрытие с анимацией уничтожает окно через 150 мс
+
+    /// <summary>
+    /// WPF открывает ContextMenu всегда в прозрачном окне (AllowsTransparency = true, задано в самом ContextMenu).
+    /// Windows 10 21H2 отказывается защищать такие окна (ошибка 8), обычные — защищает. Поэтому при отказе меню
+    /// закрываем и открываем заново в непрозрачном окне: AllowsTransparency применяется, когда Popup создаёт окно.
+    /// Popup меню живёт вместе с ним, так что повторно открытые меню (правый клик по закладке) сразу непрозрачные.
+    /// </summary>
+    private static void OnContextMenuOpened(CaptureGuard guard, ContextMenu menu)
+    {
+        var result = guard.ProtectTransient(menu, "context-menu");
+        if (result.Protected)
+            return;
+
+        var target = menu.PlacementTarget;
+        menu.IsOpen = false;
+        if (result.Layered && menu.Parent is Popup { AllowsTransparency: true } popup)
+        {
+            popup.AllowsTransparency = false;
+            AppServices.Audit.Write("popup-reopen-opaque", new { kind = "context-menu" });
+            ReopenWhenWindowDestroyed(menu, target);
+            return;
+        }
+        WarnMenuNotShown(target);
+    }
+
+    /// <summary>
+    /// Пока старое (прозрачное) окно не уничтожено, Popup открылся бы в нём же, поэтому ждём. После закрытия
+    /// ContextMenuService забывает, у какого элемента меню открывалось, — возвращаем его на время повторного открытия.
+    /// </summary>
+    private static void ReopenWhenWindowDestroyed(ContextMenu menu, UIElement? target)
+    {
+        var polls = 0;
+        var timer = new DispatcherTimer(DispatcherPriority.Background) { Interval = ReopenPollInterval };
+        timer.Tick += (_, _) =>
+        {
+            var windowAlive = PresentationSource.FromVisual(menu) is not null;
+            if (windowAlive && ++polls < ReopenPollLimit)
+                return;
+            timer.Stop();
+            if (menu.IsOpen)
+                return; // уже открыли снова
+            if (windowAlive)
+            {
+                AppServices.Audit.Write("popup-reopen-failed", new { kind = "context-menu", reason = "window-not-destroyed" });
+                WarnMenuNotShown(target);
+                return;
+            }
+            if (target is not null && menu.ReadLocalValue(ContextMenu.PlacementTargetProperty) == DependencyProperty.UnsetValue)
+            {
+                menu.PlacementTarget = target;
+                void Restore(object? s, RoutedEventArgs e)
+                {
+                    menu.Closed -= Restore;
+                    menu.ClearValue(ContextMenu.PlacementTargetProperty);
+                }
+                menu.Closed += Restore;
+            }
+            menu.IsOpen = true; // снова Opened → защита; не вышло и у непрозрачного окна — WarnMenuNotShown
+        };
+        timer.Start();
+    }
+
+    private static void WarnMenuNotShown(UIElement? target)
+    {
+        var owner = (target is not null ? Window.GetWindow(target) : null) ?? Current.MainWindow;
+        (owner as MainWindow)?.Warn(Loc.T(
+            "Меню не открыто: Windows не дала защитить его окно от захвата экрана (подробности в audit.log)",
+            "The menu was not shown: Windows did not allow protecting its window from screen capture (see audit.log)"));
     }
 
     private void OnGuardTripped(string reason)

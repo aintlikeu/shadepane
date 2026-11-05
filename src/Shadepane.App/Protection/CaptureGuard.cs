@@ -62,97 +62,41 @@ internal sealed class CaptureGuard
 #endif
     }
 
-    private static readonly TimeSpan TransientRetryInterval = TimeSpan.FromMilliseconds(30);
-    private const int TransientRetries = 10;
-
-    /// <summary>Всплывающие окна, которые ждут защиты (содержимое пока невидимо).</summary>
-    private readonly Dictionary<UIElement, PendingTransient> _pending = [];
-
-    private sealed record PendingTransient(DispatcherTimer Timer, object OriginalOpacity, object OriginalHitTest);
+    /// <summary>Итог защиты всплывающего окна. <see cref="Layered"/> — окно прозрачное (WS_EX_LAYERED).</summary>
+    public readonly record struct TransientProtection(bool Protected, bool Layered);
 
     /// <summary>
     /// Всплывающее окно WPF (меню, подсказка, панель): у него свой HWND верхнего уровня, флаг главного окна на него
-    /// не распространяется, поэтому ставим тот же флаг при каждом открытии.
-    /// Если Windows отказала (на Windows 10 21H2 у меню и подсказок встречается ошибка 8; их окна прозрачные, и Opened
-    /// приходит раньше первого кадра — что из этого причина, пока не установлено), по очереди:
-    /// 1) WDA_MONITOR — содержимое так же не попадает в снимок, только на его месте чёрный прямоугольник;
-    /// 2) несколько повторов в течение ~300 мс, пока содержимое невидимо (Opacity 0): в снимок попадать нечему.
-    /// Не вышло и так — <paramref name="onFailed"/>: вызывающий закрывает окно (fail closed).
+    /// не распространяется, поэтому ставим тот же флаг при каждом открытии. Если Windows отказала, пробуем
+    /// WDA_MONITOR: содержимое так же не попадает в снимок, только на его месте чёрный прямоугольник.
+    /// Не вышло — Protected = false, и вызывающий закрывает окно (fail closed). На Windows 10 21H2 Windows отказывает
+    /// так (ошибка 8) прозрачным окнам меню и подсказок; что делать с меню — решает App.ProtectTransientWindows.
     /// Контрольный цикл такие окна не проверяет: они живут секунды, а содержимого страниц в них нет.
     /// </summary>
-    public void ProtectTransient(UIElement content, string kind, Action onFailed)
+    public TransientProtection ProtectTransient(Visual content, string kind)
     {
-#if !SCREENSHOTS
-        CancelPending(content); // окно открыли заново, пока шли повторы для прошлого открытия
-
+#if SCREENSHOTS
+        return new(true, false);
+#else
         if (PresentationSource.FromVisual(content) is not HwndSource source || source.Handle == IntPtr.Zero)
         {
             _audit.Write("popup-protect-failed", new { kind, reason = "no-hwnd" });
-            onFailed();
-            return;
+            return new(false, false);
         }
         var hwnd = source.Handle;
+        var layered = IsLayered(hwnd);
         if (NativeMethods.SetWindowDisplayAffinity(hwnd, NativeMethods.WDA_EXCLUDEFROMCAPTURE))
-            return;
-        var firstError = Marshal.GetLastPInvokeError();
+            return new(true, layered);
+        var win32 = Marshal.GetLastPInvokeError();
         if (NativeMethods.SetWindowDisplayAffinity(hwnd, NativeMethods.WDA_MONITOR))
         {
-            _audit.Write("popup-protect-fallback", new { kind, mode = "monitor", firstError, layered = IsLayered(hwnd) });
-            return;
+            _audit.Write("popup-protect-fallback", new { kind, mode = "monitor", win32, layered });
+            return new(true, layered);
         }
-        var monitorError = Marshal.GetLastPInvokeError();
-
-        // Пока флага нет, окно не должно ничего показывать, а по невидимым пунктам нельзя щёлкнуть.
-        var original = content.ReadLocalValue(UIElement.OpacityProperty);
-        var originalHitTest = content.ReadLocalValue(UIElement.IsHitTestVisibleProperty);
-        content.Opacity = 0;
-        content.IsHitTestVisible = false;
-        var attempts = 0;
-        var timer = new DispatcherTimer(DispatcherPriority.Normal) { Interval = TransientRetryInterval };
-        _pending[content] = new PendingTransient(timer, original, originalHitTest);
-        timer.Tick += (_, _) =>
-        {
-            attempts++;
-            if (PresentationSource.FromVisual(content) is not HwndSource current || current.IsDisposed || current.Handle != hwnd)
-            {
-                CancelPending(content); // окно уже закрыли
-                return;
-            }
-            string? mode = NativeMethods.SetWindowDisplayAffinity(hwnd, NativeMethods.WDA_EXCLUDEFROMCAPTURE) ? "exclude-retry"
-                : NativeMethods.SetWindowDisplayAffinity(hwnd, NativeMethods.WDA_MONITOR) ? "monitor-retry"
-                : null;
-            if (mode is not null)
-            {
-                CancelPending(content);
-                _audit.Write("popup-protect-fallback", new { kind, mode, attempts, firstError, monitorError, layered = IsLayered(hwnd) });
-                return;
-            }
-            if (attempts < TransientRetries)
-                return;
-            var lastError = Marshal.GetLastPInvokeError();
-            _audit.Write("popup-protect-failed", new { kind, win32 = firstError, monitorError, lastError, attempts, layered = IsLayered(hwnd) });
-            onFailed();             // сначала закрыть окно,
-            CancelPending(content); // потом вернуть видимость: иначе незащищённое меню успеет мелькнуть
-        };
-        timer.Start();
+        var monitorWin32 = Marshal.GetLastPInvokeError();
+        _audit.Write("popup-protect-failed", new { kind, win32, monitorWin32, layered });
+        return new(false, layered);
 #endif
-    }
-
-    private void CancelPending(UIElement content)
-    {
-        if (!_pending.Remove(content, out var pending))
-            return;
-        pending.Timer.Stop();
-        Restore(content, UIElement.OpacityProperty, pending.OriginalOpacity);
-        Restore(content, UIElement.IsHitTestVisibleProperty, pending.OriginalHitTest);
-    }
-
-    private static void Restore(UIElement content, DependencyProperty property, object localValue)
-    {
-        if (localValue == DependencyProperty.UnsetValue)
-            content.ClearValue(property);
-        else
-            content.SetValue(property, localValue);
     }
 
     private static bool IsLayered(IntPtr hwnd) =>
