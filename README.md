@@ -106,7 +106,7 @@ dotnet test                                  # core tests (also run on Linux)
 dotnet run --project src\Shadepane.App       # run the browser (Windows only)
 ```
 
-Installer, releases, the Microsoft Store package and code signing: [`docs/MAINTAINING.md`](docs/MAINTAINING.md).
+Installer, releases, screenshots and code signing: [`docs/MAINTAINING.md`](docs/MAINTAINING.md).
 
 ## License
 

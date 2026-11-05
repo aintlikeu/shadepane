@@ -29,8 +29,8 @@
     <ProjectReference Include="..\Shadepane.Core\Shadepane.Core.csproj" />
   </ItemGroup>
 
-  <!-- Сборка для скриншотов карточки Microsoft Store: защита от захвата ВЫКЛЮЧЕНА, иначе окно на снимке пустое.
-       Только Debug и только явно: параметр -p:ScreenshotBuild=true (команда — в docs/STORE.md)
+  <!-- Сборка для скриншотов (README, публикации): защита от захвата ВЫКЛЮЧЕНА, иначе окно на снимке пустое.
+       Только Debug и только явно: параметр -p:ScreenshotBuild=true (команда — в docs/MAINTAINING.md)
        Release с этим флагом не собирается (ошибка ниже), CI его не задаёт. -->
   <PropertyGroup Condition="'$(ScreenshotBuild)' == 'true'">
     <DefineConstants>$(DefineConstants);SCREENSHOTS</DefineConstants>

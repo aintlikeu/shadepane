@@ -38,7 +38,7 @@ internal sealed class CaptureGuard
     public static bool IsRemoteSession => NativeMethods.GetSystemMetrics(NativeMethods.SM_REMOTESESSION) != 0;
 
 #if SCREENSHOTS
-    // Сборка для скриншотов Store (Shadepane.App.csproj, ScreenshotBuild): окна не защищаются и не проверяются.
+    // Сборка для скриншотов (Shadepane.App.csproj, ScreenshotBuild): окна не защищаются и не проверяются.
     public void Start() => _audit.Write("screenshot-build", new { warning = "screen capture protection is OFF" });
 #else
     public void Start() => _timer.Start();

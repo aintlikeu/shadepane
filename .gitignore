@@ -8,6 +8,3 @@ TestResults/
 pb-capture-*.png
 dist/
 publish/
-
-# пакет MSIX (installer/msix/build-msix.ps1)
-store/

@@ -6,12 +6,8 @@ Users and administrators need only the [README](../README.md).
 ## Branches and CI
 
 Development happens on `develop`; `main` holds released code. CI (`.github/workflows/ci.yml`, Windows runner)
-builds and tests every push and pull request to both branches and uploads two artifacts:
-
-- `Shadepane-win-x64` — installer, portable zip and `SHA256SUMS.txt`;
-- `Shadepane-msix` — the Microsoft Store package (see [Microsoft Store](#microsoft-store)).
-
-A `vX.Y.Z` tag additionally publishes a GitHub release with the installer, zip and checksums.
+builds and tests every push and pull request to both branches and uploads the `Shadepane-win-x64` artifact
+(installer, portable zip and `SHA256SUMS.txt`). A `vX.Y.Z` tag additionally publishes a GitHub release with these files.
 
 ## Build
 
@@ -36,7 +32,7 @@ The UI, WebView2 behaviour and capture protection are not covered by automated t
 Windows before a release: [`docs/TESTING.md`](TESTING.md).
 
 The app icon is built from `design/app-icon.svg`: `python3 design/build-icon.py` (needs `rsvg-convert` and Pillow)
-writes `src/Shadepane.App/Assets/Shadepane.ico` and the MSIX logos in `installer/msix/Assets/`.
+writes `src/Shadepane.App/Assets/Shadepane.ico`.
 
 ## Releasing
 
@@ -51,11 +47,38 @@ git push origin main v0.3.0
 
 Installed copies find the new release through the update check (see the README, section "Updates").
 
-## Microsoft Store
+## Screenshots
 
-The Store version is the MSIX package from the `Shadepane-msix` artifact of a tag build (product Shadepane,
-publisher Quietglass). The Store signs and updates it; the GitHub update check is off in that version.
-Packaging, local testing, screenshots, listing texts and certification notes: [`docs/STORE.md`](STORE.md).
+A protected Shadepane window is empty on any screenshot. For pictures of the browser itself there is a Debug-only
+build with capture protection **off** (`-p:ScreenshotBuild=true`; a Release build with it fails, CI never sets it):
+
+```powershell
+dotnet run --project src\Shadepane.App -p:ScreenshotBuild=true
+# visible window exactly 1920×1080 physical pixels in the top-left corner, or at X,Y with width×height:
+dotnet run --project src\Shadepane.App -p:ScreenshotBuild=true -- --window-size=1920x1080
+dotnet run --project src\Shadepane.App -p:ScreenshotBuild=true -- --window-rect=360,150,1200,760
+```
+
+`--window-size` and `--window-rect` work in Debug builds only. Screen sharing (the button on the demo page) is
+offered only to https and `localhost`; for a test host from `hosts` add `--treat-as-secure=http://wiki.northwind.example:8000`
+(screenshot build only). Avoid hosts under `*.corp.example`: the sample policy protects them, and the indicator shows
+"Company site" instead of "Protected". Before shooting, close the browser and temporarily rename `%LOCALAPPDATA%\Shadepane`
+so that no real history or bookmarks get into the picture.
+
+Demo page — a fictional internal wiki with a release plan, a budget and a "Confidential" label (English; `?lang=ru`
+for Russian; follows the browser theme):
+
+```powershell
+python -m http.server 8000 --directory samples\test-pages
+# then open http://localhost:8000/demo.html
+```
+
+**Before/after picture** (what you see vs. what a screenshot gets): arrange a few ordinary programs on the desktop so
+that they partly sit under the middle of the screen, and turn on "On startup → Reopen the tabs that were open before
+closing" so both shots show the same tabs. Shot A: the screenshot build with `--window-rect=360,150,1200,760`, click
+the browser window, `powershell -ExecutionPolicy Bypass -File tools\screen.ps1 -Delay 5`. Close the browser without
+touching other windows. Shot B: a normal Debug build (`dotnet run --project src\Shadepane.App -- --window-rect=360,150,1200,760`),
+click where the window is, `tools\screen.ps1 -Delay 5` again — the window is gone, the programs under it are visible.
 
 ## Code signing
 

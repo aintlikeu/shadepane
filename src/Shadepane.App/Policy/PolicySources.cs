@@ -47,7 +47,7 @@ internal static class PolicySources
             FindSecurityProblem: programData.Verify,
             ReadJson: programData.Read);
 
-        // Сборка для скриншотов Store (SCREENSHOTS) тестовую политику не читает: в сведениях о защите — «По умолчанию»,
+        // Сборка для скриншотов (SCREENSHOTS) тестовую политику не читает: в сведениях о защите — «По умолчанию»,
         // а не путь к папке разработчика, и тестовые protectedHosts не меняют индикатор на «Корпоративный сайт».
 #if DEBUG && !SCREENSHOTS
         yield return new PolicySourceCandidate(
