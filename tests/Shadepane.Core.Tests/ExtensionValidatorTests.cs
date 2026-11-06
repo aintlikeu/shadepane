@@ -185,4 +185,24 @@ public class ExtensionValidatorTests
         var good = ManifestReader.ReadFromDirectory(Path.Combine(Ext.SamplesDir, "extensions", "spike-popup"));
         Assert.True(ExtensionValidator.Validate(good, Ext.CorpPolicy).IsAllowed);
     }
+
+    [Fact]
+    public void CaptureProbes_AllSitesIsGrantable_ActiveTabIsNot()
+    {
+        // Стенд (docs/TESTING.md): <all_urls>-проба ставится через окно «Дать права», activeTab-проба — только
+        // с разрешающей политикой. Если это изменится, строки в TESTING.md перестанут совпадать с поведением.
+        var allSites = ManifestReader.ReadFromDirectory(Path.Combine(Ext.SamplesDir, "extensions", "capture-probe-allsites"));
+        var denied = ExtensionValidator.Validate(allSites, BrowserPolicy.Default);
+        Assert.True(denied.CanBeGrantedByUser);
+        Assert.Equal(new ExtensionGrants([], AllSitesAccess: true).Keys, denied.GrantsNeeded.Keys);
+
+        var activeTab = ManifestReader.ReadFromDirectory(Path.Combine(Ext.SamplesDir, "extensions", "capture-probe-activetab"));
+        var activeTabResult = ExtensionValidator.Validate(activeTab, BrowserPolicy.Default);
+        Assert.False(activeTabResult.CanBeGrantedByUser);
+        AssertDenied(activeTabResult, "blocked-permission");
+
+        var permissive = BrowserPolicy.Parse(File.ReadAllText(Path.Combine(Ext.SamplesDir, "policies", "spike-permissive.json")));
+        Assert.True(ExtensionValidator.Validate(activeTab, permissive).IsAllowed);
+        Assert.True(ExtensionValidator.Validate(allSites, permissive).IsAllowed);
+    }
 }
