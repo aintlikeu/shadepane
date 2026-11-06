@@ -139,17 +139,23 @@ internal static class WebViewHardening
             // Пакет расширения: WebView2 его не установит (только распакованные папки), и Chromium обрывает
             // такую загрузку. Отменяем её и ставим расширение сами (MainWindow.InstallFromWebStoreAsync).
             // До DownloadGate: файл не попадает к пользователю, а установка проходит проверку политикой расширений.
-            // Со страницы расширения в магазине других загрузок нет: адрес, по которому кнопка качает пакет
-            // в WebView2, может отличаться от адресов Chrome, поэтому такая загрузка — тоже установка.
             var storePageId = WebStore.ExtensionIdFromPage(core.Source);
-            if (WebStore.IsPackageDownload(e.DownloadOperation.Uri, e.DownloadOperation.MimeType, out var packageId) || storePageId is not null)
+            var isPackage = WebStore.IsPackageDownload(e.DownloadOperation.Uri, e.DownloadOperation.MimeType, out var packageId);
+            // Со страницы расширения в магазине других загрузок нет, а адрес, по которому кнопка качает пакет в WebView2,
+            // может отличаться от адресов Chrome, поэтому любая загрузка с такой страницы — тоже установка.
+            if (isPackage || storePageId is not null)
             {
                 e.Cancel = true;
-                var id = packageId ?? storePageId;
-                audit.Write("webstore-package-intercepted", new { role, uri = e.DownloadOperation.Uri, source = core.Source, id });
-                // Окна расширений ничего не ставят: только вкладка, где пользователь нажал кнопку магазина.
-                if (role.StartsWith("tab:", StringComparison.Ordinal))
-                    WebStoreInstallRequested?.Invoke(core, id);
+                // Окно установки — только на странице этого расширения в магазине. Иначе любой сайт мог бы отправить
+                // вкладку на адрес пакета и показать «Установить …?» для расширения по своему выбору (как и Chrome,
+                // ставим только со страницы магазина). Окна расширений ничего не ставят.
+                var refusal = !role.StartsWith("tab:", StringComparison.Ordinal) ? "not-a-tab"
+                    : storePageId is null ? "not-a-store-page"
+                    : packageId is not null && packageId != storePageId ? "id-mismatch"
+                    : null;
+                audit.Write("webstore-package-intercepted", new { role, uri = e.DownloadOperation.Uri, source = core.Source, id = storePageId, packageId, refusal });
+                if (refusal is null)
+                    WebStoreInstallRequested?.Invoke(core, storePageId);
                 return;
             }
 
