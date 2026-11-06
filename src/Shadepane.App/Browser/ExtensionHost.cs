@@ -48,6 +48,41 @@ internal sealed class ExtensionHost
     public IReadOnlyList<ApprovedExtension> Approved => _approved;
 
 
+    /// <summary>
+    /// До создания окружения WebView2: записи, которые больше не проходят проверку (например, тема Chrome, поставленная
+    /// прежней версией), удаляются вместе с подготовленной копией. Без файлов движок не загрузит такое расширение при
+    /// старте — иначе оно могло бы ронять движок раньше, чем SyncAsync успеет убрать его из профиля.
+    /// </summary>
+    public void RevokeInvalidBeforeEngineStart()
+    {
+        List<ApprovedExtension> stored;
+        try
+        {
+            stored = [.. _store.Load()];
+        }
+        catch (Exception ex) when (ex is InvalidDataException or IOException or UnauthorizedAccessException)
+        {
+            return; // повреждённый список — разберётся SyncAsync (fail closed)
+        }
+
+        var keep = new List<ApprovedExtension>();
+        foreach (var record in stored)
+        {
+            var check = _staging.Verify(record.StagedPath, record.Hash, AppServices.ExtensionPolicy, record.Grants);
+            if (check.IsAllowed)
+            {
+                keep.Add(record);
+                continue;
+            }
+            AppServices.Audit.Write("extension-revoked", new { record.Id, record.Name, stage = "before-engine-start", reasons = check.Violations.Select(v => v.Message) });
+            // Удаляем только внутри своей папки: путь из файла списка мог быть подменён.
+            if (ExtensionDirectory.IsInside(record.StagedPath, _staging.Root))
+                DeleteQuietly(record.StagedPath);
+        }
+        if (keep.Count != stored.Count)
+            _store.Save(keep);
+    }
+
     public async Task SyncAsync(CoreWebView2Profile profile)
     {
         var policy = AppServices.ExtensionPolicy;

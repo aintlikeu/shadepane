@@ -190,10 +190,32 @@ public partial class App : Application
         Shutdown(3);
     }
 
+    private static bool _unhandledDialogOpen;
+    private static string? _lastUnhandled;
+    private static DateTime _lastUnhandledAt;
+
+    /// <summary>
+    /// Каждая ошибка — в журнал, но окно одно: пока оно открыто (MessageBox крутит свой цикл сообщений, и ошибки из
+    /// таймеров и событий продолжают приходить) и ещё 30 секунд после него та же ошибка окна не открывает.
+    /// </summary>
     private static void OnUnhandled(AuditLog audit, DispatcherUnhandledExceptionEventArgs args)
     {
         audit.Write("unhandled-exception", Diagnostics.Details(args.Exception));
-        MessageBox.Show(Loc.T($"Непредвиденная ошибка:\n\n{Diagnostics.Describe(args.Exception)}", $"Unexpected error:\n\n{Diagnostics.Describe(args.Exception)}"), Caption, MessageBoxButton.OK, MessageBoxImage.Error);
         args.Handled = true;
+
+        var text = Diagnostics.Describe(args.Exception);
+        if (_unhandledDialogOpen || (text == _lastUnhandled && DateTime.UtcNow - _lastUnhandledAt < TimeSpan.FromSeconds(30)))
+            return;
+        _lastUnhandled = text;
+        _unhandledDialogOpen = true;
+        try
+        {
+            MessageBox.Show(Loc.T($"Непредвиденная ошибка:\n\n{text}", $"Unexpected error:\n\n{text}"), Caption, MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+        finally
+        {
+            _unhandledDialogOpen = false;
+            _lastUnhandledAt = DateTime.UtcNow;
+        }
     }
 }

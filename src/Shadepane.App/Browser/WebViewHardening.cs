@@ -48,6 +48,17 @@ internal static class WebViewHardening
         public bool Committed;
         public bool Pending;
         public bool Effective => Committed || Pending;
+
+        private DateTime _lastUnresponsiveLog = DateTime.MinValue;
+
+        public bool ShouldLogUnresponsive()
+        {
+            var now = DateTime.UtcNow;
+            if (now - _lastUnresponsiveLog < TimeSpan.FromMinutes(1))
+                return false;
+            _lastUnresponsiveLog = now;
+            return true;
+        }
     }
 
     private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<CoreWebView2, ProtectionState> States = new();
@@ -63,6 +74,12 @@ internal static class WebViewHardening
     /// аргумент — ID расширения (из адреса пакета или страницы магазина) или null, если его не удалось определить.
     /// </summary>
     public static event Action<CoreWebView2, string?>? WebStoreInstallRequested;
+
+    /// <summary>
+    /// Сбой процесса движка (уже записан в журнал). BrowserProcessExited — все WebView окружения закрыты, их нужно
+    /// создать заново (MainWindow.RecoverEngineAsync); остальные виды WebView2 восстанавливает сам или касаются одной страницы.
+    /// </summary>
+    public static event Action<CoreWebView2, CoreWebView2ProcessFailedKind>? EngineProcessFailed;
 
     /// <summary>В показанном сейчас документе есть содержимое с домена из protectedHosts (сама страница или фрейм).</summary>
     public static bool ShowsProtectedContent(CoreWebView2 core) => States.TryGetValue(core, out var state) && state.Committed;
@@ -132,6 +149,23 @@ internal static class WebViewHardening
                 if (!before)
                     ProtectedContentChanged?.Invoke(core);
             }
+        };
+
+        core.ProcessFailed += (_, e) =>
+        {
+            object details;
+            try
+            {
+                details = new { role, kind = e.ProcessFailedKind.ToString(), reason = e.Reason.ToString(), exitCode = e.ExitCode, process = e.ProcessDescription };
+            }
+            catch (Exception ex) when (ex is InvalidOperationException or System.Runtime.InteropServices.COMException or NotImplementedException)
+            {
+                details = new { role, kind = e.ProcessFailedKind.ToString() };
+            }
+            // Зависшая страница сообщает об этом каждые несколько секунд — в журнал пишем, но не чаще раза в минуту.
+            if (e.ProcessFailedKind != CoreWebView2ProcessFailedKind.RenderProcessUnresponsive || state.ShouldLogUnresponsive())
+                audit.Write("process-failed", details);
+            EngineProcessFailed?.Invoke(core, e.ProcessFailedKind);
         };
 
         core.DownloadStarting += (_, e) =>

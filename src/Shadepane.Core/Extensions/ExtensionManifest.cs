@@ -30,6 +30,12 @@ public sealed class ExtensionManifest
 
     internal static ExtensionManifest FromJson(JsonElement root)
     {
+        // Тема Chrome — тот же формат пакета, но перекрашивает интерфейс Chrome, которого в WebView2 нет;
+        // загрузка темы в WebView2 приводила к сбою движка. Отклоняем до установки (и при перепроверке на запуске).
+        if (root.TryGetProperty("theme", out _))
+            throw new ManifestException(Loc.T("это тема оформления Chrome, а не расширение: Shadepane не поддерживает темы",
+                "this is a Chrome theme, not an extension: Shadepane does not support themes"));
+
         if (!root.TryGetProperty("manifest_version", out var mv) || mv.ValueKind != JsonValueKind.Number || !mv.TryGetInt32(out var manifestVersion))
             throw new ManifestException(Loc.T("поле manifest_version отсутствует или не является целым числом", "manifest_version is missing or is not an integer"));
 

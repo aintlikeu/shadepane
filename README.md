@@ -11,7 +11,7 @@ Chrome extensions are supported: unpacked folders, and the install button on Chr
 package signature is verified and you confirm its site access and permissions first). Every extension is
 checked against the policy before it is loaded: capture permissions, access to all sites and access to
 protected hosts are refused. Extensions from the store do not update by themselves: install again from the
-store page to update.
+store page to update. Chrome themes are not supported: WebView2 has no browser interface for them to change.
 
 Some extensions, such as ad blockers, need what the default rules refuse: access to all sites, `tabs`,
 `webNavigation` and similar permissions that reveal addresses and titles. When there is no administrator

@@ -89,7 +89,21 @@ internal sealed class BrowserTab
             Changed?.Invoke(this);
             NavigationCompleted?.Invoke(this, e.IsSuccess);
         };
-        core.SourceChanged += (_, _) => Changed?.Invoke(this);
+        core.SourceChanged += (_, _) =>
+        {
+            _lastSource = core.Source;
+            Changed?.Invoke(this);
+        };
+        core.ProcessFailed += (_, e) =>
+        {
+            if (e.ProcessFailedKind != CoreWebView2ProcessFailedKind.BrowserProcessExited)
+                return;
+            // Движок упал: объект CoreWebView2 закрыт, любое обращение к нему бросает исключение. Без Core вкладка
+            // ведёт себя как ещё не готовая (все обращения уже проверяют Core на null), пока MainWindow её не пересоздаст.
+            Core = null;
+            IsLoading = false;
+            Changed?.Invoke(this);
+        };
         core.DocumentTitleChanged += (_, _) => Changed?.Invoke(this);
         core.HistoryChanged += (_, _) => Changed?.Invoke(this);
         core.WindowCloseRequested += (_, _) => CloseRequested?.Invoke(this);
@@ -177,6 +191,12 @@ internal sealed class BrowserTab
     }
 
     private string? _requestedUrl;
+    /// <summary>Последний адрес документа, прочитанный, пока движок был жив, — для восстановления после сбоя.</summary>
+    private string? _lastSource;
+
+    /// <summary>Адрес, который открыть заново после сбоя движка (Core уже недоступен).</summary>
+    public string? RecoveryUrl =>
+        Shadepane.Core.Browsing.SessionState.IsRestorable(_lastSource) ? _lastSource : _requestedUrl;
 
     /// <summary>
     /// Адрес для сохранения сеанса: открытый документ, а пока он ещё не загрузился (вкладку только что восстановили

@@ -9,10 +9,26 @@ namespace Shadepane.App.Browser;
 internal static class BrowserEnvironment
 {
     private static Task<CoreWebView2Environment>? _environment;
+    /// <summary>Завершился процесс браузера текущего окружения (и все дочерние) — папку данных можно открыть заново.</summary>
+    private static TaskCompletionSource? _browserExited;
 
     public static Task<CoreWebView2Environment> GetAsync() => _environment ??= CreateAsync();
 
-    private static Task<CoreWebView2Environment> CreateAsync()
+    /// <summary>
+    /// После сбоя процесса браузера (BrowserProcessExited) старое окружение непригодно: забываем его и ждём, пока процесс
+    /// браузера завершится полностью (иначе новое окружение на той же папке данных может не создаться). Порядок событий
+    /// ProcessFailed и BrowserProcessExited не гарантирован, поэтому ждём с тайм-аутом.
+    /// </summary>
+    public static async Task ResetAfterCrashAsync(TimeSpan timeout)
+    {
+        var exited = _browserExited;
+        _environment = null;
+        _browserExited = null;
+        if (exited is not null)
+            await Task.WhenAny(exited.Task, Task.Delay(timeout));
+    }
+
+    private static async Task<CoreWebView2Environment> CreateAsync()
     {
         var options = new CoreWebView2EnvironmentOptions
         {
@@ -28,6 +44,14 @@ internal static class BrowserEnvironment
         if (secure is not null && Uri.TryCreate(secure["--treat-as-secure=".Length..], UriKind.Absolute, out var origin) && origin.Scheme == Uri.UriSchemeHttp)
             options.AdditionalBrowserArguments = $"--unsafely-treat-insecure-origin-as-secure={origin.GetLeftPart(UriPartial.Authority)}";
 #endif
-        return CoreWebView2Environment.CreateAsync(browserExecutableFolder: null, userDataFolder: AppPaths.WebViewData, options: options);
+        var environment = await CoreWebView2Environment.CreateAsync(browserExecutableFolder: null, userDataFolder: AppPaths.WebViewData, options: options);
+        var exited = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        environment.BrowserProcessExited += (_, e) =>
+        {
+            AppServices.Audit.Write("browser-process-exited", new { kind = e.BrowserProcessExitKind.ToString(), pid = e.BrowserProcessId });
+            exited.TrySetResult();
+        };
+        _browserExited = exited;
+        return environment;
     }
 }

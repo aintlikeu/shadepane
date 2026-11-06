@@ -46,6 +46,7 @@ public partial class MainWindow : ProtectedWindow, IContentShield
         WebViewHardening.ScreenCaptureBlocked += OnScreenCaptureBlocked;
         WebViewHardening.ProtectedContentChanged += OnProtectedContentChanged;
         WebViewHardening.WebStoreInstallRequested += OnWebStoreInstallRequested;
+        WebViewHardening.EngineProcessFailed += OnEngineProcessFailed;
         ProtectionPopup.Closed += (_, _) => _protectionPopupClosedAt = DateTime.UtcNow;
         Appearance.ThemeService.Changed += ApplyPageTheme;
         // Закрытие окна — последний момент, когда вкладки ещё на месте: сохраняем сеанс сразу, без задержки.
@@ -58,6 +59,7 @@ public partial class MainWindow : ProtectedWindow, IContentShield
             WebViewHardening.ScreenCaptureBlocked -= OnScreenCaptureBlocked;
             WebViewHardening.ProtectedContentChanged -= OnProtectedContentChanged;
             WebViewHardening.WebStoreInstallRequested -= OnWebStoreInstallRequested;
+            WebViewHardening.EngineProcessFailed -= OnEngineProcessFailed;
             _captureFlashTimer?.Stop();
             AppServices.Bookmarks.Changed -= OnBookmarksChanged;
             AppServices.Favicons.Changed -= OnFaviconsChanged;
@@ -675,6 +677,9 @@ public partial class MainWindow : ProtectedWindow, IContentShield
         {
             AppServices.Audit.Write("webview-runtime", new { available = CoreWebView2Environment.GetAvailableBrowserVersionString() });
 
+            stage = "extensions-precheck";
+            _extensions.RevokeInvalidBeforeEngineStart();
+
             stage = "create-environment";
             _environment = await BrowserEnvironment.GetAsync();
 
@@ -711,6 +716,152 @@ public partial class MainWindow : ProtectedWindow, IContentShield
             MessageBox.Show(this, Loc.T($"Не удалось запустить движок браузера.\n\nШаг: {stage}\n{Diagnostics.Describe(ex)}\n\nПодробности: {AppServices.Audit.FilePath}", $"Could not start the browser engine.\n\nStep: {stage}\n{Diagnostics.Describe(ex)}\n\nDetails: {AppServices.Audit.FilePath}"),
                 Title, MessageBoxButton.OK, MessageBoxImage.Error);
             Close();
+        }
+    }
+
+    // ---------- Сбой движка ----------
+
+    private bool _recovering;
+    private DateTime _lastRecoveryAt = DateTime.MinValue;
+    private readonly Dictionary<BrowserTab, DateTime> _unresponsiveWarnedAt = [];
+
+    /// <summary>Повторный сбой раньше этого срока после восстановления — цикл: перезапускать больше не пытаемся.</summary>
+    private static readonly TimeSpan CrashLoopWindow = TimeSpan.FromMinutes(1);
+
+    private void OnEngineProcessFailed(CoreWebView2 core, CoreWebView2ProcessFailedKind kind)
+    {
+        if (_closed)
+            return;
+        switch (kind)
+        {
+            case CoreWebView2ProcessFailedKind.BrowserProcessExited:
+                // Событие приходит от каждой вкладки и popup — восстанавливаем один раз. Флаг ставим сразу, а само
+                // восстановление — после выхода из события WebView2.
+                if (_recovering)
+                    return;
+                _recovering = true;
+                Dispatcher.BeginInvoke(() => _ = RecoverEngineAsync());
+                break;
+            case CoreWebView2ProcessFailedKind.RenderProcessExited:
+                if (_tabs.FirstOrDefault(t => t.Core == core) is { } crashed && crashed == _active)
+                    Warn(Loc.T("Страница аварийно завершилась. Нажмите «Обновить» (F5), чтобы загрузить её снова.",
+                        "The page crashed. Press Reload (F5) to load it again."));
+                break;
+            case CoreWebView2ProcessFailedKind.RenderProcessUnresponsive:
+                // Повторяется каждые несколько секунд, пока страница не оживёт — предупреждаем не чаще раза в 30 секунд.
+                if (_tabs.FirstOrDefault(t => t.Core == core) is { } frozen && frozen == _active &&
+                    (!_unresponsiveWarnedAt.TryGetValue(frozen, out var at) || DateTime.UtcNow - at > TimeSpan.FromSeconds(30)))
+                {
+                    _unresponsiveWarnedAt[frozen] = DateTime.UtcNow;
+                    Warn(Loc.T("Страница не отвечает. Можно подождать, обновить её (F5) или закрыть вкладку.",
+                        "The page is not responding. You can wait, reload it (F5) or close the tab."));
+                }
+                break;
+            // Остальные процессы (GPU, служебные, процессы фреймов) WebView2 перезапускает сам; сбой уже в журнале.
+        }
+    }
+
+    /// <summary>
+    /// Процесс браузера WebView2 завершился аварийно: все вкладки и popup закрыты движком. Создаём окружение заново
+    /// (та же папка данных и профиль), сверяем расширения и открываем те же адреса. Повторный сбой вскоре после
+    /// восстановления — не крутимся в цикле, а закрываем окно с одним сообщением.
+    /// </summary>
+    private async Task RecoverEngineAsync()
+    {
+        if (_closed)
+            return;
+        var now = DateTime.UtcNow;
+        var crashLoop = now - _lastRecoveryAt < CrashLoopWindow;
+        _lastRecoveryAt = now;
+
+        // Адреса — из того, что вкладки запомнили, пока движок был жив (Core уже закрыт).
+        var activeTab = _active ?? _lastWebTab;
+        var activeIndex = activeTab is null ? 0 : Math.Max(0, _tabs.IndexOf(activeTab));
+        var urls = _tabs.Select(t => t.RecoveryUrl).ToList();
+        AppServices.Audit.Write("engine-recovery-started", new { tabs = urls.Count, crashLoop });
+
+        // Пока вкладки пересоздаются, сеанс не сохраняем: иначе он затёрся бы пустым или неполным списком.
+        _sessionReady = false;
+        AddressBox.IsEnabled = ReloadButton.IsEnabled = NewTabButton.IsEnabled = MenuButton.IsEnabled = ExtensionsButton.IsEnabled = false;
+        foreach (var popup in _popups.Values.ToList())
+            popup.Close();
+        foreach (var tab in _tabs.ToList())
+            RemoveTab(tab);
+        _unresponsiveWarnedAt.Clear();
+        _profile = null;
+        _environment = null;
+
+        if (crashLoop)
+        {
+            AppServices.Audit.Write("engine-recovery-stopped", new { reason = "crashed again within a minute of recovery" });
+            MessageBox.Show(this, Loc.T($"Движок браузера снова аварийно завершился сразу после перезапуска. Браузер будет закрыт.\n\nПодробности: {AppServices.Audit.FilePath}",
+                    $"The browser engine crashed again right after a restart. The browser will close.\n\nDetails: {AppServices.Audit.FilePath}"),
+                Title, MessageBoxButton.OK, MessageBoxImage.Error);
+            Close();
+            return;
+        }
+
+        SetStatus(Loc.T("Движок браузера аварийно завершился — перезапуск…", "The browser engine crashed. Restarting…"));
+        var stage = "wait-for-exit";
+        try
+        {
+            await BrowserEnvironment.ResetAfterCrashAsync(TimeSpan.FromSeconds(10));
+            if (_closed)
+                return;
+
+            stage = "create-environment";
+            _extensions.RevokeInvalidBeforeEngineStart();
+            _environment = await BrowserEnvironment.GetAsync();
+
+            stage = "create-first-tab";
+            var first = await CreateTabAsync(activate: true);
+            if (_closed || first?.Core is null)
+                return;
+            _profile = first.Core.Profile;
+            ApplyPageTheme();
+
+            stage = "extensions-sync";
+            await _extensions.SyncAsync(_profile);
+            if (_closed)
+                return;
+            RebuildExtensionBar();
+
+            stage = "reopen-tabs";
+            var tabs = new List<BrowserTab> { first };
+            for (var i = 1; i < urls.Count; i++)
+            {
+                var tab = await CreateTabAsync(activate: false);
+                if (tab is null || _closed)
+                    return;
+                tabs.Add(tab);
+            }
+            for (var i = 0; i < tabs.Count; i++)
+            {
+                if (i < urls.Count && urls[i] is { } url)
+                    tabs[i].Navigate(url);
+                else
+                    NavigateHome(tabs[i]);
+            }
+            ActivateTab(tabs[Math.Clamp(activeIndex, 0, tabs.Count - 1)]);
+
+            AddressBox.IsEnabled = ReloadButton.IsEnabled = NewTabButton.IsEnabled = MenuButton.IsEnabled = ExtensionsButton.IsEnabled = true;
+            _sessionReady = true;
+            ScheduleSessionSave();
+            AppServices.Audit.Write("engine-recovered", new { tabs = tabs.Count });
+            Warn(Loc.T("Движок браузера аварийно завершился и был перезапущен. Вкладки открыты заново; несохранённое на страницах могло пропасть.",
+                "The browser engine crashed and was restarted. Tabs were reopened; unsaved input on pages may be lost."));
+        }
+        catch (Exception ex) when (!_closed)
+        {
+            AppServices.Audit.Write("engine-recovery-failed", Diagnostics.Details(ex, stage));
+            MessageBox.Show(this, Loc.T($"Не удалось перезапустить движок браузера.\n\nШаг: {stage}\n{Diagnostics.Describe(ex)}\n\nПодробности: {AppServices.Audit.FilePath}",
+                    $"Could not restart the browser engine.\n\nStep: {stage}\n{Diagnostics.Describe(ex)}\n\nDetails: {AppServices.Audit.FilePath}"),
+                Title, MessageBoxButton.OK, MessageBoxImage.Error);
+            Close();
+        }
+        finally
+        {
+            _recovering = false;
         }
     }
 
@@ -863,6 +1014,7 @@ public partial class MainWindow : ProtectedWindow, IContentShield
         }
         ContentHost.Children.Remove(tab.View);
         _findSubscribed.Remove(tab);
+        _unresponsiveWarnedAt.Remove(tab);
         if (_active == tab)
         {
             CloseFind(focusPage: false);

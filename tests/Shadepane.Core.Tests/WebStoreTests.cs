@@ -263,3 +263,43 @@ public class WebStoreTests
         Assert.Equal("__MSG_missing__", WebStore.DisplayName(dir, "__MSG_missing__"));
     }
 }
+
+public class ChromeThemeTests
+{
+    // Пакет темы из магазина: только manifest.json с "theme" (как «Into The Black Hole»).
+    private const string Theme = """
+        { "manifest_version": 3, "name": "Black", "version": "1.0.2",
+          "theme": { "colors": { "frame": [0, 0, 0], "toolbar": [0, 0, 0] } } }
+        """;
+
+    [Fact]
+    public void Manifest_RejectsThemes()
+    {
+        var ex = Assert.Throws<ManifestException>(() => ManifestReader.Parse(Theme));
+        Assert.Contains("тема", ex.Message);
+    }
+
+    [Fact]
+    public void StoreInstallPath_RejectsThemeBeforeInstalling()
+    {
+        using var temp = new TempDir();
+        using var rsa = System.Security.Cryptography.RSA.Create(2048);
+        var dir = temp.Sub("theme");
+        WebStore.ExtractArchive(CrxPackage.Parse(Crx.Build(Crx.Zip(("manifest.json", Theme)), [rsa])).Archive, dir);
+        Assert.Throws<ManifestException>(() => WebStore.WriteDeveloperKey(dir, Crx.Spki(rsa)));
+    }
+
+    [Fact]
+    public void ThemeApprovedByOlderVersion_IsRevokedOnVerify()
+    {
+        using var tmp = new TempDir();
+        var staging = new ExtensionStaging(Path.Combine(tmp.Path, "staging"));
+        // Копия, которую прежняя версия успела одобрить: кладём в служебную папку напрямую.
+        var staged = Path.Combine(staging.Root, "0123456789abcdef0123456789abcdef");
+        Directory.CreateDirectory(staged);
+        File.WriteAllText(Path.Combine(staged, "manifest.json"), Theme);
+
+        var result = staging.Verify(staged, ExtensionDirectory.ComputeHash(staged), Shadepane.Core.Policy.BrowserPolicy.Default);
+        Assert.Contains(result.Violations, v => v.Code == "invalid");
+    }
+}
