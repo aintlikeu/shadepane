@@ -1,6 +1,7 @@
 using System.Windows;
 using Microsoft.Web.WebView2.Core;
 using Microsoft.Web.WebView2.Wpf;
+using Shadepane.Core.Browsing;
 using Shadepane.Core.Navigation;
 using Shadepane.Core.Localization;
 
@@ -84,6 +85,7 @@ internal sealed class BrowserTab
         core.NavigationCompleted += (_, e) =>
         {
             IsLoading = false;
+            _expectNavigationZoom = false;
             Changed?.Invoke(this);
             NavigationCompleted?.Invoke(this, e.IsSuccess);
         };
@@ -93,7 +95,77 @@ internal sealed class BrowserTab
         core.WindowCloseRequested += (_, _) => CloseRequested?.Invoke(this);
         core.FaviconChanged += (_, _) => FaviconChanged?.Invoke(this);
 
+        // Масштаб сайта (SiteZoom). ContentLoading — новый документ: Source уже новый, страница ещё не нарисована.
+        core.ContentLoading += (_, _) => OnDocumentCommitted(core.Source);
+        View.ZoomFactorChanged += (_, _) => OnZoomFactorChanged();
+        AppServices.SiteZoom.Changed += OnSiteZoomChanged;
+
         Core = core;
+    }
+
+    // ---------- Масштаб ----------
+
+    /// <summary>Адрес документа, к сайту которого относится текущий масштаб (обновляется на ContentLoading).</summary>
+    private string? _zoomUrl;
+    /// <summary>Мы сами меняем ZoomFactor: это не жест пользователя, запоминать нечего.</summary>
+    private bool _settingZoom;
+    /// <summary>
+    /// Новый документ загружается: WebView2 сбрасывает масштаб при переходе и сообщает об этом ZoomFactorChanged сразу
+    /// после ContentLoading. Это событие — не выбор пользователя: возвращаем масштаб сайта вместо того, чтобы запомнить.
+    /// </summary>
+    private bool _expectNavigationZoom;
+
+    /// <summary>Масштаб, выбранный в браузере (Ctrl+= / Ctrl+- / Ctrl+0, меню): страница и сайт целиком.</summary>
+    public void SetZoom(double factor)
+    {
+        if (IsClosed)
+            return;
+        ApplyZoom(factor);
+        _expectNavigationZoom = false;
+        AppServices.SiteZoom.Set(_zoomUrl, View.ZoomFactor);
+    }
+
+    private void OnDocumentCommitted(string? url)
+    {
+        _zoomUrl = url;
+        ApplyZoom(AppServices.SiteZoom.Get(url));
+        _expectNavigationZoom = true;
+    }
+
+    private void OnZoomFactorChanged()
+    {
+        if (_settingZoom || IsClosed)
+            return;
+        if (_expectNavigationZoom)
+        {
+            _expectNavigationZoom = false;
+            ApplyZoom(AppServices.SiteZoom.Get(_zoomUrl));
+            return;
+        }
+        // Пользователь изменил масштаб в самой странице (Ctrl+колесо): запоминаем для сайта.
+        AppServices.SiteZoom.Set(_zoomUrl, View.ZoomFactor);
+    }
+
+    /// <summary>Масштаб сайта изменили в другой вкладке (или в этой): та же страница сайта подстраивается.</summary>
+    private void OnSiteZoomChanged(string host, double factor)
+    {
+        if (!IsClosed && SiteZoom.KeyOf(_zoomUrl) == host)
+            ApplyZoom(factor);
+    }
+
+    private void ApplyZoom(double factor)
+    {
+        if (SiteZoom.SameZoom(View.ZoomFactor, factor))
+            return;
+        _settingZoom = true;
+        try
+        {
+            View.ZoomFactor = factor;
+        }
+        finally
+        {
+            _settingZoom = false;
+        }
     }
 
     public void Navigate(string url)
@@ -118,6 +190,7 @@ internal sealed class BrowserTab
         if (IsClosed)
             return;
         IsClosed = true;
+        AppServices.SiteZoom.Changed -= OnSiteZoomChanged;
         View.Dispose();
     }
 

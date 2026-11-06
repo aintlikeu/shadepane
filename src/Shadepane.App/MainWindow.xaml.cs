@@ -1280,7 +1280,7 @@ public partial class MainWindow : ProtectedWindow, IContentShield
         if (_active is null)
             return false;
         var view = _active.View;
-        view.ZoomFactor = next(view.ZoomFactor);
+        _active.SetZoom(next(view.ZoomFactor));
         SetStatus(Loc.T($"Масштаб: {ZoomLevels.Format(view.ZoomFactor)}", $"Zoom: {ZoomLevels.Format(view.ZoomFactor)}"));
         return true;
     }

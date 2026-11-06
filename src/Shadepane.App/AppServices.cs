@@ -34,6 +34,9 @@ internal static class AppServices
 
     public static Browser.DownloadService Downloads { get; } = new();
 
+    /// <summary>Масштаб по сайтам, общий для всех вкладок; только в памяти.</summary>
+    public static Shadepane.Core.Browsing.SiteZoom SiteZoom { get; } = new();
+
     public static Updates.UpdateService Updates { get; } = new();
 
     /// <summary>Итоговые значения изменились (сохранены настройки).</summary>
