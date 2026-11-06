@@ -38,7 +38,18 @@ public sealed class BrowserPolicy
 
     public const string ClipboardReadPermission = "clipboardRead";
 
-    public static BrowserPolicy Default { get; } = new();
+    /// <summary>
+    /// Права, которые пользователь может выдать отдельному расширению при установке (окно «Дать права»), если это
+    /// разрешено (<see cref="PermissionGrantsAllowed"/>): они раскрывают адреса, заголовки и историю, но не дают
+    /// снимков экрана. Захват (tabCapture, desktopCapture, pageCapture, activeTab), debugger и downloads не выдаются
+    /// никогда; как и доступ к защищённым доменам (protectedHosts).
+    /// </summary>
+    public static readonly IReadOnlySet<string> UserGrantablePermissions = new HashSet<string>(
+        ["tabs", "history", "webNavigation", "declarativeNetRequestFeedback", "topSites", "sessions", "proxy"],
+        StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>Встроенная политика (источника нет): выдача прав расширениям разрешена — решает пользователь.</summary>
+    public static BrowserPolicy Default { get; } = new() { AllowExtensionPermissionGrants = true };
 
     /// <summary>Домашняя страница. Задана — действует и блокирует настройку пользователя; null — решает пользователь.</summary>
     public string? HomeUrl { get; init; }
@@ -88,6 +99,17 @@ public sealed class BrowserPolicy
 
     /// <summary>В RDP-сессии скриншот делается на клиентской машине, и флаг защиты окна там не действует.</summary>
     public bool BlockInRemoteSession { get; init; } = true;
+
+    /// <summary>
+    /// Разрешить пользователю выдавать отдельному расширению права из <see cref="UserGrantablePermissions"/> и доступ ко
+    /// всем сайтам (окно при установке). В политике администратора по умолчанию ВЫКЛЮЧЕНО (null = false): корпоративная
+    /// политика не ослабляется без явного согласия; без политики (встроенная) — включено. Выключили после выдачи —
+    /// такие расширения отзываются при следующем запуске.
+    /// </summary>
+    public bool? AllowExtensionPermissionGrants { get; init; }
+
+    [JsonIgnore]
+    public bool PermissionGrantsAllowed => AllowExtensionPermissionGrants ?? false;
 
     private IReadOnlyList<HostPattern>? _protectedPatterns;
     private HashSet<string>? _blockedSet;
@@ -143,6 +165,7 @@ public sealed class BrowserPolicy
                 CheckForUpdates = CheckForUpdates,
                 RestoreSession = RestoreSession,
                 BlockInRemoteSession = BlockInRemoteSession,
+                AllowExtensionPermissionGrants = AllowExtensionPermissionGrants,
             }.EnsureValid();
 
     /// <summary>Проверяет политику целиком; бросает PolicyException с понятным сообщением.</summary>

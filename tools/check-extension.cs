@@ -26,9 +26,11 @@ try
     Console.WriteLine($"sha256:   {ExtensionDirectory.ComputeHash(folder)}");
 
     var result = ExtensionValidator.Validate(manifest, policy);
-    Console.WriteLine(result.IsAllowed ? "RESULT:   allowed" : "RESULT:   denied");
+    Console.WriteLine(result.IsAllowed ? "RESULT:   allowed"
+        : result.CanBeGrantedByUser ? "RESULT:   denied unless the user grants the permissions marked (grantable) at install"
+        : "RESULT:   denied");
     foreach (var v in result.Violations)
-        Console.WriteLine($"  - [{v.Code}] {v.Message}");
+        Console.WriteLine($"  - [{v.Code}] {v.Message}{(v.Grant is null ? "" : " (grantable)")}");
     return result.IsAllowed ? 0 : 1;
 }
 catch (Exception ex) when (ex is ManifestException or ExtensionDirectoryException or PolicyException or IOException)

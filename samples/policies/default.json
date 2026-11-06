@@ -13,6 +13,9 @@
   // Режим белого списка (рекомендуется для продуктива): разрешены только перечисленные права.
   // "allowedPermissions": ["storage", "alarms", "contextMenus", "notifications", "i18n"],
   "allowBroadHostAccess": false,
+  // Разрешить пользователю при установке выдать отдельному расширению доступ ко всем сайтам и права tabs, history,
+  // webNavigation и т. п. (окно «Дать права»). В политике по умолчанию выключено; без политики — включено.
+  "allowExtensionPermissionGrants": false,
   "allowManifestV2": false,
   // Загрузка файлов. Если задано — БЛОКИРУЕТ настройку пользователя.
   // "allowDownloads": false,

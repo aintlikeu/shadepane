@@ -10,7 +10,8 @@ public sealed record ApprovedExtension(
     string Hash,
     string? PopupPath,
     string? IconPath,
-    DateTimeOffset AddedAt);
+    DateTimeOffset AddedAt,
+    ExtensionGrants? Grants = null);
 
 /// <summary>Список одобренных расширений. Повреждённый файл — InvalidDataException (вызывающий решает: fail closed).</summary>
 public sealed class ApprovedExtensionStore(string filePath)

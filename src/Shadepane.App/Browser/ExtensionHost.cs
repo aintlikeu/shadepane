@@ -67,7 +67,7 @@ internal sealed class ExtensionHost
         var valid = new List<ApprovedExtension>();
         foreach (var record in stored)
         {
-            var check = _staging.Verify(record.StagedPath, record.Hash, policy);
+            var check = _staging.Verify(record.StagedPath, record.Hash, policy, record.Grants);
             if (check.IsAllowed)
                 valid.Add(record);
             else
@@ -121,10 +121,12 @@ internal sealed class ExtensionHost
     /// Возвращает добавленную запись или null с причинами отказа.
     /// ManifestException / ExtensionDirectoryException пробрасываются — их показывает вызывающий.
     /// </summary>
-    public async Task<(ApprovedExtension? Added, ValidationResult Validation)> AddFromFolderAsync(CoreWebView2Profile profile, string folder)
+    /// <param name="grants">Права, которые пользователь выдал этому расширению в окне при установке (запоминаются в записи).</param>
+    public async Task<(ApprovedExtension? Added, ValidationResult Validation)> AddFromFolderAsync(CoreWebView2Profile profile, string folder, ExtensionGrants? grants = null)
     {
         var audit = AppServices.Audit;
-        var result = _staging.Stage(folder, AppServices.ExtensionPolicy);
+        grants = grants is { IsEmpty: false } ? grants : null;
+        var result = _staging.Stage(folder, AppServices.ExtensionPolicy, grants);
         if (result.Staged is null)
         {
             audit.Write("extension-rejected", new { folder, reasons = result.Validation.Violations.Select(v => v.Message) });
@@ -144,11 +146,11 @@ internal sealed class ExtensionHost
         }
 
         var record = new ApprovedExtension(extension.Id, extension.Name, staged.Path, staged.Hash,
-            staged.Manifest.PopupPath, staged.Manifest.IconPath, DateTimeOffset.UtcNow);
+            staged.Manifest.PopupPath, staged.Manifest.IconPath, DateTimeOffset.UtcNow, grants);
         _approved.RemoveAll(r => r.Id == record.Id);
         _approved.Add(record);
         _store.Save(_approved);
-        audit.Write("extension-added", new { record.Id, record.Name, record.Hash, folder });
+        audit.Write("extension-added", new { record.Id, record.Name, record.Hash, folder, grantedPermissions = grants?.Permissions, grantedAllSites = grants?.AllSitesAccess });
         return (record, result.Validation);
     }
 

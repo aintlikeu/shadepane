@@ -1578,7 +1578,23 @@ public partial class MainWindow : ProtectedWindow, IContentShield
             if (dialog.ShowDialog(this) != true)
                 return; // отмена
 
-            var (added, validation) = await _extensions.AddFromFolderAsync(_profile, dialog.FolderName);
+            // Права, которые по умолчанию запрещены, но их можно выдать, — спрашиваем до установки. Копию проверит
+            // Stage ещё раз: если папку успели изменить и расширению нужно больше, выданного не хватит — отказ.
+            var manifest = ManifestReader.ReadFromDirectory(dialog.FolderName);
+            var precheck = ExtensionValidator.Validate(manifest, AppServices.ExtensionPolicy);
+            ExtensionGrants? grants = null;
+            if (precheck.CanBeGrantedByUser)
+            {
+                if (!AskToGrant(WebStore.DisplayName(dialog.FolderName, manifest.Name), precheck.GrantsNeeded, intro: null))
+                {
+                    AppServices.Audit.Write("extension-grant-declined", new { folder = dialog.FolderName, manifest.Name });
+                    SetStatus(Loc.T("Расширение не установлено", "The extension was not installed"));
+                    return;
+                }
+                grants = precheck.GrantsNeeded;
+            }
+
+            var (added, validation) = await _extensions.AddFromFolderAsync(_profile, dialog.FolderName, grants);
             if (_closed)
                 return;
             ReportExtensionAdded(added, validation);
@@ -1659,19 +1675,22 @@ public partial class MainWindow : ProtectedWindow, IContentShield
             package = await _extensions.DownloadFromWebStoreAsync(id, _environment?.BrowserVersionString, CancellationToken.None);
             if (_closed)
                 return;
-            if (!package.Validation.IsAllowed)
+            var grants = package.Validation.CanBeGrantedByUser ? package.Validation.GrantsNeeded : null;
+            if (!package.Validation.IsAllowed && grants is null)
             {
                 AppServices.Audit.Write("extension-rejected", new { id, source = "webstore", reasons = package.Validation.Violations.Select(v => v.Message) });
                 ShowPolicyRejection(package.Validation);
                 return;
             }
-            if (!ConfirmWebStoreInstall(package))
+            if (!ConfirmWebStoreInstall(package, grants))
             {
+                if (grants is not null)
+                    AppServices.Audit.Write("extension-grant-declined", new { id, source = "webstore" });
                 SetStatus(Loc.T("Установка отменена", "Installation cancelled"));
                 return;
             }
 
-            var (added, validation) = await _extensions.AddFromFolderAsync(_profile, package.Folder);
+            var (added, validation) = await _extensions.AddFromFolderAsync(_profile, package.Folder, grants);
             if (added is not null)
                 AppServices.Audit.Write("webstore-installed", new { id, installedId = added.Id, added.Name, package.Manifest.Version });
             if (_closed)
@@ -1701,7 +1720,7 @@ public partial class MainWindow : ProtectedWindow, IContentShield
     }
 
     /// <summary>Подтверждение с правами — как в Chrome: страница (или чужой скрипт на ней) не может поставить расширение сама.</summary>
-    private bool ConfirmWebStoreInstall(WebStorePackage package)
+    private bool ConfirmWebStoreInstall(WebStorePackage package, ExtensionGrants? grants)
     {
         const int maxItems = 12;
         static string List(IEnumerable<string> items)
@@ -1733,7 +1752,35 @@ public partial class MainWindow : ProtectedWindow, IContentShield
         }
         text.Append(Loc.T($"Источник: Chrome Web Store, ID {package.Id}. Подпись пакета проверена.", $"Source: Chrome Web Store, ID {package.Id}. The package signature was verified."));
 
+        if (grants is not null)
+            return AskToGrant(package.DisplayName, grants, intro: text.ToString());
         return MessageBox.Show(this, text.ToString(), Title, MessageBoxButton.YesNo, MessageBoxImage.Question, MessageBoxResult.No) == MessageBoxResult.Yes;
+    }
+
+    /// <summary>
+    /// Окно «Дать права»: расширению нужны права, которые по умолчанию запрещены политикой. Да — выдать именно эти
+    /// права этому расширению и установить; Нет — не устанавливать. По умолчанию выбрано «Нет».
+    /// </summary>
+    private bool AskToGrant(string name, ExtensionGrants grants, string? intro)
+    {
+        var text = new StringBuilder();
+        if (intro is not null)
+        {
+            text.AppendLine(intro);
+            text.AppendLine();
+            text.AppendLine("————————————");
+            text.AppendLine();
+        }
+        text.AppendLine(Loc.T($"Расширению «{name}» нужны права, которые в Shadepane по умолчанию запрещены:", $"The \"{name}\" extension needs permissions that Shadepane does not allow by default:"));
+        text.AppendLine();
+        foreach (var key in grants.Keys)
+            text.AppendLine("  • " + ExtensionGrants.Describe(key));
+        text.AppendLine();
+        text.AppendLine(Loc.T("Права выдаются только этому расширению. Чтобы забрать их, удалите расширение.",
+            "The permissions are given to this extension only. To take them back, remove the extension."));
+        text.AppendLine();
+        text.Append(Loc.T("Да — дать эти права и установить.\nНет — не устанавливать.", "Yes: give these permissions and install.\nNo: do not install."));
+        return MessageBox.Show(this, text.ToString(), Title, MessageBoxButton.YesNo, MessageBoxImage.Warning, MessageBoxResult.No) == MessageBoxResult.Yes;
     }
 
     private async Task RemoveExtensionAsync(ApprovedExtension extension)

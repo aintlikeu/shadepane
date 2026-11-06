@@ -13,6 +13,12 @@ checked against the policy before it is loaded: capture permissions, access to a
 protected hosts are refused. Extensions from the store do not update by themselves: install again from the
 store page to update.
 
+Some extensions, such as ad blockers, need what the default rules refuse: access to all sites, `tabs`,
+`webNavigation` and similar permissions that reveal addresses and titles. When there is no administrator
+policy, installing such an extension asks whether to give it exactly those permissions; they apply to that
+extension only. Capture permissions (`tabCapture`, `desktopCapture`, `pageCapture`, `activeTab`), `debugger`,
+`downloads` and access to protected hosts are never given this way.
+
 Everyday browsing: tabs, search from the address bar (Startpage by default; DuckDuckGo, Brave Search,
 Google, Bing or a custom template), home page, bookmarks and a bookmarks bar, history, downloads, find in
 page, zoom and the usual keyboard shortcuts. The interface is in English or Russian: it follows the Windows display language
@@ -81,6 +87,7 @@ Main options:
 | `checkForUpdates` | not set | Check GitHub Releases for updates; when set, users cannot change it (default: on) |
 | `restoreSession` | not set | Reopen the previous tabs on start; this keeps the addresses of open tabs in `session.json`. `false` forbids it (nothing is stored), `true` turns it on; when set, users cannot change it (default: off) |
 | `blockInRemoteSession` | `true` | Refuse to run in an RDP session |
+| `allowExtensionPermissionGrants` | `false` in a policy | Let users give one extension, at install, access to all sites and `tabs`, `history`, `webNavigation`, `declarativeNetRequestFeedback`, `topSites`, `sessions`, `proxy`. Without a policy it is on; set to `false` later and such extensions are removed on the next start |
 
 User preferences (home page, search engine, downloads, clipboard access for extensions, history,
 bookmarks bar) are set in the settings

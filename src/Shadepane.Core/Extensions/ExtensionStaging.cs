@@ -17,7 +17,7 @@ public sealed class ExtensionStaging(string stagingRoot)
 
     public string Root { get; } = Path.GetFullPath(stagingRoot);
 
-    public StagingResult Stage(string sourceDirectory, BrowserPolicy policy)
+    public StagingResult Stage(string sourceDirectory, BrowserPolicy policy, ExtensionGrants? grants = null)
     {
         var source = Path.GetFullPath(sourceDirectory);
         if (ExtensionDirectory.IsInside(source, Root) || string.Equals(source, Root, StringComparison.OrdinalIgnoreCase))
@@ -30,7 +30,7 @@ public sealed class ExtensionStaging(string stagingRoot)
             ExtensionDirectory.CopyTree(source, incoming);
 
             var manifest = ManifestReader.ReadFromDirectory(incoming);
-            var validation = ExtensionValidator.Validate(manifest, policy);
+            var validation = ExtensionValidator.Validate(manifest, policy, grants);
             if (!validation.IsAllowed)
                 return new StagingResult(null, validation);
 
@@ -65,7 +65,7 @@ public sealed class ExtensionStaging(string stagingRoot)
     /// Перепроверка при каждом запуске: копия цела (хеш) и всё ещё проходит ТЕКУЩУЮ политику
     /// (администратор мог ужесточить её после одобрения расширения).
     /// </summary>
-    public ValidationResult Verify(string stagedPath, string expectedHash, BrowserPolicy policy)
+    public ValidationResult Verify(string stagedPath, string expectedHash, BrowserPolicy policy, ExtensionGrants? grants = null)
     {
         if (!ExtensionDirectory.IsInside(stagedPath, Root))
             return ValidationResult.Denied("staging-path", Loc.T("путь расширения вне служебной папки браузера", "the extension path is outside the browser's data folder"));
@@ -76,7 +76,7 @@ public sealed class ExtensionStaging(string stagingRoot)
         {
             if (ExtensionDirectory.ComputeHash(stagedPath) != expectedHash)
                 return ValidationResult.Denied("tampered", Loc.T("файлы расширения изменены после одобрения", "extension files changed after approval"));
-            return ExtensionValidator.Validate(ManifestReader.ReadFromDirectory(stagedPath), policy);
+            return ExtensionValidator.Validate(ManifestReader.ReadFromDirectory(stagedPath), policy, grants);
         }
         catch (Exception ex) when (ex is ManifestException or ExtensionDirectoryException or IOException or UnauthorizedAccessException)
         {

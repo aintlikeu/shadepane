@@ -67,6 +67,12 @@ python -m http.server 8000 --directory samples\test-pages     # или: npx --ye
 | Chrome Web Store: страница любого расширения → кнопка установки | загрузка не появляется в списке загрузок; окно «Установить расширение «Имя» версия?» с доступом к сайтам и правами; «Да» — значок на панели; в журнале `webstore-package-intercepted`, `webstore-package-downloaded`, `webstore-installed` с `installedId` = ID из адреса страницы |
 | То же, «Нет» в окне подтверждения | ничего не установлено, «Установка отменена» |
 | Магазин: расширение с правами из `blockedPermissions` (например, со скриншотами страниц) | отказ политикой без окна подтверждения, в журнале `extension-rejected` с `source: webstore` |
+| Без политики: магазин → AdGuard AdBlocker → установка | одно окно: «Установить …?» с правами и ниже — «нужны права, которые по умолчанию запрещены»: доступ ко всем сайтам, tabs, webNavigation, declarativeNetRequestFeedback; «Да» — расширение стоит и работает после перезапуска; в журнале `extension-added` с `grantedPermissions` и `grantedAllSites: true` |
+| То же, «Нет» | не установлено; в журнале `extension-grant-declined` |
+| Пазл → «Добавить расширение…» → папка расширения с `"permissions": ["tabs"]` | окно «Дать права» с одним пунктом tabs; «Да» — установлено |
+| Папка с `"permissions": ["tabCapture", "tabs"]` | сразу отказ политикой, окна «Дать права» нет |
+| Политика с `protectedHosts` и `"allowExtensionPermissionGrants": true`, AdGuard | сразу отказ («пересекается с защищённым доменом»), окна «Дать права» нет |
+| Установить AdGuard с выданными правами, затем политика с `"allowExtensionPermissionGrants": false`, перезапуск | расширение отозвано, в журнале `extension-revoked` |
 | В адресную строку на любой странице, кроме магазина: `https://clients2.google.com/service/update2/crx?response=redirect&prodversion=130.0&acceptformat=crx3&x=id%3D<ID расширения>%26uc` | окна установки нет, загрузки нет; в журнале `webstore-package-intercepted` с `refusal: not-a-store-page` |
 | Магазин: пазл → «Установить с этой страницы Chrome Web Store» (пункт есть только на странице расширения) | то же окно подтверждения, что и у кнопки магазина |
 | Повторная установка уже стоящего расширения из магазина | окно «Обновить расширение … до версии …»; после — одно расширение, не два |
