@@ -1,4 +1,6 @@
 using System.IO;
+using System.Net.Http;
+using System.Text;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -43,6 +45,7 @@ public partial class MainWindow : ProtectedWindow, IContentShield
         AppServices.Downloads.Finished += OnDownloadFinished;
         WebViewHardening.ScreenCaptureBlocked += OnScreenCaptureBlocked;
         WebViewHardening.ProtectedContentChanged += OnProtectedContentChanged;
+        WebViewHardening.WebStoreInstallRequested += OnWebStoreInstallRequested;
         ProtectionPopup.Closed += (_, _) => _protectionPopupClosedAt = DateTime.UtcNow;
         Appearance.ThemeService.Changed += ApplyPageTheme;
         // Закрытие окна — последний момент, когда вкладки ещё на месте: сохраняем сеанс сразу, без задержки.
@@ -54,6 +57,7 @@ public partial class MainWindow : ProtectedWindow, IContentShield
             Appearance.ThemeService.Changed -= ApplyPageTheme;
             WebViewHardening.ScreenCaptureBlocked -= OnScreenCaptureBlocked;
             WebViewHardening.ProtectedContentChanged -= OnProtectedContentChanged;
+            WebViewHardening.WebStoreInstallRequested -= OnWebStoreInstallRequested;
             _captureFlashTimer?.Stop();
             AppServices.Bookmarks.Changed -= OnBookmarksChanged;
             AppServices.Favicons.Changed -= OnFaviconsChanged;
@@ -1577,15 +1581,7 @@ public partial class MainWindow : ProtectedWindow, IContentShield
             var (added, validation) = await _extensions.AddFromFolderAsync(_profile, dialog.FolderName);
             if (_closed)
                 return;
-            if (added is null)
-            {
-                var reasons = string.Join("\n", validation.Violations.Select(v => "• " + v.Message));
-                MessageBox.Show(this, Loc.T($"Расширение отклонено политикой:\n\n{reasons}", $"The extension was rejected by policy:\n\n{reasons}"), Title, MessageBoxButton.OK, MessageBoxImage.Warning);
-                return;
-            }
-
-            RebuildExtensionBar();
-            SetStatus(Loc.T($"Расширение добавлено: {added.Name}", $"Extension added: {added.Name}"));
+            ReportExtensionAdded(added, validation);
         }
         catch (Exception ex) when (ex is ManifestException or ExtensionDirectoryException)
         {
@@ -1602,6 +1598,142 @@ public partial class MainWindow : ProtectedWindow, IContentShield
             if (!_closed)
                 ExtensionsButton.IsEnabled = true;
         }
+    }
+
+    private void ReportExtensionAdded(ApprovedExtension? added, Shadepane.Core.Extensions.ValidationResult validation)
+    {
+        if (added is null)
+        {
+            ShowPolicyRejection(validation);
+            return;
+        }
+        RebuildExtensionBar();
+        SetStatus(Loc.T($"Расширение добавлено: {added.Name}", $"Extension added: {added.Name}"));
+    }
+
+    private void ShowPolicyRejection(Shadepane.Core.Extensions.ValidationResult validation)
+    {
+        var reasons = string.Join("\n", validation.Violations.Select(v => "• " + v.Message));
+        MessageBox.Show(this, Loc.T($"Расширение отклонено политикой:\n\n{reasons}", $"The extension was rejected by policy:\n\n{reasons}"), Title, MessageBoxButton.OK, MessageBoxImage.Warning);
+    }
+
+    // ---------- Установка из Chrome Web Store ----------
+
+    /// <summary>
+    /// Кнопка магазина начала скачивать пакет (загрузка уже отменена, WebViewHardening). Окно подтверждения
+    /// показываем после выхода из события WebView2.
+    /// </summary>
+    private void OnWebStoreInstallRequested(CoreWebView2 core, string? id)
+    {
+        if (_closed || !_tabs.Any(t => t.Core == core))
+            return;
+        Dispatcher.BeginInvoke(() => _ = InstallFromWebStoreAsync(id));
+    }
+
+    /// <summary>ID расширения, если в активной вкладке открыта его страница в Chrome Web Store.</summary>
+    private string? ActiveWebStoreExtensionId => WebStore.ExtensionIdFromPage(_active?.Url);
+
+    private async Task InstallFromWebStoreAsync(string? id)
+    {
+        if (_profile is null || _closed)
+            return;
+        if (id is null || !WebStore.IsExtensionId(id))
+        {
+            Warn(Loc.T("Не удалось определить расширение. Откройте его страницу в Chrome Web Store и нажмите «Установить» ещё раз.",
+                "Could not tell which extension to install. Open its page in the Chrome Web Store and click the install button again."));
+            return;
+        }
+        if (_busy)
+        {
+            // Магазин мог запустить загрузку повторно (двойной клик) — вторую установку не начинаем.
+            SetStatus(Loc.T("Установка расширения уже идёт", "An extension is already being installed"));
+            return;
+        }
+
+        _busy = true;
+        ExtensionsButton.IsEnabled = false;
+        WebStorePackage? package = null;
+        try
+        {
+            SetStatus(Loc.T("Загрузка расширения из Chrome Web Store…", "Downloading the extension from the Chrome Web Store…"));
+            package = await _extensions.DownloadFromWebStoreAsync(id, _environment?.BrowserVersionString, CancellationToken.None);
+            if (_closed)
+                return;
+            if (!package.Validation.IsAllowed)
+            {
+                AppServices.Audit.Write("extension-rejected", new { id, source = "webstore", reasons = package.Validation.Violations.Select(v => v.Message) });
+                ShowPolicyRejection(package.Validation);
+                return;
+            }
+            if (!ConfirmWebStoreInstall(package))
+            {
+                SetStatus(Loc.T("Установка отменена", "Installation cancelled"));
+                return;
+            }
+
+            var (added, validation) = await _extensions.AddFromFolderAsync(_profile, package.Folder);
+            if (added is not null)
+                AppServices.Audit.Write("webstore-installed", new { id, installedId = added.Id, added.Name, package.Manifest.Version });
+            if (_closed)
+                return;
+            ReportExtensionAdded(added, validation);
+        }
+        catch (Exception ex) when (!_closed && ex is CrxException or ManifestException or ExtensionDirectoryException
+                                       or HttpRequestException or TaskCanceledException or IOException or UnauthorizedAccessException)
+        {
+            var reason = ex is TaskCanceledException ? Loc.T("сервер не ответил вовремя", "the server did not respond in time") : ex.Message;
+            AppServices.Audit.Write("webstore-install-failed", new { id, error = Diagnostics.Describe(ex) });
+            MessageBox.Show(this, Loc.T($"Не удалось установить расширение из Chrome Web Store:\n\n{reason}", $"Could not install the extension from the Chrome Web Store:\n\n{reason}"),
+                Title, MessageBoxButton.OK, MessageBoxImage.Warning);
+        }
+        catch (Exception ex) when (!_closed)
+        {
+            AppServices.Audit.Write("extension-add-failed", Diagnostics.Details(ex));
+            MessageBox.Show(this, Loc.T($"Не удалось добавить расширение:\n\n{Diagnostics.Describe(ex)}", $"Could not add the extension:\n\n{Diagnostics.Describe(ex)}"), Title, MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+        finally
+        {
+            package?.Dispose();
+            _busy = false;
+            if (!_closed)
+                ExtensionsButton.IsEnabled = true;
+        }
+    }
+
+    /// <summary>Подтверждение с правами — как в Chrome: страница (или чужой скрипт на ней) не может поставить расширение сама.</summary>
+    private bool ConfirmWebStoreInstall(WebStorePackage package)
+    {
+        const int maxItems = 12;
+        static string List(IEnumerable<string> items)
+        {
+            var all = items.Distinct(StringComparer.Ordinal).ToList();
+            var shown = all.Take(maxItems).Select(i => "  • " + i);
+            var rest = all.Count > maxItems ? Loc.T($"\n  … и ещё {all.Count - maxItems}", $"\n  … and {all.Count - maxItems} more") : "";
+            return string.Join("\n", shown) + rest;
+        }
+
+        var manifest = package.Manifest;
+        var text = new StringBuilder();
+        var update = _extensions.Approved.Any(a => a.Id == package.Id);
+        text.AppendLine(update
+            ? Loc.T($"Обновить расширение «{package.DisplayName}» до версии {manifest.Version}?", $"Update the \"{package.DisplayName}\" extension to version {manifest.Version}?")
+            : Loc.T($"Установить расширение «{package.DisplayName}» {manifest.Version}?", $"Install the \"{package.DisplayName}\" extension {manifest.Version}?"));
+        text.AppendLine();
+        if (manifest.HostPermissions.Count > 0)
+        {
+            text.AppendLine(Loc.T("Доступ к сайтам:", "Site access:"));
+            text.AppendLine(List(manifest.HostPermissions.Select(h => h.Pattern)));
+            text.AppendLine();
+        }
+        if (manifest.ApiPermissions.Count > 0)
+        {
+            text.AppendLine(Loc.T("Права:", "Permissions:"));
+            text.AppendLine(List(manifest.ApiPermissions));
+            text.AppendLine();
+        }
+        text.Append(Loc.T($"Источник: Chrome Web Store, ID {package.Id}. Подпись пакета проверена.", $"Source: Chrome Web Store, ID {package.Id}. The package signature was verified."));
+
+        return MessageBox.Show(this, text.ToString(), Title, MessageBoxButton.YesNo, MessageBoxImage.Question, MessageBoxResult.No) == MessageBoxResult.Yes;
     }
 
     private async Task RemoveExtensionAsync(ApprovedExtension extension)
@@ -1764,6 +1896,8 @@ public partial class MainWindow : ProtectedWindow, IContentShield
         bar.Click += (_, _) => ToggleBookmarksBar();
         menu.Items.Add(bar);
         menu.Items.Add(Item(Loc.T("Добавить расширение…", "Add extension…"), null, () => _ = AddExtensionAsync(), _profile is not null && !_busy));
+        if (ActiveWebStoreExtensionId is { } storeId)
+            menu.Items.Add(Item(Loc.T("Установить с этой страницы Chrome Web Store", "Install from this Chrome Web Store page"), null, () => _ = InstallFromWebStoreAsync(storeId), _profile is not null && !_busy));
         menu.Items.Add(Item(Loc.T("Настройки", "Settings"), null, ShowSettings));
         menu.Items.Add(Item(Loc.T("О Shadepane", "About Shadepane"), null, ShowAbout));
         return menu;
@@ -1807,6 +1941,8 @@ public partial class MainWindow : ProtectedWindow, IContentShield
     {
         var menu = new ContextMenu();
         menu.Items.Add(Item(Loc.T("Добавить расширение…", "Add extension…"), null, () => _ = AddExtensionAsync(), _profile is not null && !_busy));
+        if (ActiveWebStoreExtensionId is { } storeId)
+            menu.Items.Add(Item(Loc.T("Установить с этой страницы Chrome Web Store", "Install from this Chrome Web Store page"), null, () => _ = InstallFromWebStoreAsync(storeId), _profile is not null && !_busy));
         var approved = _extensions.Approved.ToList();
         menu.Items.Add(new Separator());
         if (approved.Count == 0)

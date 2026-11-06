@@ -80,6 +80,8 @@ internal static class AppPaths
 
     public static string WebViewData => Path.Combine(DataRoot, "WebView2");
     public static string ExtensionStaging => Path.Combine(DataRoot, "extensions");
+    /// <summary>Временные распакованные пакеты из Chrome Web Store (до проверки и копирования в ExtensionStaging).</summary>
+    public static string WebStoreIncoming => Path.Combine(DataRoot, "webstore-incoming");
     public static string ApprovedExtensions => Path.Combine(DataRoot, "approved-extensions.json");
     public static string AuditLog => Path.Combine(DataRoot, "audit.log");
     public static string UserSettings => Path.Combine(DataRoot, "settings.json");

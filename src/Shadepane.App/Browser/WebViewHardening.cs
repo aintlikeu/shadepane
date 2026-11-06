@@ -1,4 +1,5 @@
 using Microsoft.Web.WebView2.Core;
+using Shadepane.Core.Extensions;
 using Shadepane.Core.Navigation;
 using Shadepane.Core.Policy;
 
@@ -56,6 +57,12 @@ internal static class WebViewHardening
 
     /// <summary>Изменилась отметка «показано содержимое защищённого домена» — для индикатора защиты.</summary>
     public static event Action<CoreWebView2>? ProtectedContentChanged;
+
+    /// <summary>
+    /// Вкладка начала скачивать пакет расширения из Chrome Web Store (кнопка «Установить»). Загрузка отменена;
+    /// аргумент — ID расширения (из адреса пакета или страницы магазина) или null, если его не удалось определить.
+    /// </summary>
+    public static event Action<CoreWebView2, string?>? WebStoreInstallRequested;
 
     /// <summary>В показанном сейчас документе есть содержимое с домена из protectedHosts (сама страница или фрейм).</summary>
     public static bool ShowsProtectedContent(CoreWebView2 core) => States.TryGetValue(core, out var state) && state.Committed;
@@ -129,6 +136,23 @@ internal static class WebViewHardening
 
         core.DownloadStarting += (_, e) =>
         {
+            // Пакет расширения: WebView2 его не установит (только распакованные папки), и Chromium обрывает
+            // такую загрузку. Отменяем её и ставим расширение сами (MainWindow.InstallFromWebStoreAsync).
+            // До DownloadGate: файл не попадает к пользователю, а установка проходит проверку политикой расширений.
+            // Со страницы расширения в магазине других загрузок нет: адрес, по которому кнопка качает пакет
+            // в WebView2, может отличаться от адресов Chrome, поэтому такая загрузка — тоже установка.
+            var storePageId = WebStore.ExtensionIdFromPage(core.Source);
+            if (WebStore.IsPackageDownload(e.DownloadOperation.Uri, e.DownloadOperation.MimeType, out var packageId) || storePageId is not null)
+            {
+                e.Cancel = true;
+                var id = packageId ?? storePageId;
+                audit.Write("webstore-package-intercepted", new { role, uri = e.DownloadOperation.Uri, source = core.Source, id });
+                // Окна расширений ничего не ставят: только вкладка, где пользователь нажал кнопку магазина.
+                if (role.StartsWith("tab:", StringComparison.Ordinal))
+                    WebStoreInstallRequested?.Invoke(core, id);
+                return;
+            }
+
             var config = AppServices.Config;
             var reason = DownloadGate.BlockReason(AppServices.Policy, config.AllowDownloads, config.DownloadsLocked,
                 fromExtensionPopup: role.StartsWith("popup:", StringComparison.Ordinal),

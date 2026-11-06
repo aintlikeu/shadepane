@@ -7,8 +7,11 @@ updated automatically by Microsoft) and excludes all of its windows — includin
 dialogs — from screen capture (`WDA_EXCLUDEFROMCAPTURE`). It also closes the in-browser leak paths:
 `getDisplayMedia`, printing, DevTools, downloads, save/print in the PDF viewer.
 
-Unpacked Chrome extensions are supported. Every extension is checked against the policy before it is
-loaded: capture permissions, access to all sites and access to protected hosts are refused.
+Chrome extensions are supported: unpacked folders, and the install button on Chrome Web Store pages (the
+package signature is verified and you confirm its site access and permissions first). Every extension is
+checked against the policy before it is loaded: capture permissions, access to all sites and access to
+protected hosts are refused. Extensions from the store do not update by themselves: install again from the
+store page to update.
 
 Everyday browsing: tabs, search from the address bar (Startpage by default; DuckDuckGo, Brave Search,
 Google, Bing or a custom template), home page, bookmarks and a bookmarks bar, history, downloads, find in

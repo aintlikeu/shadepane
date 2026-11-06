@@ -1,9 +1,27 @@
 using System.IO;
+using System.Net;
+using System.Net.Http;
 using Microsoft.Web.WebView2.Core;
 using Shadepane.Core.Extensions;
 using Shadepane.Core.Localization;
 
 namespace Shadepane.App.Browser;
+
+/// <summary>
+/// Пакет из Chrome Web Store, проверенный и распакованный во временную папку, — ещё не установлен.
+/// Dispose удаляет папку (после установки копия уже лежит в ExtensionStaging).
+/// </summary>
+internal sealed class WebStorePackage(string id, string folder, ExtensionManifest manifest, string displayName, ValidationResult validation) : IDisposable
+{
+    public string Id { get; } = id;
+    public string Folder { get; } = folder;
+    public ExtensionManifest Manifest { get; } = manifest;
+    public string DisplayName { get; } = displayName;
+    /// <summary>Предварительная проверка политикой — чтобы не спрашивать подтверждение у заведомо запрещённого.</summary>
+    public ValidationResult Validation { get; } = validation;
+
+    public void Dispose() => ExtensionHost.DeleteQuietly(Folder);
+}
 
 /// <summary>
 /// Единственный путь установки расширений: проверка → копия → загрузка копии в WebView2.
@@ -96,6 +114,7 @@ internal sealed class ExtensionHost
         _approved = synced;
         _store.Save(_approved);
         CleanupStaging();
+        DeleteQuietly(AppPaths.WebStoreIncoming); // остатки прерванной установки из магазина
     }
 
     /// <summary>
@@ -131,6 +150,94 @@ internal sealed class ExtensionHost
         _store.Save(_approved);
         audit.Write("extension-added", new { record.Id, record.Name, record.Hash, folder });
         return (record, result.Validation);
+    }
+
+    private static readonly HttpClient WebStoreHttp = CreateWebStoreClient();
+
+    /// <summary>
+    /// Скачивает пакет расширения из Chrome Web Store, проверяет подпись и ID, распаковывает и записывает ключ
+    /// разработчика в manifest.json (тот же ID, что в магазине). Не устанавливает: дальше — подтверждение
+    /// пользователя и <see cref="AddFromFolderAsync"/> с обычной проверкой политикой.
+    /// Бросает CrxException, HttpRequestException, TaskCanceledException (тайм-аут), ManifestException, IOException.
+    /// </summary>
+    public async Task<WebStorePackage> DownloadFromWebStoreAsync(string id, string? browserVersion, CancellationToken ct)
+    {
+        var url = WebStore.PackageUrl(id, browserVersion);
+        byte[] bytes;
+        Uri? finalUri;
+        using (var response = await WebStoreHttp.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, ct))
+        {
+            finalUri = response.RequestMessage?.RequestUri;
+            if (response.StatusCode == HttpStatusCode.NoContent)
+                throw new CrxException(Loc.T("магазин не отдал пакет: расширение удалено, недоступно в вашей стране или требует более новую версию движка",
+                    "the store returned no package: the extension was removed, is not available in your region, or needs a newer engine version"));
+            response.EnsureSuccessStatusCode();
+            if (!WebStore.IsTrustedPackageSource(finalUri))
+                throw new CrxException(Loc.T($"пакет пришёл не с серверов Google: {finalUri?.Host}", $"the package did not come from Google servers: {finalUri?.Host}"));
+            if (response.Content.Headers.ContentLength > WebStore.MaxPackageBytes)
+                throw new CrxException(Loc.T("пакет слишком большой", "the package is too large"));
+            bytes = await ReadLimitedAsync(response.Content, WebStore.MaxPackageBytes, ct);
+        }
+
+        var package = CrxPackage.Parse(bytes);
+        if (package.ExtensionId != id)
+            throw new CrxException(Loc.T($"в пакете другое расширение ({package.ExtensionId}), а не {id}", $"the package contains a different extension ({package.ExtensionId}), not {id}"));
+        AppServices.Audit.Write("webstore-package-downloaded", new { id, bytes = bytes.Length, host = finalUri?.Host });
+
+        var folder = Path.Combine(AppPaths.WebStoreIncoming, Guid.NewGuid().ToString("N"));
+        try
+        {
+            WebStore.ExtractArchive(package.Archive, folder);
+            WebStore.WriteDeveloperKey(folder, package.PublicKey);
+            var manifest = ManifestReader.ReadFromDirectory(folder);
+            var validation = ExtensionValidator.Validate(manifest, AppServices.ExtensionPolicy);
+            return new WebStorePackage(id, folder, manifest, WebStore.DisplayName(folder, manifest.Name), validation);
+        }
+        catch
+        {
+            DeleteQuietly(folder);
+            throw;
+        }
+    }
+
+    private static async Task<byte[]> ReadLimitedAsync(HttpContent content, long maxBytes, CancellationToken ct)
+    {
+        await using var stream = await content.ReadAsStreamAsync(ct);
+        using var buffer = new MemoryStream();
+        var chunk = new byte[81920];
+        int read;
+        while ((read = await stream.ReadAsync(chunk, ct)) > 0)
+        {
+            if (buffer.Length + read > maxBytes)
+                throw new CrxException(Loc.T("пакет слишком большой", "the package is too large"));
+            buffer.Write(chunk, 0, read);
+        }
+        return buffer.ToArray();
+    }
+
+    private static HttpClient CreateWebStoreClient()
+    {
+        // Перенаправления: clients2.google.com → clients2.googleusercontent.com; с HTTPS на HTTP .NET не переходит.
+        var client = new HttpClient(new SocketsHttpHandler { AllowAutoRedirect = true, MaxAutomaticRedirections = 5 })
+        {
+            Timeout = TimeSpan.FromMinutes(3),
+        };
+        // Общее имя клиента без личных данных.
+        client.DefaultRequestHeaders.UserAgent.ParseAdd("Shadepane (+https://github.com/aintlikeu/shadepane)");
+        return client;
+    }
+
+    internal static void DeleteQuietly(string folder)
+    {
+        try
+        {
+            if (Directory.Exists(folder))
+                Directory.Delete(folder, recursive: true);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            AppServices.Audit.Write("webstore-cleanup-deferred", new { folder, error = ex.Message });
+        }
     }
 
     public async Task RemoveAsync(CoreWebView2Profile profile, string id)
