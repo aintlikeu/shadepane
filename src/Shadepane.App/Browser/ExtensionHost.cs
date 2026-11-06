@@ -113,13 +113,18 @@ internal sealed class ExtensionHost
                 continue;
             }
 
-            var reconfirmed = record with { Grants = record.Grants! with { Wording = ExtensionGrants.CurrentWording } };
             changed = true;
-            if (_staging.Verify(record.StagedPath, record.Hash, policy, record.Grants!.Without(keys)).IsAllowed)
+            var withoutChanged = record.Grants!.Without(keys);
+            if (_staging.Verify(record.StagedPath, record.Hash, policy, withoutChanged).IsAllowed)
             {
-                result.Add(reconfirmed); // эти права расширению больше не нужны — спрашивать не о чем
+                // Сейчас эти права не нужны (политика и так разрешает) — спрашивать не о чем, но и согласием на новый
+                // текст не считаем: убираем их. Станут нужны (политика изменится) — расширение будет отозвано.
+                var rest = withoutChanged with { Wording = ExtensionGrants.CurrentWording };
+                AppServices.Audit.Write("extension-grants-dropped", new { record.Id, record.Name, grants = keys, reason = "not-needed" });
+                result.Add(record with { Grants = rest.IsEmpty ? null : rest });
                 continue;
             }
+            var reconfirmed = record with { Grants = record.Grants! with { Wording = ExtensionGrants.CurrentWording } };
             if (confirm(record, keys))
             {
                 AppServices.Audit.Write("extension-grants-reconfirmed", new { record.Id, record.Name, grants = keys, wording = ExtensionGrants.CurrentWording });

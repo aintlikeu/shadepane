@@ -44,10 +44,10 @@ public sealed record ExtensionGrants(IReadOnlyList<string> Permissions, bool All
             "такие снимки НЕ защищены от захвата экрана",
             "Access to all sites: read and change the content of any page and take pictures of it at any time — " +
             "these pictures are NOT protected from screen capture"),
-        "activetab" => Loc.T("activeTab — после клика по значку расширения: доступ к открытой вкладке, в том числе её снимок, не защищённый от захвата экрана " +
-            "(в Shadepane сейчас не действует: браузер открывает окно расширения сам)",
-            "activeTab: after a click on the extension's icon, access to the open tab, including a picture of it that is not protected from screen capture " +
-            "(has no effect in Shadepane today: the browser opens the extension's window itself)"),
+        "activetab" => Loc.T("activeTab — когда расширение вызывают: доступ к открытой вкладке, в том числе её снимок, не защищённый от захвата экрана " +
+            "(клик по значку в Shadepane его не включает — проверено)",
+            "activeTab: when the extension is invoked, access to the open tab, including a picture of it that is not protected from screen capture " +
+            "(a click on its icon in Shadepane does not turn it on, as tested)"),
         "tabs" => Loc.T("tabs — адреса и заголовки всех вкладок", "tabs: addresses and titles of all tabs"),
         "history" => Loc.T("history — история посещений", "history: browsing history"),
         "webnavigation" => Loc.T("webNavigation — адрес каждого перехода на всех страницах", "webNavigation: the address of every navigation on every page"),
@@ -141,16 +141,13 @@ public static class ExtensionValidator
             }
             if (policy.BlockedPermissionSet.Contains(permission))
             {
-                // activeTab открывает доступ к любой вкладке, по которой кликнули, — и к защищённому домену тоже,
-                // а проверка хостов ниже его не видит (в манифесте хоста нет). При protectedHosts — только отказ.
-                var reachesProtectedHosts = string.Equals(permission, BrowserPolicy.ActiveTabPermission, StringComparison.OrdinalIgnoreCase)
-                    && policy.ProtectedHostPatterns.Count > 0;
-                var grantable = canGrant && BrowserPolicy.UserGrantablePermissions.Contains(permission) && !reachesProtectedHosts;
+                var notGrantable = string.Equals(permission, BrowserPolicy.ActiveTabPermission, StringComparison.OrdinalIgnoreCase)
+                    ? ActiveTabRefusal(manifest, policy) : null;
+                var grantable = canGrant && BrowserPolicy.UserGrantablePermissions.Contains(permission) && notGrantable is null;
                 if (grantable && grants.HasPermission(permission))
                     continue;
-                violations.Add(reachesProtectedHosts
-                    ? new("blocked-permission", Loc.T($"право '{permission}' запрещено политикой: оно даёт доступ к любой открытой вкладке, в том числе к защищённым доменам",
-                        $"the '{permission}' permission is not allowed by policy: it gives access to any open tab, including protected domains"))
+                violations.Add(notGrantable is not null
+                    ? new("blocked-permission", notGrantable)
                     : new("blocked-permission", Loc.T($"право '{permission}' запрещено политикой", $"the '{permission}' permission is not allowed by policy"),
                         grantable ? permission : null));
             }
@@ -185,5 +182,23 @@ public static class ExtensionValidator
         }
 
         return new ValidationResult(violations);
+    }
+
+    /// <summary>
+    /// Почему activeTab нельзя выдать этому расширению, или null. Снимок по activeTab в Shadepane не получается, потому что
+    /// popup открывает браузер сам, а не chrome.action (проверено на Windows). Остальные вызовы расширения не проверены,
+    /// поэтому закрыты: пункты расширений в контекстном меню страницы удаляет фильтр меню, сочетания клавиш — здесь.
+    /// </summary>
+    private static string? ActiveTabRefusal(ExtensionManifest manifest, BrowserPolicy policy)
+    {
+        // activeTab открывает доступ к вкладке, на которой его вызвали, — и к защищённому домену тоже, а проверка
+        // хостов его не видит (в манифесте хоста нет).
+        if (policy.ProtectedHostPatterns.Count > 0)
+            return Loc.T("право 'activeTab' запрещено политикой: оно даёт доступ к любой открытой вкладке, в том числе к защищённым доменам",
+                "the 'activeTab' permission is not allowed by policy: it gives access to any open tab, including protected domains");
+        if (manifest.HasDefaultShortcuts)
+            return Loc.T("право 'activeTab' запрещено политикой и не выдаётся расширениям с сочетаниями клавиш (commands.suggested_key): нажатие сочетания может включить его",
+                "the 'activeTab' permission is not allowed by policy and is not given to extensions with keyboard shortcuts (commands.suggested_key): pressing one may turn it on");
+        return null;
     }
 }

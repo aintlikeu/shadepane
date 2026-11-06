@@ -120,6 +120,29 @@ public class PermissionGrantTests
         Assert.False(Check(json, policy, new ExtensionGrants(["activeTab"], false)).IsAllowed);
     }
 
+    [Theory]
+    [InlineData("""{ "_execute_action": { "suggested_key": { "default": "Ctrl+Shift+Y" } } }""", true)]
+    [InlineData("""{ "refresh": { "suggested_key": "Alt+R", "description": "r" } }""", true)]
+    [InlineData("""{ "refresh": "x" }""", true)]          // непонятный формат — строже
+    [InlineData("""[]""", true)]
+    [InlineData("""{ "refresh": { "description": "r" } }""", false)]   // без suggested_key: назначает только пользователь
+    [InlineData("""{ "refresh": { "suggested_key": null } }""", false)]
+    public void ActiveTab_IsNotGrantable_WithDefaultShortcuts(string commands, bool hasShortcuts)
+    {
+        var json = Ext.Mv3($$""" "permissions": ["activeTab"], "commands": {{commands}} """);
+        Assert.Equal(hasShortcuts, ManifestReader.Parse(json).HasDefaultShortcuts);
+        var result = Check(json, BrowserPolicy.Default);
+        Assert.Equal(!hasShortcuts, result.CanBeGrantedByUser);
+        Assert.Equal(!hasShortcuts, Check(json, BrowserPolicy.Default, new ExtensionGrants(["activeTab"], false)).IsAllowed);
+    }
+
+    [Fact]
+    public void Shortcuts_DoNotMatter_WithoutActiveTab()
+    {
+        var json = Ext.Mv3(""" "permissions": ["tabs"], "commands": { "_execute_action": { "suggested_key": "Ctrl+Shift+Y" } } """);
+        Assert.True(Check(json, BrowserPolicy.Default).CanBeGrantedByUser);
+    }
+
     [Fact]
     public void GrantsFromTheDialog_CarryTheCurrentWording()
     {

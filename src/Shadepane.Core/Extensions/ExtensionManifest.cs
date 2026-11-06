@@ -28,6 +28,13 @@ public sealed class ExtensionManifest
     /// <summary>Относительный путь иконки, наиболее подходящей для панели (~32px).</summary>
     public string? IconPath { get; init; }
 
+    /// <summary>
+    /// Есть сочетания клавиш по умолчанию (commands.*.suggested_key). Нажатие сочетания — вызов расширения, который
+    /// в Chrome включает activeTab. Без suggested_key сочетание назначает только пользователь в chrome://extensions/shortcuts,
+    /// а в Shadepane этой страницы нет. Непонятный формат commands считаем сочетаниями (строже).
+    /// </summary>
+    public bool HasDefaultShortcuts { get; init; }
+
     internal static ExtensionManifest FromJson(JsonElement root)
     {
         // Тема Chrome — тот же формат пакета, но перекрашивает интерфейс Chrome, которого в WebView2 нет. После
@@ -90,7 +97,24 @@ public sealed class ExtensionManifest
             HostPermissions = hosts,
             PopupPath = ReadPopup(root),
             IconPath = ReadIcon(root),
+            HasDefaultShortcuts = ReadHasDefaultShortcuts(root),
         };
+    }
+
+    private static bool ReadHasDefaultShortcuts(JsonElement root)
+    {
+        if (!root.TryGetProperty("commands", out var commands))
+            return false;
+        if (commands.ValueKind != JsonValueKind.Object)
+            return true;
+        foreach (var command in commands.EnumerateObject())
+        {
+            if (command.Value.ValueKind != JsonValueKind.Object)
+                return true;
+            if (command.Value.TryGetProperty("suggested_key", out var key) && key.ValueKind != JsonValueKind.Null)
+                return true;
+        }
+        return false;
     }
 
     private static bool LooksLikeHostPattern(string entry) =>
