@@ -7,7 +7,9 @@ Users and administrators need only the [README](../README.md).
 
 Development happens on `develop`; `main` holds released code. CI (`.github/workflows/ci.yml`, Windows runner)
 builds and tests every push and pull request to both branches and uploads the `Shadepane-win-x64` artifact
-(installer, portable zip and `SHA256SUMS.txt`). A `vX.Y.Z` tag additionally publishes a GitHub release with these files.
+(installer, portable zip and `SHA256SUMS.txt`; GitHub downloads it as one more zip). Builds without a tag also upload
+the installer and the portable zip as separate artifacts that download as the files themselves. A `vX.Y.Z` tag
+additionally publishes a GitHub release with the files of `Shadepane-win-x64`.
 
 ## Build
 
