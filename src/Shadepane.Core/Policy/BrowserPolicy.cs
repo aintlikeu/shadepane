@@ -38,14 +38,18 @@ public sealed class BrowserPolicy
 
     public const string ClipboardReadPermission = "clipboardRead";
 
+    public const string ActiveTabPermission = "activeTab";
+
     /// <summary>
     /// Права, которые пользователь может выдать отдельному расширению при установке (окно «Дать права»), если это
-    /// разрешено (<see cref="PermissionGrantsAllowed"/>): они раскрывают адреса, заголовки и историю, но не дают
-    /// снимков экрана. Захват (tabCapture, desktopCapture, pageCapture, activeTab), debugger и downloads не выдаются
-    /// никогда; как и доступ к защищённым доменам (protectedHosts).
+    /// разрешено (<see cref="PermissionGrantsAllowed"/>): адреса, заголовки, история и activeTab. activeTab даёт
+    /// снимок вкладки (captureVisibleTab) только после вызова расширения через chrome.action, а Shadepane открывает
+    /// popup сам — проверка на Windows (samples/extensions/capture-probe-activetab) снимка не получила; при
+    /// protectedHosts activeTab не выдаётся. Захват (tabCapture, desktopCapture, pageCapture), debugger и downloads
+    /// не выдаются никогда; как и доступ к защищённым доменам.
     /// </summary>
     public static readonly IReadOnlySet<string> UserGrantablePermissions = new HashSet<string>(
-        ["tabs", "history", "webNavigation", "declarativeNetRequestFeedback", "topSites", "sessions", "proxy"],
+        ["tabs", "history", "webNavigation", "declarativeNetRequestFeedback", "topSites", "sessions", "proxy", ActiveTabPermission],
         StringComparer.OrdinalIgnoreCase);
 
     /// <summary>Встроенная политика (источника нет): выдача прав расширениям разрешена — решает пользователь.</summary>

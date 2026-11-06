@@ -12,18 +12,42 @@ namespace Shadepane.Core.Extensions;
 public sealed record PolicyViolation(string Code, string Message, string? Grant = null);
 
 /// <summary>Права, которые пользователь выдал одному расширению при установке (сверх политики).</summary>
-public sealed record ExtensionGrants(IReadOnlyList<string> Permissions, bool AllSitesAccess)
+/// <param name="Wording">Версия текстов <see cref="Describe"/>, которые пользователь видел, когда соглашался.
+/// В файлах прежних версий поля нет — это 0.</param>
+public sealed record ExtensionGrants(IReadOnlyList<string> Permissions, bool AllSitesAccess, int Wording = 0)
 {
     /// <summary>Значение <see cref="PolicyViolation.Grant"/> для доступа ко всем сайтам.</summary>
     public const string AllSites = "<all-sites>";
+
+    /// <summary>
+    /// Текущая версия текстов <see cref="Describe"/>. Поднимается, когда описание права меняется так, что согласие
+    /// на старый текст нельзя считать согласием на новый; тогда в <see cref="WordingChangedIn"/> записывается,
+    /// у каких прав и в какой версии.
+    /// </summary>
+    public const int CurrentWording = 1;
+
+    /// <summary>
+    /// 1 — «все сайты»: проверка на Windows показала, что такое расширение может делать снимки страниц
+    /// (tabs.captureVisibleTab), не защищённые от захвата экрана; прежний текст об этом не говорил.
+    /// </summary>
+    private static readonly Dictionary<string, int> WordingChangedIn = new(StringComparer.OrdinalIgnoreCase)
+    {
+        [AllSites] = 1,
+    };
 
     public static ExtensionGrants None { get; } = new([], false);
 
     /// <summary>Что даёт выдача — простыми словами, для окна «Дать права».</summary>
     public static string Describe(string key) => key.ToLowerInvariant() switch
     {
-        "<all-sites>" => Loc.T("Доступ ко всем сайтам: читать и менять содержимое любой страницы, в том числе текст, который защищён от снимков экрана",
-            "Access to all sites: read and change the content of any page, including text that is protected from screenshots"),
+        "<all-sites>" => Loc.T("Доступ ко всем сайтам: читать и менять содержимое любой страницы и в любой момент делать её снимки — " +
+            "такие снимки НЕ защищены от захвата экрана",
+            "Access to all sites: read and change the content of any page and take pictures of it at any time — " +
+            "these pictures are NOT protected from screen capture"),
+        "activetab" => Loc.T("activeTab — после клика по значку расширения: доступ к открытой вкладке, в том числе её снимок, не защищённый от захвата экрана " +
+            "(в Shadepane сейчас не действует: браузер открывает окно расширения сам)",
+            "activeTab: after a click on the extension's icon, access to the open tab, including a picture of it that is not protected from screen capture " +
+            "(has no effect in Shadepane today: the browser opens the extension's window itself)"),
         "tabs" => Loc.T("tabs — адреса и заголовки всех вкладок", "tabs: addresses and titles of all tabs"),
         "history" => Loc.T("history — история посещений", "history: browsing history"),
         "webnavigation" => Loc.T("webNavigation — адрес каждого перехода на всех страницах", "webNavigation: the address of every navigation on every page"),
@@ -44,6 +68,22 @@ public sealed record ExtensionGrants(IReadOnlyList<string> Permissions, bool All
     /// <summary>Все выдачи по порядку: «все сайты», затем права — для окна подтверждения.</summary>
     [JsonIgnore]
     public IEnumerable<string> Keys => AllSitesAccess ? [AllSites, .. Permissions ?? []] : Permissions ?? [];
+
+    /// <summary>Выданные права, описание которых изменилось после того, как пользователь согласился.</summary>
+    [JsonIgnore]
+    public IReadOnlyList<string> KeysToReconfirm =>
+        [.. Keys.Where(k => WordingChangedIn.TryGetValue(k, out var changedIn) && changedIn > Wording)];
+
+    /// <summary>Те же права без перечисленных (ключи — как в <see cref="Keys"/>).</summary>
+    public ExtensionGrants Without(IEnumerable<string> keys)
+    {
+        var drop = new HashSet<string>(keys, StringComparer.OrdinalIgnoreCase);
+        return this with
+        {
+            Permissions = [.. (Permissions ?? []).Where(p => !drop.Contains(p))],
+            AllSitesAccess = AllSitesAccess && !drop.Contains(AllSites),
+        };
+    }
 }
 
 public sealed record ValidationResult(IReadOnlyList<PolicyViolation> Violations)
@@ -58,7 +98,8 @@ public sealed record ValidationResult(IReadOnlyList<PolicyViolation> Violations)
     /// <summary>Какие права нужно выдать, чтобы снять выдаваемые нарушения.</summary>
     public ExtensionGrants GrantsNeeded => new(
         [.. Violations.Select(v => v.Grant).OfType<string>().Where(g => g != ExtensionGrants.AllSites).Distinct(StringComparer.OrdinalIgnoreCase)],
-        Violations.Any(v => v.Grant == ExtensionGrants.AllSites));
+        Violations.Any(v => v.Grant == ExtensionGrants.AllSites),
+        ExtensionGrants.CurrentWording);
 }
 
 /// <summary>
@@ -100,11 +141,18 @@ public static class ExtensionValidator
             }
             if (policy.BlockedPermissionSet.Contains(permission))
             {
-                var grantable = canGrant && BrowserPolicy.UserGrantablePermissions.Contains(permission);
+                // activeTab открывает доступ к любой вкладке, по которой кликнули, — и к защищённому домену тоже,
+                // а проверка хостов ниже его не видит (в манифесте хоста нет). При protectedHosts — только отказ.
+                var reachesProtectedHosts = string.Equals(permission, BrowserPolicy.ActiveTabPermission, StringComparison.OrdinalIgnoreCase)
+                    && policy.ProtectedHostPatterns.Count > 0;
+                var grantable = canGrant && BrowserPolicy.UserGrantablePermissions.Contains(permission) && !reachesProtectedHosts;
                 if (grantable && grants.HasPermission(permission))
                     continue;
-                violations.Add(new("blocked-permission", Loc.T($"право '{permission}' запрещено политикой", $"the '{permission}' permission is not allowed by policy"),
-                    grantable ? permission : null));
+                violations.Add(reachesProtectedHosts
+                    ? new("blocked-permission", Loc.T($"право '{permission}' запрещено политикой: оно даёт доступ к любой открытой вкладке, в том числе к защищённым доменам",
+                        $"the '{permission}' permission is not allowed by policy: it gives access to any open tab, including protected domains"))
+                    : new("blocked-permission", Loc.T($"право '{permission}' запрещено политикой", $"the '{permission}' permission is not allowed by policy"),
+                        grantable ? permission : null));
             }
             else if (allowed is not null && !allowed.Contains(permission))
                 violations.Add(new("permission-not-allowed", Loc.T($"право '{permission}' не входит в allowedPermissions", $"the '{permission}' permission is not in allowedPermissions")));

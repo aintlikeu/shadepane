@@ -679,6 +679,9 @@ public partial class MainWindow : ProtectedWindow, IContentShield
 
             stage = "extensions-precheck";
             _extensions.RevokeInvalidBeforeEngineStart();
+            _extensions.ReconfirmGrantsBeforeEngineStart(AskToReconfirmGrants);
+            if (_closed)
+                return;
 
             stage = "create-environment";
             _environment = await BrowserEnvironment.GetAsync();
@@ -1932,6 +1935,24 @@ public partial class MainWindow : ProtectedWindow, IContentShield
             "The permissions are given to this extension only. To take them back, remove the extension."));
         text.AppendLine();
         text.Append(Loc.T("Да — дать эти права и установить.\nНет — не устанавливать.", "Yes: give these permissions and install.\nNo: do not install."));
+        return MessageBox.Show(this, text.ToString(), Title, MessageBoxButton.YesNo, MessageBoxImage.Warning, MessageBoxResult.No) == MessageBoxResult.Yes;
+    }
+
+    /// <summary>
+    /// При запуске: описание уже выданных прав изменилось (ExtensionGrants.KeysToReconfirm). Да — оставить расширение
+    /// с этими правами; Нет — удалить его. По умолчанию выбрано «Нет».
+    /// </summary>
+    private bool AskToReconfirmGrants(ApprovedExtension extension, IReadOnlyList<string> keys)
+    {
+        var text = new StringBuilder();
+        text.AppendLine(Loc.T($"Расширению «{extension.Name}» раньше были выданы права, описание которых уточнилось:",
+            $"The \"{extension.Name}\" extension was given permissions whose description has been made more precise:"));
+        text.AppendLine();
+        foreach (var key in keys)
+            text.AppendLine("  • " + ExtensionGrants.Describe(key));
+        text.AppendLine();
+        text.Append(Loc.T("Да — оставить расширение с этими правами.\nНет — удалить расширение.",
+            "Yes: keep the extension with these permissions.\nNo: remove the extension."));
         return MessageBox.Show(this, text.ToString(), Title, MessageBoxButton.YesNo, MessageBoxImage.Warning, MessageBoxResult.No) == MessageBoxResult.Yes;
     }
 

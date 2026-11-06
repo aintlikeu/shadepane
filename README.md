@@ -14,9 +14,12 @@ protected hosts are refused. Extensions from the store do not update by themselv
 store page to update. Chrome themes are not supported: WebView2 has no browser interface for them to change.
 
 Some extensions, such as ad blockers, need what the default rules refuse: access to all sites, `tabs`,
-`webNavigation` and similar permissions that reveal addresses and titles. When there is no administrator
-policy, installing such an extension asks whether to give it exactly those permissions; they apply to that
-extension only. Capture permissions (`tabCapture`, `desktopCapture`, `pageCapture`, `activeTab`), `debugger`,
+`webNavigation`, `activeTab` and similar permissions that reveal addresses and titles. When there is no
+administrator policy, installing such an extension asks whether to give it exactly those permissions; they
+apply to that extension only. An extension with access to all sites can take pictures of pages
+(`tabs.captureVisibleTab`), and these are not protected from screen capture; the dialog says so. `activeTab`
+has no effect in Shadepane today (the browser opens extension windows itself), and it is not given when the
+policy has protected hosts. Capture permissions (`tabCapture`, `desktopCapture`, `pageCapture`), `debugger`,
 `downloads` and access to protected hosts are never given this way.
 
 Everyday browsing: tabs, search from the address bar (Startpage by default; DuckDuckGo, Brave Search,

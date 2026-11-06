@@ -65,7 +65,6 @@ public class PermissionGrantTests
     [InlineData("tabCapture")]
     [InlineData("desktopCapture")]
     [InlineData("pageCapture")]
-    [InlineData("activeTab")]
     [InlineData("debugger")]
     [InlineData("downloads")]
     public void CapturePermissions_AreNeverGrantable(string permission)
@@ -97,6 +96,50 @@ public class PermissionGrantTests
         var result = Check(Ext.Mv3(""" "permissions": ["tabs"] """), policy);
         Assert.False(result.CanBeGrantedByUser);
         Assert.Contains(result.Violations, v => v.Code == "permission-not-allowed");
+    }
+
+    [Fact]
+    public void ActiveTab_IsGrantable_WithoutProtectedHosts()
+    {
+        var json = Ext.Mv3(""" "permissions": ["activeTab", "storage"] """);
+        var result = Check(json, BrowserPolicy.Default);
+        Assert.True(result.CanBeGrantedByUser);
+        Assert.Equal(["activeTab"], result.GrantsNeeded.Permissions);
+        Assert.True(Check(json, BrowserPolicy.Default, result.GrantsNeeded).IsAllowed);
+    }
+
+    [Fact]
+    public void ActiveTab_IsNeverGrantable_WithProtectedHosts()
+    {
+        // activeTab даёт доступ к вкладке, по которой кликнули, — в том числе к защищённому домену.
+        var policy = BrowserPolicy.Parse("""{ "protectedHosts": ["*.corp.example"], "allowExtensionPermissionGrants": true }""");
+        var json = Ext.Mv3(""" "permissions": ["activeTab"] """);
+        var result = Check(json, policy);
+        Assert.False(result.CanBeGrantedByUser);
+        Assert.Contains(result.Violations, v => v.Code == "blocked-permission" && v.Grant is null);
+        Assert.False(Check(json, policy, new ExtensionGrants(["activeTab"], false)).IsAllowed);
+    }
+
+    [Fact]
+    public void GrantsFromTheDialog_CarryTheCurrentWording()
+    {
+        var needed = Check(AdBlocker, BrowserPolicy.Default).GrantsNeeded;
+        Assert.Equal(ExtensionGrants.CurrentWording, needed.Wording);
+        Assert.Empty(needed.KeysToReconfirm);
+    }
+
+    [Fact]
+    public void AllSitesGrantedUnderTheOldWording_NeedsReconfirmation_OtherPermissionsDoNot()
+    {
+        var old = new ExtensionGrants(["tabs", "webNavigation"], AllSitesAccess: true);
+        Assert.Equal([ExtensionGrants.AllSites], old.KeysToReconfirm);
+        Assert.Empty(new ExtensionGrants(["tabs"], AllSitesAccess: false).KeysToReconfirm);
+
+        var without = old.Without(old.KeysToReconfirm);
+        Assert.False(without.AllSitesAccess);
+        Assert.Equal(["tabs", "webNavigation"], without.Permissions);
+        // Без доступа ко всем сайтам блокировщик не проходит — значит, спрашивать заново нужно.
+        Assert.False(Check(AdBlocker, BrowserPolicy.Default, without).IsAllowed);
     }
 
     [Fact]
@@ -143,5 +186,14 @@ public class PermissionGrantTests
         // Файл прежней версии — без поля grants.
         File.WriteAllText(path, """[{"id":"c","name":"C","stagedPath":"p","hash":"h","popupPath":null,"iconPath":null,"addedAt":"2026-11-01T00:00:00+00:00"}]""");
         Assert.Null(store.Load()[0].Grants);
+
+        // Права, выданные до версий текста (без поля wording): все сайты нужно подтвердить заново.
+        File.WriteAllText(path, """[{"id":"d","name":"D","stagedPath":"p","hash":"h","popupPath":null,"iconPath":null,"addedAt":"2026-11-01T00:00:00+00:00","grants":{"permissions":["tabs"],"allSitesAccess":true}}]""");
+        var legacy = store.Load()[0].Grants!;
+        Assert.Equal(0, legacy.Wording);
+        Assert.Equal([ExtensionGrants.AllSites], legacy.KeysToReconfirm);
+
+        store.Save([store.Load()[0] with { Grants = legacy with { Wording = ExtensionGrants.CurrentWording } }]);
+        Assert.Empty(store.Load()[0].Grants!.KeysToReconfirm);
     }
 }

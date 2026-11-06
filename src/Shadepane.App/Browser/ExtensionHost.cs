@@ -83,6 +83,57 @@ internal sealed class ExtensionHost
             _store.Save(keep);
     }
 
+    /// <summary>
+    /// До создания окружения WebView2 (после <see cref="RevokeInvalidBeforeEngineStart"/>): права, выданные при прежнем
+    /// описании (<see cref="ExtensionGrants.KeysToReconfirm"/>), подтверждаются заново. <paramref name="confirm"/>
+    /// получает запись и изменившиеся права: true — оставить расширение, false — удалить его до того, как движок его загрузит.
+    /// Если право с новым описанием расширению уже не нужно (политика и так всё разрешает), окно не показывается.
+    /// </summary>
+    public void ReconfirmGrantsBeforeEngineStart(Func<ApprovedExtension, IReadOnlyList<string>, bool> confirm)
+    {
+        List<ApprovedExtension> stored;
+        try
+        {
+            stored = [.. _store.Load()];
+        }
+        catch (Exception ex) when (ex is InvalidDataException or IOException or UnauthorizedAccessException)
+        {
+            return; // повреждённый список — разберётся SyncAsync (fail closed)
+        }
+
+        var policy = AppServices.ExtensionPolicy;
+        var result = new List<ApprovedExtension>();
+        var changed = false;
+        foreach (var record in stored)
+        {
+            var keys = record.Grants?.KeysToReconfirm ?? [];
+            if (keys.Count == 0)
+            {
+                result.Add(record);
+                continue;
+            }
+
+            var reconfirmed = record with { Grants = record.Grants! with { Wording = ExtensionGrants.CurrentWording } };
+            changed = true;
+            if (_staging.Verify(record.StagedPath, record.Hash, policy, record.Grants!.Without(keys)).IsAllowed)
+            {
+                result.Add(reconfirmed); // эти права расширению больше не нужны — спрашивать не о чем
+                continue;
+            }
+            if (confirm(record, keys))
+            {
+                AppServices.Audit.Write("extension-grants-reconfirmed", new { record.Id, record.Name, grants = keys, wording = ExtensionGrants.CurrentWording });
+                result.Add(reconfirmed);
+                continue;
+            }
+            AppServices.Audit.Write("extension-removed", new { record.Id, record.Name, reason = "grants-not-reconfirmed", grants = keys });
+            if (ExtensionDirectory.IsInside(record.StagedPath, _staging.Root))
+                DeleteQuietly(record.StagedPath);
+        }
+        if (changed)
+            _store.Save(result);
+    }
+
     public async Task SyncAsync(CoreWebView2Profile profile)
     {
         var policy = AppServices.ExtensionPolicy;

@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Probe: captureVisibleTab via activeTab",
   "version": "1.0.0",
-  "description": "Проверка для стенда: даёт ли activeTab в Shadepane снимок вкладки (popup открывает сам браузер, а не chrome.action). Политика по умолчанию его отклоняет; ставится только с samples\\policies\\spike-permissive.json.",
+  "description": "Проверка для стенда: даёт ли activeTab в Shadepane снимок вкладки (popup открывает сам браузер, а не chrome.action). Без политики ставится через окно «Дать права» → activeTab.",
   "permissions": ["activeTab"],
   "action": {
     "default_title": "Capture probe (activeTab)",
